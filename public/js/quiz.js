@@ -26,14 +26,21 @@ const QUIZ_CATS = {
 
 // ── Wildcard config ───────────────────────────────────────────────────────────
 const WILDCARDS = {
-  world_swap:         { name:'World Swap',          icon:'🌌', color:'#7c3aed', desc:'Quiz theme warps to another dimension!' },
-  reverse_mode:       { name:'Reverse Thinking',    icon:'🔄', color:'#dc2626', desc:'Pick the WRONG answer to score points!' },
-  gravity_mode:       { name:'Gravity Flip',        icon:'🌊', color:'#0ea5e9', desc:'The entire UI flips upside down!' },
-  mirror_mode:        { name:'Mirror Mode',          icon:'🪞', color:'#db2777', desc:'Everything flips — trust nothing!' },
-  secret_dimension:   { name:'Secret Dimension',    icon:'🔮', color:'#d97706', desc:'A hidden bonus question has appeared!' },
-  chaos_round:        { name:'Chaos Round',         icon:'⚡', color:'#16a34a', desc:'Two questions at once — you choose first!' },
-  object_interaction: { name:'Object Interaction',  icon:'🌐', color:'#0891b2', desc:'Interact with the 3D object to reveal next question!' },
-  reality_shift:      { name:'Reality Shift',       icon:'🎭', color:'#ec4899', desc:'Screen mirror-flips AND you get a secret bonus question!' },
+  // ── Reality Shift mechanics (mid-question surprises) ──────────────────────
+  world_swap:         { name:'World Swap',          icon:'🌌', color:'#7c3aed', desc:'Quiz theme warps to another dimension!',            category:'shift' },
+  reverse_mode:       { name:'Reverse Thinking',    icon:'🔄', color:'#dc2626', desc:'Pick the WRONG answer to score points!',            category:'shift' },
+  gravity_mode:       { name:'Gravity Flip',        icon:'🌊', color:'#0ea5e9', desc:'The entire UI flips upside down!',                  category:'shift' },
+  mirror_mode:        { name:'Mirror Mode',         icon:'🪞', color:'#db2777', desc:'Everything flips horizontally — trust nothing!',    category:'shift' },
+  secret_dimension:   { name:'Secret Dimension',    icon:'🔮', color:'#d97706', desc:'A hidden bonus question appears for +200 points!',  category:'shift' },
+  chaos_round:        { name:'Chaos Round',         icon:'⚡', color:'#16a34a', desc:'Two questions at once — you choose which to answer.', category:'shift' },
+  object_interaction: { name:'Object Interaction',  icon:'🌐', color:'#0891b2', desc:'Interact with a 3D object to unlock the next question!', category:'shift' },
+  reality_shift:      { name:'Reality Shift',       icon:'🎭', color:'#ec4899', desc:'Mirror-flip + Gravity + Secret bonus question all at once!', category:'shift' },
+  // ── Engagement mechanics (whole-quiz features) ────────────────────────────
+  boss_battles:       { name:'Boss Battles',        icon:'🔥', color:'#dc2626', desc:'Every 5th question is a Boss: shorter timer, 1.5× points, 3D enemy.', category:'mechanic' },
+  betting:            { name:'Betting / Wager',     icon:'🎰', color:'#f59e0b', desc:'Before tricky questions, bet your points — double or nothing!',      category:'mechanic' },
+  streak_evolution:   { name:'Streak Evolution',    icon:'💥', color:'#8b5cf6', desc:'3-answer streak = intensifying visual effects & particle bursts.',    category:'mechanic' },
+  heatmap_questions:  { name:'Heatmap Questions',   icon:'🖼️', color:'#10b981', desc:'Questions with an image that players study before answering.',        category:'mechanic' },
+  memeify:            { name:'Meme-ify Mode',       icon:'🎭', color:'#6366f1', desc:'Sound effect panel (airhorn, wow, bruh) during play for fun!',        category:'mechanic' },
 };
 
 // ── Navigation ─────────────────────────────────────────────────────────────────
@@ -1125,12 +1132,16 @@ function renderBuilderSideContent(bs) {
 
 function renderWildcardBuilderPanel(bs) {
   const wc = bs.wildcard_config;
+  const mechanics = Object.entries(WILDCARDS).filter(([,v]) => v.category === 'mechanic');
+  const shifts    = Object.entries(WILDCARDS).filter(([,v]) => v.category === 'shift');
   return `
 <div style="padding:12px">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+
+  <!-- Master toggle row -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:10px 0;border-bottom:1px solid var(--border)">
     <div>
-      <div style="font-weight:700;font-size:15px">⚡ Wildcard Reality Shift</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Surprise gameplay events</div>
+      <div style="font-weight:700;font-size:15px">⚡ Engagement Engine</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Wildcards, Boss Battles, Betting & more</div>
     </div>
     <label class="qb-toggle-wrap">
       <input type="checkbox" ${bs.wildcard_enabled?'checked':''} onchange="toggleWildcards(this.checked)">
@@ -1139,33 +1150,63 @@ function renderWildcardBuilderPanel(bs) {
   </div>
 
   ${bs.wildcard_enabled ? `
-  <div class="wc-builder-section">
-    <label class="qb-field-label">Frequency</label>
+
+  <!-- ── SECTION 1: Engagement Mechanics ─────────────────────────── -->
+  <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:0 0 6px;padding:0 2px">🎮 Engagement Mechanics</div>
+  <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.4">Always-on features that shape the whole quiz.</div>
+  <div class="wc-type-list" style="margin-bottom:18px">
+    ${mechanics.map(([key, wcd]) => `
+      <label class="wc-type-item" style="background:${(wc.types||[]).includes(key)?'rgba(99,102,241,.06)':'transparent'};border-radius:8px">
+        <input type="checkbox" ${(wc.types||[]).includes(key)?'checked':''}
+               onchange="toggleWCType('${key}',this.checked)">
+        <span class="wc-type-icon" style="color:${wcd.color}">${wcd.icon}</span>
+        <span class="wc-type-info">
+          <span class="wc-type-name" style="display:flex;align-items:center;gap:6px">
+            ${wcd.name}
+            <span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:99px;background:rgba(99,102,241,.15);color:var(--accent);border:1px solid rgba(99,102,241,.3)">MECHANIC</span>
+          </span>
+          <span class="wc-type-desc">${wcd.desc}</span>
+        </span>
+      </label>`).join('')}
+  </div>
+
+  <!-- ── SECTION 2: Reality Shift Wildcards ───────────────────────── -->
+  <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:0 0 6px;padding:0 2px">🌀 Reality Shift Wildcards</div>
+  <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.4">Random mid-quiz surprise events — set trigger frequency below.</div>
+
+  <div style="margin-bottom:12px">
     <div class="wc-freq-btns">
       ${['rare','occasional','frequent'].map(f=>`
         <button class="wc-freq-btn ${(wc.frequency||'rare')===f?'active':''}"
                 onclick="setWCFrequency('${f}')">
-          ${f==='rare'?'🌟 Rare (~12%)':f==='occasional'?'⚡ Occasional (~22%)':'🔥 Frequent (~38%)'}
+          ${f==='rare'?'🌟 Rare — ~12% chance':f==='occasional'?'⚡ Occasional — ~22% chance':'🔥 Frequent — ~38% chance'}
         </button>`).join('')}
     </div>
+  </div>
 
-    <label class="qb-field-label" style="margin-top:14px">Wildcard Types</label>
-    <div class="wc-type-list">
-      ${Object.entries(WILDCARDS).map(([key, wcd]) => `
-        <label class="wc-type-item">
-          <input type="checkbox" ${(wc.types||[]).includes(key)?'checked':''}
-                 onchange="toggleWCType('${key}',this.checked)">
-          <span class="wc-type-icon" style="color:${wcd.color}">${wcd.icon}</span>
-          <span class="wc-type-info">
-            <span class="wc-type-name">${wcd.name}</span>
-            <span class="wc-type-desc">${wcd.desc}</span>
-          </span>
-        </label>`).join('')}
-    </div>
-  </div>` : `
+  <div class="wc-type-list" style="margin-bottom:14px">
+    ${shifts.map(([key, wcd]) => `
+      <label class="wc-type-item">
+        <input type="checkbox" ${(wc.types||[]).includes(key)?'checked':''}
+               onchange="toggleWCType('${key}',this.checked)">
+        <span class="wc-type-icon" style="color:${wcd.color}">${wcd.icon}</span>
+        <span class="wc-type-info">
+          <span class="wc-type-name">${wcd.name}</span>
+          <span class="wc-type-desc">${wcd.desc}</span>
+        </span>
+      </label>`).join('')}
+  </div>
+
+  <div style="padding:10px 12px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:10px;font-size:12px;color:var(--text-muted);line-height:1.5">
+    💡 <strong>Tip:</strong> For casual fun — enable <em>Boss Battles + Streak Evolution</em>.
+    For maximum chaos — add <em>Reality Shift + Gravity + Betting</em>.
+  </div>
+
+  ` : `
   <div class="wc-disabled-msg">
-    <span style="font-size:32px">⚡</span>
-    <p>Enable Wildcards to add surprise gameplay twists to your quiz!</p>
+    <span style="font-size:40px">⚡</span>
+    <p style="font-weight:700;font-size:15px;color:var(--text)">Engagement Engine is off</p>
+    <p style="font-size:13px">Enable to unlock Boss Battles, Betting, Streak Evolution, Wildcards and more!</p>
   </div>`}
 </div>`;
 }

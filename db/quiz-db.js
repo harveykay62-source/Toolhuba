@@ -120,8 +120,10 @@ async function initQuizDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_quiz_plays_quiz ON quiz_plays(quiz_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_quiz_plays_user ON quiz_plays(user_id)`);
 
-  const { rows } = await pool.query(`SELECT id FROM quizzes WHERE is_starter=true LIMIT 1`);
-  if (!rows.length) await seedStarterQuizzes();
+  // Always run the seed — ON CONFLICT DO NOTHING makes it safe and idempotent.
+  // This guarantees the Jack quiz (and all starters) exist even on existing DBs
+  // where older starters were already seeded before the Jack quiz was added.
+  await seedStarterQuizzes();
   console.log('✅ Quiz database ready');
 }
 
