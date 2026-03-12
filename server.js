@@ -117,7 +117,7 @@ const { setDisabledTools, getAllTools } = require('./db/tools');
 (async () => {
   try {
     await initDB();
-    await initQuizDB();
+    await initQuizDB(); // seeds starter quizzes automatically if missing
     const disabledTools = await getDisabledTools();
     setDisabledTools(disabledTools);
     startServer(PORT);

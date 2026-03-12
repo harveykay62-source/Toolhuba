@@ -248,17 +248,22 @@ function renderQuizIntro(data) {
   let wcConfig = {};
   try { wcConfig = JSON.parse(quiz.wildcard_config||'{}'); } catch{}
 
+  const isJackQuiz = quiz.id === 'starter-jacksucksatlife-v1' || quiz.cover_color === '#ff0000';
+
   appEl.innerHTML = `
 <div class="quiz-intro-wrap">
   <button class="quiz-back-btn" onclick="navigateQuiz('hub')">← Back</button>
   <div class="quiz-intro-card">
-    <div class="quiz-intro-cover" style="background:${quiz.cover_color||'#6366f1'}">
-      <span style="font-size:72px">${quiz.cover_emoji||'🧠'}</span>
+    <div class="quiz-intro-cover ${isJackQuiz ? 'jack-quiz-hero' : ''}" style="background:${isJackQuiz ? '' : (quiz.cover_color||'#6366f1')};position:relative;overflow:hidden;">
+      ${isJackQuiz ? `<canvas id="jackIntroCanvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.5;pointer-events:none"></canvas>` : ''}
+      <span style="font-size:72px;position:relative;z-index:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,.6))">${quiz.cover_emoji||'🧠'}</span>
+      ${isJackQuiz ? `<div style="position:absolute;bottom:12px;right:14px;z-index:1;font-size:11px;font-weight:800;color:rgba(255,255,255,.8);letter-spacing:.05em">▶️ FEATURED QUIZ</div>` : ''}
     </div>
     <div class="quiz-intro-body">
       <div class="quiz-intro-meta">
         <span class="quiz-cat-tag">${cat.emoji} ${cat.name}</span>
         ${quiz.wildcard_enabled ? `<span class="quiz-wc-badge-lg">⚡ Wildcards Active</span>` : ''}
+        ${quiz.is_starter ? `<span style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid #f59e0b;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700">⭐ Featured</span>` : ''}
       </div>
       <h1 class="quiz-intro-title">${escQ(quiz.title)}</h1>
       <p class="quiz-intro-desc">${escQ(quiz.description||'')}</p>
@@ -309,6 +314,11 @@ function renderQuizIntro(data) {
     </div>
   </div>` : ''}
 </div>`;
+
+  // YouTube 3D hero for Jack quiz
+  if (isJackQuiz) {
+    setTimeout(() => initYouTube3DHero('jackIntroCanvas'), 100);
+  }
 }
 
 function startQuizGame() {
@@ -508,7 +518,7 @@ function startQuestionTimer(seconds) {
     if (ps.timeLeft <= 0) {
       clearTimeout(ps.timerId);
       // Time's up — auto-submit wrong
-      handleAnswer(-1, false, 0);
+      selectAnswer(-1);
       return;
     }
     ps.timerId = setTimeout(tick, 250);

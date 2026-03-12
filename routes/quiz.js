@@ -102,6 +102,33 @@ router.put('/profile', requireAuth, async (req, res) => {
   }
 });
 
+// ── GET /api/quiz/studio — Creator analytics dashboard ───────────────────────
+// NOTE: must be declared BEFORE /:id to avoid being swallowed by the wildcard
+router.get('/studio', requireAuth, async (req, res) => {
+  try {
+    const data = await getCreatorStudio(req.session.userId);
+    res.json(data);
+  } catch (e) {
+    console.error('studio:', e.message);
+    res.status(500).json({ error: 'Failed to load studio' });
+  }
+});
+
+// ── GET /api/quiz/badges — Compute user badges ────────────────────────────────
+router.get('/badges', requireAuth, async (req, res) => {
+  try {
+    const uid = req.session.userId;
+    const [prof, stats] = await Promise.all([
+      pool.query(`SELECT * FROM user_quiz_profiles WHERE user_id=$1`, [uid]),
+      pool.query(`SELECT COUNT(*) as plays FROM quiz_plays WHERE user_id=$1`, [uid]),
+    ]);
+    const badges = computeBadges(prof.rows[0], stats.rows[0]);
+    res.json({ badges });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
 // ── GET /api/quiz/:id ─────────────────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
   try {
@@ -402,29 +429,17 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
   }
 });
 
-// ── GET /api/quiz/studio — Creator analytics dashboard ───────────────────────
-router.get('/studio', requireAuth, async (req, res) => {
+// ── Admin: POST /api/quiz/admin/reseed ────────────────────────────────────────
+router.post('/admin/reseed', requireAdmin, async (req, res) => {
   try {
-    const data = await getCreatorStudio(req.session.userId);
-    res.json(data);
+    const { seedStarterQuizzes } = require('../db/quiz-db');
+    // Force re-seed by deleting the starter quiz first
+    await pool.query(`DELETE FROM quizzes WHERE is_starter=true`);
+    await seedStarterQuizzes();
+    res.json({ success: true, message: 'Starter quizzes re-seeded!' });
   } catch (e) {
-    console.error('studio:', e.message);
-    res.status(500).json({ error: 'Failed to load studio' });
-  }
-});
-
-// ── GET /api/quiz/badges — Compute user badges ────────────────────────────────
-router.get('/badges', requireAuth, async (req, res) => {
-  try {
-    const uid = req.session.userId;
-    const [prof, stats] = await Promise.all([
-      pool.query(`SELECT * FROM user_quiz_profiles WHERE user_id=$1`, [uid]),
-      pool.query(`SELECT COUNT(*) as plays FROM quiz_plays WHERE user_id=$1`, [uid]),
-    ]);
-    const badges = computeBadges(prof.rows[0], stats.rows[0]);
-    res.json({ badges });
-  } catch (e) {
-    res.status(500).json({ error: 'Failed' });
+    console.error('reseed:', e.message);
+    res.status(500).json({ error: 'Failed to reseed: ' + e.message });
   }
 });
 

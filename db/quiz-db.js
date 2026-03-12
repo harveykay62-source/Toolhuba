@@ -382,4 +382,5 @@ module.exports = {
   initQuizDB, compressQuestions, decompressQuestions,
   getQuizWithQuestions, getQuizList,
   getCreatorStudio, computeBadges, atomicWriteJSON,
+  seedStarterQuizzes,
 };

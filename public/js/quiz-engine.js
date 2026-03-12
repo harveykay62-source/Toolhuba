@@ -52,10 +52,12 @@ function setBet(amount) {
 }
 
 function confirmBet() {
-  // Store bet, proceed to question
+  // Store bet amount from slider, then proceed directly to the question
+  // (must call _doRenderQuestion directly — not renderCurrentQuestion —
+  //  to avoid shouldShowBet returning true again for the same index)
   const slider = document.getElementById('betSlider');
   if (slider) QZ.playerState._betAmount = parseInt(slider.value) || 0;
-  renderCurrentQuestion();
+  _doRenderQuestion(null);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
