@@ -165,4 +165,35 @@ router.get('/paypal-button', async (req, res) => {
   res.json({ html: btn.button_html, price: btn.price, plan: btn.plan_type });
 });
 
+// ── Bug Reports ────────────────────────────────────────────────────────────────
+router.post('/bug-report', async (req, res) => {
+  try {
+    const { tool, description, userAgent, url } = req.body;
+    if (!description || !description.trim()) return res.status(400).json({ error: 'Description required' });
+    const userId = req.session.userId || null;
+    const userEmail = req.session.email || null;
+    await db.run(
+      `INSERT INTO bug_reports (user_id, user_email, tool_name, description, user_agent, url) VALUES (?,?,?,?,?,?)`,
+      [userId, userEmail, tool || null, description.trim(), userAgent || '', url || '']
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Bug report error:', err);
+    res.status(500).json({ error: 'Failed to save report' });
+  }
+});
+
+// ── Admin: Bug Reports ────────────────────────────────────────────────────────
+router.get('/admin/bug-reports', requireAdmin, async (req, res) => {
+  const reports = await db.all(`SELECT * FROM bug_reports ORDER BY created_at DESC LIMIT 100`);
+  res.json({ reports });
+});
+
+router.post('/admin/bug-reports/:id/status', requireAdmin, async (req, res) => {
+  const { status } = req.body;
+  if (!['open','resolved','wontfix'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  await db.run('UPDATE bug_reports SET status=? WHERE id=?', [status, req.params.id]);
+  res.json({ success: true });
+});
+
 module.exports = router;

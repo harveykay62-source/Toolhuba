@@ -92,6 +92,18 @@ async function initDB() {
     button_html TEXT NOT NULL, price REAL NOT NULL, is_active INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT NOW()
   )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS bug_reports (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER,
+    user_email TEXT,
+    tool_name TEXT,
+    description TEXT NOT NULL,
+    user_agent TEXT,
+    url TEXT,
+    status TEXT DEFAULT 'open',
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS daily_stats (
     id SERIAL PRIMARY KEY, date TEXT NOT NULL UNIQUE,
     page_views INTEGER DEFAULT 0, tool_uses INTEGER DEFAULT 0,

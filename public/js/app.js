@@ -98,46 +98,43 @@ function setupAds() {
   const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin';
   if (isPremium || !APP.settings.adsEnabled) return;
 
-  const client = APP.settings.adsenseClient;
-  const banner = APP.settings.adsenseBanner;
-  if (!client || client === 'ca-pub-XXXXXXXXXXXXXXXX') return;
+  const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
+  const slot   = APP.settings.adsenseBanner  || '';
 
-  // Inject AdSense script
-  const s = document.getElementById('adsenseScript');
-  if (s) {
-    s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
-    s.setAttribute('crossorigin','anonymous');
-    s.setAttribute('async','true');
+  // Show top banner
+  const topBar = document.getElementById('adBarTop');
+  if (topBar) {
+    topBar.classList.remove('hidden');
+    document.getElementById('adTop').innerHTML = `
+      <ins class="adsbygoogle" style="display:block;width:100%;min-height:90px"
+        data-ad-client="${client}" data-ad-slot="${slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>`;
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
   }
 
-  // Show top ad bar
-  const topBar = document.getElementById('adBarTop');
-  topBar.classList.remove('hidden');
-  document.getElementById('adTop').innerHTML = `
-    <ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px"
-      data-ad-client="${client}" data-ad-slot="${banner}"></ins>
-    <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>`;
-
   const bottomBar = document.getElementById('adBarBottom');
-  bottomBar.classList.remove('hidden');
-  document.getElementById('adBottom').innerHTML = `
-    <ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px"
-      data-ad-client="${client}" data-ad-slot="${banner}"></ins>
-    <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>`;
+  if (bottomBar) {
+    bottomBar.classList.remove('hidden');
+    document.getElementById('adBottom').innerHTML = `
+      <ins class="adsbygoogle" style="display:block;width:100%;min-height:90px"
+        data-ad-client="${client}" data-ad-slot="${slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>`;
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+  }
 }
 
 function getToolPageAd() {
   const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin';
   if (isPremium || !APP.settings.adsEnabled) return '';
-  const client = APP.settings.adsenseClient;
-  const banner = APP.settings.adsenseBanner;
-  if (!client || client === 'ca-pub-XXXXXXXXXXXXXXXX') return '';
+  const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
+  const slot   = APP.settings.adsenseBanner  || '';
+  const id = 'ad_' + Math.random().toString(36).slice(2);
+  setTimeout(() => {
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+  }, 100);
   return `
     <div class="tool-ad">
       <div class="ad-label">Advertisement</div>
-      <ins class="adsbygoogle" style="display:inline-block;width:100%;min-height:90px"
-        data-ad-client="${client}" data-ad-slot="${banner}"></ins>
-      <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>
+      <ins id="${id}" class="adsbygoogle" style="display:block;width:100%;min-height:90px"
+        data-ad-client="${client}" data-ad-slot="${slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>
     </div>`;
 }
 
@@ -303,6 +300,7 @@ function renderAdminDrawerContent(d) {
       <button class="admin-drawer-tab ${_adminDrawerTab==='manage-tools'?'active':''}" data-tab="manage-tools" onclick="switchDrawerTab('manage-tools')">🛠 Enable/Disable</button>
       <button class="admin-drawer-tab ${_adminDrawerTab==='settings'?'active':''}" data-tab="settings" onclick="switchDrawerTab('settings')">⚙️ Settings</button>
       <button class="admin-drawer-tab ${_adminDrawerTab==='transactions'?'active':''}" data-tab="transactions" onclick="switchDrawerTab('transactions')">💳 Transactions</button>
+      <button class="admin-drawer-tab ${_adminDrawerTab==='bug-reports'?'active':''}" data-tab="bug-reports" onclick="switchDrawerTab('bug-reports')">🐛 Bug Reports</button>
     </div>
     <div id="drawerTabBody" class="admin-drawer-tab-body"></div>`;
   renderDrawerTab(_adminDrawerTab, d);
@@ -486,6 +484,36 @@ function renderDrawerTab(tab, d) {
               </div>`).join('')}
           </div>` : ''}
       </div>`;
+
+  } else if (tab === 'bug-reports') {
+    body.innerHTML = '<div style="padding:20px;text-align:center"><div class="spinner"></div></div>';
+    apiFetch('/api/admin/bug-reports').then(bd => {
+      if (!bd.reports.length) {
+        body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No bug reports yet.</div>';
+        return;
+      }
+      const statusColor = { open:'var(--amber)', resolved:'var(--green)', wontfix:'var(--text-muted)' };
+      body.innerHTML = `<div style="overflow-x:auto">
+        <table class="admin-table">
+          <thead><tr><th>Tool</th><th>Description</th><th>User</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>${bd.reports.map(r => `
+            <tr>
+              <td style="font-size:12px;color:var(--accent)">${r.tool_name || '—'}</td>
+              <td style="font-size:12px;max-width:260px;word-break:break-word">${r.description}</td>
+              <td style="font-size:11px;color:var(--text-muted)">${r.user_email || 'Guest'}</td>
+              <td style="font-size:11px">${new Date(r.created_at).toLocaleDateString()}</td>
+              <td>
+                <select style="padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:${statusColor[r.status]||'var(--text)'}" onchange="setBugStatus(${r.id},this.value)">
+                  <option value="open" ${r.status==='open'?'selected':''}>Open</option>
+                  <option value="resolved" ${r.status==='resolved'?'selected':''}>Resolved</option>
+                  <option value="wontfix" ${r.status==='wontfix'?'selected':''}>Won't Fix</option>
+                </select>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }).catch(() => { body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px">Failed to load reports.</p>'; });
 
   } else if (tab === 'transactions') {
     if (!d.transactions?.length) {
@@ -843,5 +871,36 @@ const ICONS = {
   back:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>`,
   run:      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
 };
+
+// ── Admin Helper Functions ────────────────────────────────────────────────────
+async function setUserRole(id, role) {
+  try { await apiFetch(`/api/admin/users/${id}/role`,'POST',{role}); toast('Role updated','success'); }
+  catch(e) { toast('Failed: '+e.message,'error'); }
+}
+async function toggleUser(id, isActive) {
+  try { await apiFetch(`/api/admin/users/${id}/toggle`,'POST',{}); toast(isActive?'User banned':'User unbanned','success'); loadAdminDrawer(true); }
+  catch(e) { toast('Failed: '+e.message,'error'); }
+}
+async function toggleTool(toolId, enabled) {
+  try { await apiFetch(`/api/admin/tools/${toolId}/toggle`,'POST',{enabled}); toast(`Tool ${enabled?'enabled':'disabled'}`,'success'); }
+  catch(e) { toast('Failed: '+e.message,'error'); }
+}
+async function saveSetting(key, value) {
+  try { await apiFetch('/api/admin/settings','POST',{key,value}); toast('Saved','success'); }
+  catch(e) { toast('Failed: '+e.message,'error'); }
+}
+async function savePaypalBtn() {
+  const name = document.getElementById('ppBtnName')?.value.trim();
+  const html = document.getElementById('ppBtnHtml')?.value.trim();
+  const price = document.getElementById('ppBtnPrice')?.value;
+  const plan_type = document.getElementById('ppBtnType')?.value;
+  if (!name||!html||!price) { toast('Fill in all PayPal button fields','error'); return; }
+  try { await apiFetch('/api/admin/paypal-buttons','POST',{name,button_html:html,price,plan_type}); toast('PayPal button saved','success'); loadAdminDrawer(true); }
+  catch(e) { toast('Failed: '+e.message,'error'); }
+}
+async function setBugStatus(id, status) {
+  try { await apiFetch(`/api/admin/bug-reports/${id}/status`,'POST',{status}); toast('Status updated','success'); }
+  catch(e) { toast('Failed: '+e.message,'error'); }
+}
 
 init();
