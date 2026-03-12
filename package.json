@@ -1,7 +1,7 @@
 {
   "name": "toolhub-ai",
-  "version": "2.0.0",
-  "description": "ToolHub AI — Your free all-in-one online toolkit",
+  "version": "3.0.0",
+  "description": "ToolHub AI Evolution — High-performance quiz platform with Boss Battles, Betting, Streaks & 50k Strategy",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

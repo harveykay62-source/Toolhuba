@@ -8,6 +8,15 @@ const compression = require('compression');
 const morgan = require('morgan');
 const cors = require('cors');
 const path = require('path');
+const fs   = require('fs');
+
+// ── Persistent data directory (Render disk: /data) ────────────────────────────
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const QUIZ_DATA_DIR = path.join(DATA_DIR, 'quizzes');
+[DATA_DIR, QUIZ_DATA_DIR].forEach(dir => {
+  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch(e) {}
+});
+global.DATA_DIR = DATA_DIR;
 
 const app = express();
 const PORT = parseInt(process.env.PORT) || 3000;

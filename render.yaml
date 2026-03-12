@@ -4,7 +4,7 @@ services:
     env: node
     buildCommand: npm install
     startCommand: node server.js
-    plan: free
+    plan: starter          # upgrade to starter for persistent disk support
     envVars:
       - key: NODE_ENV
         value: production
@@ -20,6 +20,14 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: DATA_DIR
+        value: /data
+
+    # ── Persistent Disk (survives restarts/redeploys) ──────────────────────
+    disk:
+      name: toolhub-data
+      mountPath: /data
+      sizeGB: 1             # 1 GB = ~500k compressed quizzes @ 2KB each
 
 databases:
   - name: toolhub-db

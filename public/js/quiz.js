@@ -28,11 +28,12 @@ const QUIZ_CATS = {
 const WILDCARDS = {
   world_swap:         { name:'World Swap',          icon:'🌌', color:'#7c3aed', desc:'Quiz theme warps to another dimension!' },
   reverse_mode:       { name:'Reverse Thinking',    icon:'🔄', color:'#dc2626', desc:'Pick the WRONG answer to score points!' },
-  gravity_mode:       { name:'Gravity Mode',        icon:'🌊', color:'#0ea5e9', desc:'Answers float — grab them before they drift away!' },
-  mirror_mode:        { name:'Mirror Mode',         icon:'🪞', color:'#db2777', desc:'Everything flips — trust nothing!' },
+  gravity_mode:       { name:'Gravity Flip',        icon:'🌊', color:'#0ea5e9', desc:'The entire UI flips upside down!' },
+  mirror_mode:        { name:'Mirror Mode',          icon:'🪞', color:'#db2777', desc:'Everything flips — trust nothing!' },
   secret_dimension:   { name:'Secret Dimension',    icon:'🔮', color:'#d97706', desc:'A hidden bonus question has appeared!' },
   chaos_round:        { name:'Chaos Round',         icon:'⚡', color:'#16a34a', desc:'Two questions at once — you choose first!' },
   object_interaction: { name:'Object Interaction',  icon:'🌐', color:'#0891b2', desc:'Interact with the 3D object to reveal next question!' },
+  reality_shift:      { name:'Reality Shift',       icon:'🎭', color:'#ec4899', desc:'Screen mirror-flips AND you get a secret bonus question!' },
 };
 
 // ── Navigation ─────────────────────────────────────────────────────────────────
@@ -171,7 +172,13 @@ async function renderQuizHub(filter={}) {
 </div>`;
 
     // Initialize Three.js hero animation
-    setTimeout(() => initQuizHero3D('qhubCanvas'), 100);
+    setTimeout(() => {
+      if (filter.category === 'pop-culture') {
+        initYouTube3DHero('qhubCanvas');
+      } else {
+        initQuizHero3D('qhubCanvas');
+      }
+    }, 100);
 
     // Wildcard showcase after a beat
     let _qsDebounce;
@@ -329,7 +336,16 @@ function startQuizGame() {
     timeLeft:     0,
     isReverseMode: false,
     isMirrorMode:  false,
+    isGravityFlipped: false,
     chaosSecondQ:  null,
+    // New engagement fields
+    streak:        0,
+    streakMax:     0,
+    bossBattlesBeaten: 0,
+    betsWon:       0,
+    _betAmount:    0,
+    memeifyOn:     false,
+    answerLocked:  false,
   };
 
   renderCurrentQuestion();
@@ -339,42 +355,78 @@ function renderCurrentQuestion() {
   const ps = QZ.playerState;
   if (!ps) return;
 
+  // ── Boss Battle check ──────────────────────────────────────────────────────
+  if (isBossQuestion(ps.currentIndex, ps)) {
+    const bossData = getBossData(ps.currentIndex);
+    showBossIntro(bossData, () => _doRenderQuestion(bossData));
+    return;
+  }
+
+  // ── Betting mechanic check ─────────────────────────────────────────────────
+  if (shouldShowBet(ps.currentIndex, ps)) {
+    renderBetScreen(() => _doRenderQuestion(null));
+    return;
+  }
+
+  _doRenderQuestion(null);
+}
+
+function _doRenderQuestion(bossData) {
+  const ps = QZ.playerState;
+  if (!ps) return;
+
   const q     = ps.questions[ps.currentIndex];
   const total = ps.questions.length;
   const pct   = Math.round(((ps.currentIndex) / total) * 100);
+  const isBoss = !!bossData;
 
   clearTimeout(ps.timerId);
   ps.qStartTime = Date.now();
-  ps.timeLeft   = q.time_limit || 30;
+  ps.timeLeft   = isBoss
+    ? Math.floor((q.time_limit || 30) * (bossData.timeMultiplier || 0.6))
+    : (q.time_limit || 30);
   ps.activeWildcard = null;
+  ps.answerLocked = false;
 
-  // Roll wildcard (rare: ~12%, occasional: ~22%, frequent: ~38%)
+  // Roll wildcard
   const wcFreqMap = { rare:0.12, occasional:0.22, frequent:0.38 };
   const wcChance  = wcFreqMap[ps.wcConfig.frequency||'rare'] || 0.12;
   const wcTypes   = ps.wcConfig.types || [];
   let triggerWC   = null;
-  if (ps.wcConfig.enabled && wcTypes.length && ps.currentIndex >= 2 && Math.random() < wcChance) {
+  if (ps.wcConfig.enabled && wcTypes.length && ps.currentIndex >= 2 && !isBoss && Math.random() < wcChance) {
     triggerWC = wcTypes[Math.floor(Math.random() * wcTypes.length)];
     ps.wildcardsUsed++;
   }
 
-  const appEl = document.getElementById('app');
+  const appEl    = document.getElementById('app');
   const modeClass = ps.isMirrorMode ? 'quiz-mirror-mode' : '';
+  const bossClass = isBoss ? 'quiz-boss-mode' : '';
+  const gravClass = ps.isGravityFlipped ? 'quiz-gravity-flipped' : '';
+
+  // Is this a heatmap question?
+  const isHeatmap = q.type === 'heatmap';
 
   appEl.innerHTML = `
-<div class="quiz-player-wrap ${modeClass}" id="quizPlayerWrap">
+<div class="quiz-player-wrap ${modeClass} ${bossClass} ${gravClass}" id="quizPlayerWrap">
   <!-- Header -->
   <div class="qp-header">
     <button class="qp-exit" onclick="confirmQuitQuiz()">✕</button>
     <div class="qp-progress-info">
-      <span class="qp-qnum">Q${ps.currentIndex+1} / ${total}</span>
+      <span class="qp-qnum">Q${ps.currentIndex+1} / ${total}${isBoss?' 🔥 BOSS':''}${q.isFinalBoss?' ⚡ FINAL BOSS':''}</span>
       <div class="qp-progress-bar"><div class="qp-progress-fill" style="width:${pct}%"></div></div>
     </div>
-    <div class="qp-score-disp">⭐ ${ps.score}</div>
+    <div class="qp-score-disp">⭐ ${ps.score.toLocaleString()}</div>
+    <button class="qp-meme-toggle" id="memeifyToggle" onclick="toggleMemeify()" title="Meme-ify">🎭</button>
   </div>
 
+  ${isBoss ? `<div class="boss-active-bar" style="border-color:${bossData.color}">
+    ${bossData.emoji} <strong>BOSS BATTLE</strong> — ${bossData.name} — Timer accelerated!
+  </div>` : ''}
+
+  ${ps._betAmount > 0 ? `<div class="bet-active-bar">🎰 Wager: <strong>${ps._betAmount} points</strong> on the line!</div>` : ''}
+
   <!-- Timer -->
-  <div class="qp-timer-bar">
+  <div class="qp-timer-bar ${isBoss ? 'boss-timer' : ''}">
     <div class="qp-timer-fill" id="timerFill" style="width:100%"></div>
   </div>
   <div class="qp-timer-num" id="timerNum">${ps.timeLeft}</div>
@@ -383,30 +435,33 @@ function renderCurrentQuestion() {
   <div id="qpModeBadges" class="qp-mode-badges">
     ${ps.isReverseMode ? '<div class="qp-mode-badge reverse">🔄 REVERSE MODE — Pick the WRONG answer!</div>' : ''}
     ${ps.isMirrorMode  ? '<div class="qp-mode-badge mirror">🪞 MIRROR MODE</div>' : ''}
+    ${ps.isGravityFlipped ? '<div class="qp-mode-badge gravity">🌊 GRAVITY FLIP — UI is upside down!</div>' : ''}
   </div>
 
   <!-- Question -->
   <div class="qp-question-area" id="qpQuestionArea">
     ${q.image_url ? `<div class="qp-question-img"><img src="${q.image_url}" alt="Question image" loading="lazy"></div>` : ''}
     <div class="qp-question-text">${escQ(q.text)}</div>
+    ${isBoss ? `<div class="boss-points-badge">⚡ ${q.points||300} BOSS POINTS</div>` : ''}
   </div>
 
   <!-- Options -->
   <div class="qp-options" id="qpOptions">
-    ${renderOptions(q, ps.isReverseMode)}
+    ${isHeatmap ? renderHeatmapQuestion(q, ps.currentIndex) : renderOptions(q, ps.isReverseMode)}
   </div>
 
   <!-- Wildcard overlay placeholder -->
   <div id="wcOverlay" class="wc-overlay hidden"></div>
 </div>`;
 
-  // Start timer
-  startQuestionTimer(q.time_limit || 30);
+  startQuestionTimer(ps.timeLeft);
 
-  // Trigger wildcard after a beat
   if (triggerWC) {
     setTimeout(() => triggerWildcard(triggerWC), 800);
   }
+
+  // Apply current streak styling
+  applyStreakEffect(ps.streak);
 }
 
 function renderOptions(q, reverseMode) {
@@ -483,30 +538,63 @@ function selectAnswer(optIndex) {
   const timeTaken= Math.floor((Date.now() - ps.qStartTime) / 1000);
   const timeLimit= q.time_limit || 30;
   const maxPts   = q.points || 100;
+  const isBoss   = isBossQuestion(ps.currentIndex, ps);
 
   let isCorrect;
   if (ps.isReverseMode) {
-    // In reverse mode, you score by picking WRONG answer
     isCorrect = optIndex !== correct && optIndex !== -1;
   } else {
     isCorrect = optIndex === correct;
   }
 
-  // Speed bonus: faster = more points
+  // Speed bonus
   const timePct  = Math.max(0, 1 - (timeTaken / timeLimit));
-  const earned   = isCorrect ? Math.round(maxPts * (0.5 + 0.5 * timePct)) : 0;
+  let earned     = isCorrect ? Math.round(maxPts * (0.5 + 0.5 * timePct)) : 0;
+
+  // Boss multiplier
+  if (isBoss && isCorrect) {
+    earned = Math.round(earned * 1.5);
+    ps.bossBattlesBeaten++;
+  }
+
+  // Bet resolution
+  if (ps._betAmount > 0) {
+    if (isCorrect) {
+      earned += ps._betAmount;
+      ps.betsWon++;
+      toast(`🎰 +${ps._betAmount} Wager Won!`, 'success', 2000);
+    } else {
+      ps.score = Math.max(0, ps.score - ps._betAmount);
+      toast(`🎰 Lost ${ps._betAmount} wager!`, 'warn', 2000);
+    }
+    ps._betAmount = 0;
+  }
 
   ps.score += earned;
-  if (isCorrect) ps.correct++;
-  ps.results.push({ questionIndex: ps.currentIndex, correct: isCorrect, earned, timeTaken });
+  if (isCorrect) {
+    ps.correct++;
+    ps.streak++;
+    if (ps.streak > ps.streakMax) ps.streakMax = ps.streak;
+  } else {
+    ps.streak = 0;
+  }
 
-  // Visual feedback
+  // Meme-ify auto-sound
+  if (ps.memeifyOn) {
+    if (isCorrect) MEME_SOUNDS.gg();
+    else MEME_SOUNDS.sad();
+  }
+
+  ps.results.push({ questionIndex: ps.currentIndex, correct: isCorrect, earned, timeTaken, isBoss });
   showAnswerFeedback(optIndex, correct, isCorrect, earned, answerObj?.explanation);
 
-  // Reset modes after question
-  ps.isReverseMode = false;
-  ps.isMirrorMode  = false;
-  ps.answerLocked  = false;
+  // Update streak UI after answering
+  setTimeout(() => applyStreakEffect(ps.streak), 100);
+
+  ps.isReverseMode    = false;
+  ps.isMirrorMode     = false;
+  ps.isGravityFlipped = false;
+  ps.answerLocked     = false;
 }
 
 function showAnswerFeedback(chosen, correct, isCorrect, earned, explanation) {
@@ -600,11 +688,28 @@ function applyWildcardEffect(type) {
   }
 
   else if (type === 'gravity_mode') {
-    document.querySelectorAll('.qp-opt').forEach((btn, i) => {
-      btn.classList.add('gravity-float');
-      btn.style.animationDelay = `${i * 0.2}s`;
-    });
-    toast('🌊 Gravity Mode! Catch the floating answers!', 'info', 2500);
+    const ps = QZ.playerState;
+    if (ps) ps.isGravityFlipped = true;
+    const wrap = document.getElementById('quizPlayerWrap');
+    if (wrap) {
+      wrap.classList.add('quiz-gravity-flipped');
+      setTimeout(() => { if(wrap) wrap.classList.remove('quiz-gravity-flipped'); ps && (ps.isGravityFlipped=false); }, 18000);
+    }
+    const badge = document.getElementById('qpModeBadges');
+    if (badge) badge.innerHTML += '<div class="qp-mode-badge gravity">🌊 GRAVITY FLIP — Everything is upside down!</div>';
+    toast('🌊 Gravity Flip! The world turned upside down!', 'warn', 2500);
+  }
+
+  else if (type === 'reality_shift') {
+    const ps = QZ.playerState;
+    if (ps) { ps.isMirrorMode = true; ps.isGravityFlipped = true; }
+    const wrap = document.getElementById('quizPlayerWrap');
+    if (wrap) {
+      wrap.classList.add('quiz-mirror-mode','quiz-gravity-flipped');
+      setTimeout(() => { if(wrap){wrap.classList.remove('quiz-mirror-mode','quiz-gravity-flipped');} if(ps){ps.isMirrorMode=false;ps.isGravityFlipped=false;} }, 18000);
+    }
+    toast('🎭 REALITY SHIFT! Mirror + Gravity = Pure Chaos!', 'warn', 3000);
+    setTimeout(() => showSecretDimensionQuestion(), 3500);
   }
 
   else if (type === 'mirror_mode') {
@@ -764,12 +869,13 @@ async function showQuizResults() {
                 : pct >= 35 ? { lbl:'C Rank',   color:'#0ea5e9', emoji:'🥉' }
                 :             { lbl:'Try Again', color:'#ef4444', emoji:'📚' };
 
-  // Save score
+  // Save score with enhanced stats
   try {
     await apiFetch(`/api/quiz/${ps.quizId}/play`, 'POST', {
       score: ps.score, maxScore: ps.maxScore,
       questionsAnswered: total, wildcardsTriggered: ps.wildcardsUsed,
-      timeTaken: timeSec
+      bossBattlesBeaten: ps.bossBattlesBeaten, betsWon: ps.betsWon,
+      streakMax: ps.streakMax, timeTaken: timeSec
     });
   } catch(e) {}
 
@@ -786,7 +892,11 @@ async function showQuizResults() {
     <div class="qr-stat"><span class="qr-stat-n">${ps.correct}/${total}</span><span>Correct</span></div>
     <div class="qr-stat"><span class="qr-stat-n">${timeSec}s</span><span>Time</span></div>
     <div class="qr-stat"><span class="qr-stat-n">${ps.wildcardsUsed}</span><span>Wildcards</span></div>
+    <div class="qr-stat"><span class="qr-stat-n">${ps.streakMax}</span><span>Best Streak</span></div>
+    <div class="qr-stat"><span class="qr-stat-n">${ps.bossBattlesBeaten}</span><span>Bosses Beaten</span></div>
+    <div class="qr-stat"><span class="qr-stat-n">${ps.betsWon}</span><span>Bets Won</span></div>
     <div class="qr-stat"><span class="qr-stat-n">${Math.round(ps.score / Math.max(1,total))}</span><span>Avg Pts/Q</span></div>
+    <div class="qr-stat"><span class="qr-stat-n">${pct}%</span><span>Accuracy</span></div>
   </div>
 
   <div class="qr-answer-review">
@@ -1299,12 +1409,12 @@ async function renderQuizProfile() {
     <div class="qp-edit-hdr">✏️ Customize Profile</div>
     <label class="qb-field-label">Bio</label>
     <textarea class="qb-input" id="profileBioInput" rows="2" maxlength="200" placeholder="Tell people about yourself…">${escQ(d.profile?.bio||'')}</textarea>
-    <label class="qb-field-label">3D Profile Object</label>
+    <label class="qb-field-label">3D Showcase Object</label>
     <div class="qp-3d-selector">
-      ${['globe','cube','star','donut','diamond','none'].map(obj=>`
+      ${['globe','cube','star','donut','diamond','youtube','none'].map(obj=>`
         <button class="qp-3d-opt ${(d.profile?.display_3d||'globe')===obj?'active':''}"
                 onclick="selectProfile3D('${obj}',this)">
-          ${obj==='globe'?'🌐':obj==='cube'?'🟥':obj==='star'?'⭐':obj==='donut'?'⭕':obj==='diamond'?'💎':'❌'} ${obj}
+          ${obj==='globe'?'🌐':obj==='cube'?'🟥':obj==='star'?'⭐':obj==='donut'?'⭕':obj==='diamond'?'💎':obj==='youtube'?'▶️':'❌'} ${obj}
         </button>`).join('')}
     </div>
     <button class="btn btn-primary btn-sm" onclick="saveQuizProfile()">Save Profile</button>
@@ -1345,11 +1455,36 @@ async function renderQuizProfile() {
   </div>
 </div>`;
 
-    // Init 3D object
+    // Init 3D showcase pedestal
     const obj3d = d.profile?.display_3d || 'globe';
     window._profileSelected3D = obj3d;
+
+    // Fetch badges
+    let badges = [];
+    try { const br = await apiFetch('/api/quiz/badges'); badges = br.badges || []; } catch {}
+
+    // Inject badges section & studio button into profile
+    const profileWrap = appEl.querySelector('.qprofile-wrap');
+    if (profileWrap) {
+      // Badges section
+      const badgeSection = document.createElement('div');
+      badgeSection.className = 'qprofile-edit';
+      badgeSection.innerHTML = `
+<div class="qp-edit-hdr">🏅 Your Badges</div>
+${renderBadgesSVG(badges)}`;
+      profileWrap.insertBefore(badgeSection, profileWrap.querySelector('.qprofile-quizzes'));
+
+      // Studio button
+      const studioBtn = document.createElement('button');
+      studioBtn.className = 'btn btn-primary';
+      studioBtn.style.cssText = 'margin-bottom:16px;width:100%;';
+      studioBtn.innerHTML = '🎬 Open Creator Studio →';
+      studioBtn.onclick = () => renderCreatorStudio();
+      profileWrap.insertBefore(studioBtn, badgeSection);
+    }
+
     if (obj3d !== 'none') {
-      setTimeout(() => initProfile3D('profile3dCanvas', obj3d), 100);
+      setTimeout(() => initShowcasePedestal('profile3dCanvas', obj3d), 100);
     }
 
   } catch(e) {
@@ -1361,10 +1496,9 @@ function selectProfile3D(obj, btn) {
   window._profileSelected3D = obj;
   document.querySelectorAll('.qp-3d-opt').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  // Re-init 3D
   destroyQuizThree();
   if (obj !== 'none') {
-    setTimeout(() => initProfile3D('profile3dCanvas', obj), 50);
+    setTimeout(() => initShowcasePedestal('profile3dCanvas', obj), 50);
   } else {
     const canvas = document.getElementById('profile3dCanvas');
     if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }

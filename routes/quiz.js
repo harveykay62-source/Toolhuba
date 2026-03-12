@@ -5,7 +5,8 @@ const { pool } = require('../db/database');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const {
   compressQuestions, decompressQuestions,
-  getQuizWithQuestions, getQuizList
+  getQuizWithQuestions, getQuizList,
+  getCreatorStudio, computeBadges,
 } = require('../db/quiz-db');
 const { v4: uuidv4 } = require('uuid');
 
@@ -284,14 +285,17 @@ router.delete('/:id', requireAuth, async (req, res) => {
 // ── POST /api/quiz/:id/play ───────────────────────────────────────────────────
 router.post('/:id/play', async (req, res) => {
   try {
-    const { score, maxScore, questionsAnswered, wildcardsTriggered, timeTaken } = req.body;
+    const { score, maxScore, questionsAnswered, wildcardsTriggered, timeTaken,
+            bossBattlesBeaten, betsWon, streakMax } = req.body;
     const pct = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
     const playerName = req.session.name || 'Guest';
     await pool.query(
-      `INSERT INTO quiz_plays (quiz_id,user_id,player_name,score,max_score,pct,questions_answered,wildcards_triggered,time_taken)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      `INSERT INTO quiz_plays (quiz_id,user_id,player_name,score,max_score,pct,questions_answered,
+        wildcards_triggered,boss_battles_beaten,bets_won,streak_max,time_taken)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [req.params.id, req.session.userId||null, playerName, score||0,
-       maxScore||0, pct, questionsAnswered||0, wildcardsTriggered||0, timeTaken||0]
+       maxScore||0, pct, questionsAnswered||0, wildcardsTriggered||0,
+       bossBattlesBeaten||0, betsWon||0, streakMax||0, timeTaken||0]
     );
     await pool.query(`UPDATE quizzes SET plays=plays+1 WHERE id=$1`, [req.params.id]);
     if (req.session.userId) {
@@ -393,6 +397,32 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
               created_at,is_starter FROM quizzes ORDER BY created_at DESC LIMIT 100`
     );
     res.json({ quizzes: rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+// ── GET /api/quiz/studio — Creator analytics dashboard ───────────────────────
+router.get('/studio', requireAuth, async (req, res) => {
+  try {
+    const data = await getCreatorStudio(req.session.userId);
+    res.json(data);
+  } catch (e) {
+    console.error('studio:', e.message);
+    res.status(500).json({ error: 'Failed to load studio' });
+  }
+});
+
+// ── GET /api/quiz/badges — Compute user badges ────────────────────────────────
+router.get('/badges', requireAuth, async (req, res) => {
+  try {
+    const uid = req.session.userId;
+    const [prof, stats] = await Promise.all([
+      pool.query(`SELECT * FROM user_quiz_profiles WHERE user_id=$1`, [uid]),
+      pool.query(`SELECT COUNT(*) as plays FROM quiz_plays WHERE user_id=$1`, [uid]),
+    ]);
+    const badges = computeBadges(prof.rows[0], stats.rows[0]);
+    res.json({ badges });
   } catch (e) {
     res.status(500).json({ error: 'Failed' });
   }

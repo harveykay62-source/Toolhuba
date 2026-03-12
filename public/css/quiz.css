@@ -703,3 +703,294 @@
   .quiz-intro-stats { flex-wrap: wrap; }
   .qi-stat { flex: 0 0 calc(50% - 1px); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ToolHub AI Evolution — New Feature Styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Boss Battle ──────────────────────────────────────────────────────────── */
+.quiz-boss-mode {
+  background: linear-gradient(180deg, #1a0000 0%, #330000 50%, #1a0000 100%) !important;
+  transition: background 0.5s;
+}
+.boss-intro-wrap {
+  padding: 40px 32px; text-align: center; max-width: 420px; width: 90%;
+  background: #1a0000; border-radius: 20px; border: 2px solid #dc2626;
+  box-shadow: 0 0 60px rgba(220,38,38,.5); animation: wcPop .4s cubic-bezier(.22,.68,0,1.2);
+}
+.boss-warning-bar {
+  background: #dc2626; color: #fff; font-size: 18px; font-weight: 900;
+  letter-spacing: .08em; padding: 10px; border-radius: 10px; margin-bottom: 16px;
+  animation: pulseBadge 0.5s infinite;
+}
+.boss-3d-canvas {
+  border-radius: 50%; border: 2px solid #dc2626; display: block; margin: 0 auto 14px;
+  box-shadow: 0 0 30px rgba(220,38,38,.4);
+}
+.boss-name { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+.boss-subtitle { color: rgba(255,255,255,.7); font-size: 14px; margin-bottom: 18px; }
+.boss-hp-bar-wrap { }
+.boss-hp-label { font-size: 11px; color: rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+.boss-hp-bar { height: 10px; background: rgba(255,255,255,.1); border-radius: 5px; overflow: hidden; }
+.boss-hp-fill {
+  height: 100%; width: 0%; background: linear-gradient(90deg, #dc2626, #ff6b35);
+  border-radius: 5px; transition: width 1.5s ease; box-shadow: 0 0 10px #dc2626;
+}
+.boss-active-bar {
+  border: 2px solid; border-radius: 8px; padding: 8px 14px; margin-bottom: 10px;
+  font-size: 13px; font-weight: 700; background: rgba(220,38,38,.1); color: #ef4444;
+  text-align: center; animation: pulseBadge 1s infinite;
+}
+.boss-timer .qp-timer-fill { background: #dc2626 !important; box-shadow: 0 0 8px #dc2626; }
+.boss-points-badge {
+  display: inline-block; background: rgba(220,38,38,.2); border: 1px solid #dc2626;
+  color: #ef4444; padding: 4px 12px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  margin-top: 8px;
+}
+.qp-mode-badge.gravity { background: rgba(14,165,233,.15); color: #0ea5e9; border: 1px solid #0ea5e9; }
+
+/* ── Gravity Flip ─────────────────────────────────────────────────────────── */
+.quiz-gravity-flipped {
+  transform: rotate(180deg);
+  transition: transform 0.6s cubic-bezier(.22,.68,0,1.2);
+}
+.quiz-gravity-flipped .qp-mode-badge,
+.quiz-gravity-flipped .qp-timer-num,
+.quiz-gravity-flipped .qp-question-text,
+.quiz-gravity-flipped .qp-opt-text,
+.quiz-gravity-flipped .qp-opt-letter {
+  transform: rotate(180deg);
+}
+
+/* ── Betting ──────────────────────────────────────────────────────────────── */
+.bet-screen-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+  padding: 24px;
+}
+.bet-screen-inner {
+  max-width: 440px; width: 100%; background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15); border-radius: 20px;
+  padding: 40px 32px; text-align: center; backdrop-filter: blur(12px);
+  animation: wcPop .5s cubic-bezier(.22,.68,0,1.2);
+}
+.bet-icon { font-size: 56px; margin-bottom: 10px; animation: wcSpin 4s linear infinite; }
+.bet-title { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.bet-subtitle { color: rgba(255,255,255,.7); font-size: 15px; margin-bottom: 24px; line-height: 1.5; }
+.bet-slider-wrap { margin-bottom: 16px; }
+.bet-slider {
+  width: 100%; accent-color: #6366f1; height: 6px; cursor: pointer; margin-bottom: 8px;
+}
+.bet-amount { color: #fff; font-size: 18px; font-weight: 700; }
+.bet-presets { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+.bet-preset {
+  padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.3);
+  color: rgba(255,255,255,.8); background: rgba(255,255,255,.08); cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: all .15s;
+}
+.bet-preset:hover, .bet-preset.active { background: rgba(255,255,255,.2); color: #fff; }
+.bet-half { border-color: #6366f1; color: #a5b4fc; }
+.bet-all  { border-color: #ef4444; color: #fca5a5; background: rgba(239,68,68,.1); }
+.bet-hint { font-size: 12px; color: rgba(255,255,255,.5); margin-bottom: 20px; }
+.bet-confirm { width: 100%; font-size: 16px; }
+.bet-active-bar {
+  text-align: center; padding: 6px 12px; margin-bottom: 8px;
+  background: rgba(251,191,36,.1); border: 1px solid #fbbf24;
+  border-radius: 8px; font-size: 13px; color: #fbbf24;
+}
+
+/* ── Streak System ────────────────────────────────────────────────────────── */
+.streak-indicator {
+  font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+  background: rgba(239,68,68,.15); color: #ef4444; border: 1px solid #ef4444;
+  animation: pulseBadge .8s infinite; display: none;
+}
+.streak-indicator-hot {
+  background: rgba(239,68,68,.25); box-shadow: 0 0 12px rgba(239,68,68,.4);
+}
+.streak-active  { box-shadow: inset 0 0 40px rgba(239,68,68,.08); }
+.streak-intense { box-shadow: inset 0 0 60px rgba(239,68,68,.15); }
+.streak-max {
+  box-shadow: inset 0 0 80px rgba(239,68,68,.25);
+  animation: streakPulse 1.5s infinite;
+}
+@keyframes streakPulse {
+  0%,100% { box-shadow: inset 0 0 80px rgba(239,68,68,.25); }
+  50%      { box-shadow: inset 0 0 120px rgba(239,68,68,.4); }
+}
+.streak-particle {
+  position: absolute; font-size: 18px; pointer-events: none; z-index: 50;
+  animation: particleFloat 1.5s ease-out forwards;
+}
+@keyframes particleFloat {
+  0%   { transform: translateY(50px); opacity: 1; }
+  100% { transform: translateY(-80px) rotate(20deg); opacity: 0; }
+}
+
+/* ── Meme-ify Panel ───────────────────────────────────────────────────────── */
+.qp-meme-toggle {
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  padding: 5px 9px; font-size: 16px; cursor: pointer; transition: all .15s;
+  flex-shrink: 0;
+}
+.qp-meme-toggle:hover, .qp-meme-toggle.active { background: rgba(99,102,241,.15); border-color: var(--accent); }
+.meme-panel {
+  position: fixed; bottom: 80px; right: 16px; background: var(--bg-2);
+  border: 1px solid var(--border); border-radius: 14px; padding: 12px;
+  z-index: 150; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  animation: fadeIn .2s;
+}
+.meme-panel-title { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-align: center; text-transform: uppercase; }
+.meme-btns { display: flex; gap: 8px; }
+.meme-btn {
+  width: 40px; height: 40px; border-radius: 10px; font-size: 20px;
+  background: var(--bg); border: 1px solid var(--border); cursor: pointer;
+  transition: transform .1s, background .1s;
+}
+.meme-btn:hover  { background: rgba(99,102,241,.1); transform: scale(1.15); }
+.meme-btn:active { transform: scale(.9); }
+
+/* ── Heatmap Questions ────────────────────────────────────────────────────── */
+.heatmap-q-wrap { }
+.heatmap-hint {
+  font-size: 13px; color: var(--text-muted); margin-bottom: 12px;
+  padding: 8px 12px; background: rgba(99,102,241,.08); border-radius: 8px;
+}
+.heatmap-img-wrap {
+  position: relative; margin-bottom: 16px; border-radius: 12px; overflow: hidden;
+  border: 2px solid var(--border); cursor: crosshair;
+}
+.heatmap-img { width: 100%; max-height: 280px; object-fit: cover; display: block; }
+.heatmap-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.heatmap-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.heatmap-opt {
+  padding: 12px 10px; border-radius: 10px; border: 2px solid var(--border);
+  background: var(--bg-2); cursor: pointer; display: flex; align-items: center;
+  gap: 8px; font-size: 14px; font-weight: 600; transition: all .15s; color: var(--text);
+}
+.heatmap-opt:hover:not(:disabled) { border-color: var(--accent); background: rgba(99,102,241,.08); }
+.heatmap-opt-letter {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
+  color: #fff; font-size: 11px; font-weight: 700; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+/* ── Creator Studio ───────────────────────────────────────────────────────── */
+.studio-wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+.studio-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.studio-header h2 { margin: 0; font-size: 22px; }
+.studio-stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.studio-stat-card {
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 12px; text-align: center;
+}
+.studio-stat-icon { font-size: 24px; margin-bottom: 4px; }
+.studio-stat-n { font-size: 28px; font-weight: 900; color: var(--accent); display: block; }
+.studio-stat-lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.studio-section {
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; margin-bottom: 16px;
+}
+.studio-section h3 { margin: 0 0 16px; font-size: 17px; }
+.studio-quiz-table { display: flex; flex-direction: column; gap: 8px; }
+.studio-quiz-row {
+  display: flex; align-items: center; gap: 12px; padding: 12px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+}
+.studio-quiz-cover {
+  width: 44px; height: 44px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+}
+.studio-quiz-info { flex: 1; min-width: 0; }
+.studio-quiz-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.studio-plays-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.studio-plays-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.studio-plays-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .6s; }
+.studio-plays-num { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+.studio-quiz-metrics { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; font-size: 12px; color: var(--text-muted); }
+
+.studio-feed { display: flex; flex-direction: column; gap: 6px; }
+.studio-feed-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  background: var(--bg); border-radius: 8px; font-size: 13px;
+}
+.studio-feed-player { font-weight: 600; min-width: 100px; }
+.studio-feed-quiz { flex: 1; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.studio-feed-score { font-weight: 700; color: var(--accent); min-width: 45px; text-align: right; }
+.studio-feed-time { font-size: 11px; color: var(--text-muted); min-width: 60px; text-align: right; }
+
+/* ── Badges ───────────────────────────────────────────────────────────────── */
+.badges-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.badge-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: help; }
+.badge-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-align: center; max-width: 64px; }
+.badge-item svg { transition: transform .2s; }
+.badge-item:hover svg { transform: scale(1.1) rotate(-5deg); }
+
+/* ── Showcase Pedestal (profile 3D) ───────────────────────────────────────── */
+.qprofile-3d-area {
+  background: radial-gradient(circle at 50% 60%, rgba(99,102,241,.12) 0%, transparent 70%),
+              var(--bg);
+  position: relative;
+}
+.qprofile-3d-area::after {
+  content: '';
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 8px;
+  background: radial-gradient(ellipse, rgba(99,102,241,.4) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+/* ── Cyberpunk Theme ──────────────────────────────────────────────────────── */
+.wc-theme-cyberpunk {
+  background: linear-gradient(180deg,#0d0221,#1a0536,#0d0221) !important;
+  color: #00ffff !important;
+}
+.wc-theme-cyberpunk .qp-progress-fill { background: #00ffff !important; }
+.wc-theme-cyberpunk .qp-opt { border-color: rgba(0,255,255,.3); }
+.wc-theme-cyberpunk .qp-question-text { color: #e0f7ff; }
+
+/* ── Results grid responsive fix ──────────────────────────────────────────── */
+.qr-stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
+@media(max-width:640px) {
+  .qr-stats-grid { grid-template-columns: repeat(2,1fr); }
+  .studio-stats-row { grid-template-columns: repeat(2,1fr); }
+  .heatmap-opts { grid-template-columns: 1fr; }
+  .bet-presets { gap: 6px; }
+}
+
+/* ── Responsive fixes (all viewports) ────────────────────────────────────── */
+@media(max-width:480px) {
+  .qhub-hero-title  { font-size: 26px; }
+  .quiz-intro-title { font-size: 22px; }
+  .qbuilder-wrap    { grid-template-columns: 1fr; }
+  .qbuilder-sidebar { position: static; height: auto; }
+  .qbuilder-main    { height: auto; }
+  .qhub-section     { padding: 20px 12px 12px; }
+  .qhub-grid        { grid-template-columns: 1fr; }
+  .qhub-statsbar    { gap: 8px; padding: 10px 12px; }
+  .qhub-stat        { padding: 4px 10px; font-size: 12px; }
+  .qhub-stat-n      { font-size: 18px; }
+  .quiz-leaderboard { padding: 14px; }
+  .boss-intro-wrap  { padding: 24px 16px; }
+}
+
+@media(min-width:1280px) {
+  .qhub-grid { grid-template-columns: repeat(4,1fr); }
+  .qhub-trending-row { grid-template-columns: repeat(3,1fr); }
+}
+
+/* ── Reality Shift wildcard ───────────────────────────────────────────────── */
+.quiz-mirror-mode.quiz-gravity-flipped {
+  transform: scaleX(-1) rotate(180deg);
+}
+
+/* ── Floating gravity-float fix ────────────────────────────────────────────── */
+@keyframes gravityFloat {
+  0%  { transform: translateY(-60px) rotate(-5deg); opacity:0; }
+  60% { transform: translateY(6px) rotate(1deg); opacity:1; }
+  100%{ transform: translateY(0) rotate(0); opacity:1; }
+}
+.gravity-float { animation: gravityFloat .6s cubic-bezier(.22,.68,0,1.2) forwards; }
