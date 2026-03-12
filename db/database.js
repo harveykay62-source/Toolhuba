@@ -53,6 +53,16 @@ async function run(sql, params = []) {
 }
 
 async function initDB() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set. Add a PostgreSQL database in Render dashboard and link it via the DATABASE_URL env var.');
+  }
+  try {
+    await pool.query('SELECT 1');
+    console.log('✅ PostgreSQL connected');
+  } catch (err) {
+    throw new Error('Cannot connect to PostgreSQL: ' + err.message);
+  }
+
   await pool.query(`CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY, uuid TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, name TEXT NOT NULL,
@@ -91,7 +101,7 @@ async function initDB() {
   const defaults = [
     ['ads_enabled','true'],['free_daily_limit','10'],['premium_price','9.99'],
     ['site_name','ToolHub AI'],
-    ['adsense_client', process.env.ADSENSE_CLIENT_ID || 'ca-pub-XXXXXXXXXXXXXXXX'],
+    ['adsense_client', process.env.ADSENSE_CLIENT_ID || 'ca-pub-6454181337553477'],
     ['adsense_slot_banner', process.env.ADSENSE_SLOT_BANNER || '1234567890'],
     ['adsense_slot_sidebar', process.env.ADSENSE_SLOT_SIDEBAR || '0987654321'],
     ['paypal_client_id', process.env.PAYPAL_CLIENT_ID || ''],
