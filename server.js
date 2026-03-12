@@ -41,6 +41,7 @@ app.use('/api/auth',  require('./routes/auth'));
 app.use('/api/tools', require('./routes/tools'));
 app.use('/api/tools', require('./routes/tools-extra'));
 app.use('/api',       require('./routes/dashboard'));
+app.use('/api/quiz',  require('./routes/quiz'));
 
 // ── Init data endpoint ────────────────────────────────────────────────────────
 app.get('/api/init', async (req, res) => {
@@ -80,7 +81,7 @@ app.get('/api/init', async (req, res) => {
 
 // ── SPA Catch-all ─────────────────────────────────────────────────────────────
 const serveApp = (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html'));
-['/', '/tool/:id', '/dashboard', '/admin', '/login', '/register'].forEach(r => app.get(r, serveApp));
+['/', '/tool/:id', '/dashboard', '/admin', '/login', '/register', '/quizzes', '/quizzes/build', '/quizzes/profile', '/quiz/:id'].forEach(r => app.get(r, serveApp));
 
 // ── Global error handler ──────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
@@ -102,10 +103,12 @@ function startServer(port) {
 }
 
 const { initDB, getDisabledTools } = require('./db/database');
+const { initQuizDB } = require('./db/quiz-db');
 const { setDisabledTools, getAllTools } = require('./db/tools');
 (async () => {
   try {
     await initDB();
+    await initQuizDB();
     const disabledTools = await getDisabledTools();
     setDisabledTools(disabledTools);
     startServer(PORT);

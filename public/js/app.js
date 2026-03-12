@@ -34,15 +34,22 @@ function handleRoute() {
   }
   if (path === '/dashboard') { renderDashboard(); return; }
   if (path === '/admin') { history.replaceState({},'','/'); openAdminDrawer(); renderHome(); return; }
+  // Quiz routes
+  if (path.startsWith('/quizzes') || path === '/quiz') { renderQuizHub(); return; }
+  if (path.startsWith('/quiz/')) { const id = path.replace('/quiz/',''); renderQuizPlay(id); return; }
   renderHome();
 }
 
 function navigate(page, id='') {
-  if (page === 'home')      { history.pushState({},'','/');           renderHome(); }
-  else if (page === 'tool') { history.pushState({},'',`/tool/${id}`); const t=APP.tools.find(t=>t.id===id); if(t) renderToolPage(t); }
+  if (page === 'home')        { history.pushState({},'','/');             renderHome(); }
+  else if (page === 'tool')   { history.pushState({},'',`/tool/${id}`);  const t=APP.tools.find(t=>t.id===id); if(t) renderToolPage(t); }
   else if (page === 'dashboard') { history.pushState({},'','/dashboard'); renderDashboard(); }
-  else if (page === 'admin') { openAdminDrawer(); return; }
+  else if (page === 'admin')  { openAdminDrawer(); return; }
+  else if (page === 'quizzes'){ history.pushState({},'','/quizzes');      destroyQuizThree(); renderQuizHub(); }
   window.scrollTo({top:0,behavior:'smooth'});
+  // Update active nav button
+  document.getElementById('navTools')?.classList.toggle('active', page==='home'||page==='tool');
+  document.getElementById('navQuizzes')?.classList.toggle('active', page==='quizzes');
 }
 
 window.addEventListener('popstate', handleRoute);
@@ -301,6 +308,7 @@ function renderAdminDrawerContent(d) {
       <button class="admin-drawer-tab ${_adminDrawerTab==='settings'?'active':''}" data-tab="settings" onclick="switchDrawerTab('settings')">⚙️ Settings</button>
       <button class="admin-drawer-tab ${_adminDrawerTab==='transactions'?'active':''}" data-tab="transactions" onclick="switchDrawerTab('transactions')">💳 Transactions</button>
       <button class="admin-drawer-tab ${_adminDrawerTab==='bug-reports'?'active':''}" data-tab="bug-reports" onclick="switchDrawerTab('bug-reports')">🐛 Bug Reports</button>
+      <button class="admin-drawer-tab ${_adminDrawerTab==='quizzes'?'active':''}" data-tab="quizzes" onclick="switchDrawerTab('quizzes')">🎮 Quizzes</button>
     </div>
     <div id="drawerTabBody" class="admin-drawer-tab-body"></div>`;
   renderDrawerTab(_adminDrawerTab, d);
@@ -538,6 +546,41 @@ function renderDrawerTab(tab, d) {
           </tbody>
         </table>
       </div>`;
+  } else if (tab === 'quizzes') {
+    body.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
+    apiFetch('/api/quiz/admin/pending').then(data => {
+      const quizzes = data.quizzes || [];
+      const stats   = data.stats   || [];
+      if (!quizzes.length) {
+        body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">
+          <div style="font-size:40px;margin-bottom:10px">✅</div>
+          <strong>All clear!</strong> No quizzes pending review.
+          <br><br><button class="btn btn-primary btn-sm" onclick="navigateQuiz('hub')">🎮 Visit Quiz Hub</button>
+        </div>`; return;
+      }
+      body.innerHTML = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          ${stats.map(s=>`<span style="padding:3px 10px;border-radius:999px;font-size:12px;background:var(--bg);border:1px solid var(--border)">${s.status}: <strong>${s.count}</strong></span>`).join('')}
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="navigateQuiz('admin')">Full Admin Panel →</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${quizzes.slice(0,10).map(q => `
+            <div style="padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:10px" id="dqr-${q.id}">
+              <div style="font-weight:700;margin-bottom:4px">${q.title}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">
+                ${q.category} · ${q.questions_count} Qs · by ${q.creator_name} · ${new Date(q.created_at).toLocaleDateString()}
+                ${q.wildcard_enabled?'· ⚡ Wildcards':''}
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-primary btn-sm" onclick="drawerApproveQuiz('${q.id}')">✅ Approve</button>
+                <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="drawerRejectQuiz('${q.id}')">❌ Reject</button>
+                <button class="btn btn-ghost btn-sm" onclick="window.open('/quiz/${q.id}','_blank')">👁 Preview</button>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }).catch(() => {
+      body.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Failed to load quiz queue.</div>`;
+    });
   }
 }
 
@@ -901,6 +944,24 @@ async function savePaypalBtn() {
 async function setBugStatus(id, status) {
   try { await apiFetch(`/api/admin/bug-reports/${id}/status`,'POST',{status}); toast('Status updated','success'); }
   catch(e) { toast('Failed: '+e.message,'error'); }
+}
+
+async function drawerApproveQuiz(id) {
+  try {
+    await apiFetch(`/api/quiz/admin/${id}/approve`, 'POST');
+    toast('✅ Quiz approved!', 'success');
+    document.getElementById(`dqr-${id}`)?.remove();
+  } catch(e) { toast('Failed: '+e.message,'error'); }
+}
+
+async function drawerRejectQuiz(id) {
+  const reason = prompt('Rejection reason (optional):') || 'Does not meet guidelines';
+  try {
+    await apiFetch(`/api/quiz/admin/${id}/reject`, 'POST', { reason });
+    toast('Quiz rejected', 'warn');
+    const el = document.getElementById(`dqr-${id}`);
+    if (el) { el.style.opacity = '0.4'; el.querySelector('.btn-primary')?.remove(); }
+  } catch(e) { toast('Failed: '+e.message,'error'); }
 }
 
 init();
