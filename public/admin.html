@@ -245,6 +245,15 @@ input:checked+.toggle-slider::before{transform:translateX(18px)}
     <div class="nav-item" onclick="showSection('users')" id="nav-users">
       <span class="nav-icon">👥</span> Users
     </div>
+    <div class="nav-item" onclick="showSection('teachers')" id="nav-teachers">
+      <span class="nav-icon">👩‍🏫</span> Teachers
+    </div>
+    <div class="nav-item" onclick="showSection('school-domains')" id="nav-school-domains">
+      <span class="nav-icon">🏫</span> School Domains
+    </div>
+    <div class="nav-item" onclick="showSection('multiplayer')" id="nav-multiplayer">
+      <span class="nav-icon">🎮</span> Multiplayer
+    </div>
     <div class="nav-item" onclick="showSection('tool-mgmt')" id="nav-tool-mgmt">
       <span class="nav-icon">⚙️</span> Tools
     </div>
@@ -369,7 +378,8 @@ function startSSE() {
 const SECTION_TITLES = {
   realtime:'Real-time Analytics', overview:'Overview', traffic:'Traffic',
   'tools-analytics':'Tool Usage', users:'Users', 'tool-mgmt':'Tool Management',
-  bugs:'Bug Reports', settings:'Settings', quizzes:'Quiz Management'
+  bugs:'Bug Reports', settings:'Settings', quizzes:'Quiz Management',
+  teachers:'Teacher Accounts', 'school-domains':'School Domains', multiplayer:'Multiplayer Games'
 };
 
 function showSection(s) {
@@ -394,6 +404,9 @@ function renderSection(s) {
     case 'bugs':            el.innerHTML = renderBugs(); break;
     case 'settings':        el.innerHTML = renderSettings(); setTimeout(bindSettings, 50); break;
     case 'quizzes':         el.innerHTML = renderQuizAdmin(); setTimeout(loadQuizAdmin, 50); break;
+    case 'teachers':        el.innerHTML = renderTeachers(); setTimeout(loadTeachers, 50); break;
+    case 'school-domains':  el.innerHTML = renderSchoolDomains(); setTimeout(loadSchoolDomains, 50); break;
+    case 'multiplayer':     el.innerHTML = renderMultiplayerAdmin(); setTimeout(loadMultiplayerAdmin, 50); break;
     default: el.innerHTML = '<div class="empty-state">Section coming soon.</div>';
   }
 }
@@ -477,15 +490,20 @@ function renderOverview() {
   <div class="stat-grid-4">
     ${statCard('👥 Total Users', fmt(ov.totalUsers||0), 'registered accounts', 'blue')}
     ${statCard('👑 Premium', fmt(ov.premiumUsers||0), 'premium subscribers', 'amber')}
+    ${statCard('🎓 Students', fmt(ov.studentUsers||0), 'approved school accounts', 'green')}
+    ${statCard('👩‍🏫 Teachers', fmt(ov.teacherUsers||0), 'teacher accounts', 'purple')}
+  </div>
+  <div class="stat-grid-4">
     ${statCard('🔧 Total Uses', fmt(totals.toolUses||ov.totalToolUses||0), 'all-time tool uses', 'green')}
     ${statCard('📄 Page Views', fmt(totals.pageViews||ov.totalPageViews||0), 'all-time views', 'purple')}
+    ${statCard('🎮 MP Games', fmt(ov.mpGames||0), 'multiplayer games played', 'blue')}
+    ${statCard('✅ Active Now', fmt(ov.activeUsers||0), 'active in last 24h', 'amber')}
   </div>
   <div class="stat-grid-2">
     <div class="card">
       <div class="card-header"><span class="card-title">💰 Revenue</span></div>
       <div style="display:flex;gap:24px;flex-wrap:wrap">
         <div><div style="font-size:28px;font-weight:800;color:var(--success)">$${parseFloat(rev.premium||0).toFixed(2)}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Premium Collected</div></div>
-        <div><div style="font-size:28px;font-weight:800;color:var(--warn)">~$${rev.estimated_ad||0}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Est. Ad Revenue</div></div>
       </div>
     </div>
     <div class="card">
@@ -1041,6 +1059,151 @@ async function adminRejectQuiz(id) {
     const el = document.getElementById(`qa-${id}`);
     if (el) el.style.opacity = '0.4';
   } catch(e) { toast(e.message||'Error', 'error'); }
+}
+
+/* ── Teachers ─────────────────────────────────────────────────────────────── */
+function renderTeachers() {
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><span class="card-title">➕ Create Teacher Account</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <input id="tcName" class="setting-input" placeholder="Full name" type="text">
+      <input id="tcEmail" class="setting-input" placeholder="Email address" type="email">
+      <input id="tcPass" class="setting-input" placeholder="Password (min 6 chars)" type="password">
+      <input id="tcSchool" class="setting-input" placeholder="School name" type="text">
+      <input id="tcDomain" class="setting-input" placeholder="School email domain (e.g. school.edu)" type="text">
+    </div>
+    <button class="btn btn-primary" onclick="createTeacher()">Create Teacher Account</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">👩‍🏫 Teacher Accounts</span></div>
+    <div id="teachersList"><div class="empty-state">Loading…</div></div>
+  </div>`;
+}
+
+async function loadTeachers() {
+  try {
+    const { users } = await api('/api/auth/admin/users');
+    const teachers = users.filter(u => u.role === 'teacher' || u.is_teacher);
+    const el = document.getElementById('teachersList');
+    if (!teachers.length) { el.innerHTML = '<div class="empty-state">No teacher accounts yet.</div>'; return; }
+    el.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+      <tbody>${teachers.map(u => `<tr>
+        <td><strong>${esc(u.name)}</strong></td>
+        <td>${esc(u.email)}</td>
+        <td><span style="color:${u.is_active?'var(--success)':'var(--danger)'}">●</span> ${u.is_active?'Active':'Banned'}</td>
+        <td>${u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
+        <td>
+          <button class="user-select-btn" style="color:var(--danger)" onclick="toggleUser(${u.id},${!!u.is_active})">${u.is_active?'Ban':'Unban'}</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch(e) { toast('Failed to load teachers', 'error'); }
+}
+
+async function createTeacher() {
+  const name = document.getElementById('tcName')?.value.trim();
+  const email = document.getElementById('tcEmail')?.value.trim();
+  const password = document.getElementById('tcPass')?.value;
+  const schoolName = document.getElementById('tcSchool')?.value.trim();
+  const domain = document.getElementById('tcDomain')?.value.trim();
+  if (!name || !email || !password) { toast('Name, email and password are required', 'warn'); return; }
+  try {
+    await api('/api/multiplayer/admin/create-teacher', 'POST', { name, email, password, schoolName, domain });
+    toast(`✅ Teacher account created for ${email}`, 'success');
+    ['tcName','tcEmail','tcPass','tcSchool','tcDomain'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    await loadTeachers();
+  } catch(e) { toast(e.message || 'Failed to create teacher', 'error'); }
+}
+
+/* ── School Domains ──────────────────────────────────────────────────────── */
+function renderSchoolDomains() {
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><span class="card-title">➕ Approve a School Domain</span></div>
+    <p style="color:var(--text3);font-size:13px;margin-bottom:12px">
+      Students who register with an email from an approved domain automatically get the <strong>student</strong> role (no ads, access to Kahoot mode).
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <input id="sdDomain" class="setting-input" placeholder="Domain (e.g. myschool.edu)" type="text" style="flex:1;min-width:180px">
+      <input id="sdSchool" class="setting-input" placeholder="School name" type="text" style="flex:1;min-width:180px">
+      <button class="btn btn-primary" onclick="addDomain()">Approve Domain</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">🏫 Approved School Domains</span></div>
+    <div id="domainsList"><div class="empty-state">Loading…</div></div>
+  </div>`;
+}
+
+async function loadSchoolDomains() {
+  try {
+    const { domains } = await api('/api/multiplayer/admin/school-domains');
+    const el = document.getElementById('domainsList');
+    if (!domains.length) { el.innerHTML = '<div class="empty-state">No domains approved yet. Add one above to allow student accounts.</div>'; return; }
+    el.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Domain</th><th>School Name</th><th>Approved By</th><th>Date</th><th>Action</th></tr></thead>
+      <tbody>${domains.map(d => `<tr>
+        <td><code style="background:rgba(255,255,255,.07);padding:2px 8px;border-radius:4px">@${esc(d.domain)}</code></td>
+        <td>${esc(d.school_name)}</td>
+        <td>${esc(d.approved_by_name||'Admin')}</td>
+        <td>${d.created_at ? new Date(d.created_at).toLocaleDateString() : '—'}</td>
+        <td><button class="user-select-btn" style="color:var(--danger)" onclick="removeDomain('${esc(d.domain)}')">🗑 Remove</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch(e) { toast('Failed to load domains', 'error'); }
+}
+
+async function addDomain() {
+  const domain = document.getElementById('sdDomain')?.value.trim().toLowerCase().replace(/^@/,'');
+  const schoolName = document.getElementById('sdSchool')?.value.trim();
+  if (!domain || !schoolName) { toast('Domain and school name required', 'warn'); return; }
+  try {
+    await api('/api/multiplayer/admin/school-domains', 'POST', { domain, schoolName });
+    toast(`✅ Domain @${domain} approved`, 'success');
+    document.getElementById('sdDomain').value = '';
+    document.getElementById('sdSchool').value = '';
+    await loadSchoolDomains();
+  } catch(e) { toast(e.message || 'Failed', 'error'); }
+}
+
+async function removeDomain(domain) {
+  if (!confirm(`Remove @${domain} from approved domains? Existing students keep their accounts.`)) return;
+  try {
+    await api('/api/multiplayer/admin/school-domains/' + encodeURIComponent(domain), 'DELETE');
+    toast('Domain removed', 'success');
+    await loadSchoolDomains();
+  } catch(e) { toast(e.message || 'Failed', 'error'); }
+}
+
+/* ── Multiplayer Admin ──────────────────────────────────────────────────── */
+function renderMultiplayerAdmin() {
+  return `
+  <div class="card">
+    <div class="card-header"><span class="card-title">🎮 All Multiplayer Games</span></div>
+    <div id="mpGamesList"><div class="empty-state">Loading…</div></div>
+  </div>`;
+}
+
+async function loadMultiplayerAdmin() {
+  try {
+    const { games } = await api('/api/multiplayer/admin/all-games');
+    const el = document.getElementById('mpGamesList');
+    if (!games || !games.length) { el.innerHTML = '<div class="empty-state">No multiplayer games played yet.</div>'; return; }
+    el.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Mode</th><th>Quiz</th><th>Host</th><th>Players</th><th>Date</th><th></th></tr></thead>
+      <tbody>${games.map(g => `<tr>
+        <td><code style="background:rgba(255,255,255,.07);padding:2px 8px;border-radius:4px">${esc(g.room_code)}</code></td>
+        <td><span style="background:${g.game_mode==='kahoot'?'#6366f1':'#10b981'};color:#fff;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${esc(g.game_mode)}</span></td>
+        <td>${esc(g.quiz_title||'—')}</td>
+        <td>${esc(g.host_name||'—')}</td>
+        <td>${g.player_count||0}</td>
+        <td>${g.ended_at ? new Date(g.ended_at).toLocaleDateString() : '—'}</td>
+        <td><a href="/leaderboard?code=${esc(g.room_code)}" target="_blank" style="color:var(--accent);font-size:12px">Results →</a></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch(e) { toast('Failed to load multiplayer games', 'error'); }
 }
 
 /* ── Start ────────────────────────────────────────────────────────────────── */

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Host a Game — ToolHub AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/multiplayer.css">
+</head>
+<body class="dark-mode">
+<nav class="navbar" id="navbar"></nav>
+
+<div id="hostApp" class="host-wrap"></div>
+
+<script src="/js/app.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/multiplayer-host.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  HostGame.init(params.get('mode') || 'blooket');
+</script>
+</body>
+</html>

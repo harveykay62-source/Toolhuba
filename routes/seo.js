@@ -350,4 +350,75 @@ function categoryPage(dir, cat) {
   });
 }
 
-module.exports = { home, tool, quizzes, quizPage, quizBuild, quizProfile, login, register, dashboard, categoryPage, SITE_URL, SITE_NAME };
+
+function multiplayer(dir) {
+  return buildPage(dir, {
+    title: 'Multiplayer Quizzes — Kahoot & Blooket Style | ToolHub AI',
+    description: 'Play live multiplayer quizzes with friends or students. Kahoot-style for schools, Blooket-style with power-ups and events for everyone.',
+    keywords: 'multiplayer quiz, kahoot style, blooket style, live quiz game, school quiz, real-time quiz',
+    canonical: SITE_URL + '/multiplayer',
+    robots: 'index, follow',
+  });
+}
+
+function hostGame(dir) {
+  return buildPage(dir, {
+    title: 'Host a Game — ToolHub AI Multiplayer',
+    description: 'Create a live multiplayer quiz game. Choose Kahoot or Blooket mode, select a quiz and share the join code.',
+    keywords: 'host quiz game, create quiz game, multiplayer host',
+    canonical: SITE_URL + '/host-game',
+    robots: 'noindex',
+  });
+}
+
+function joinGame(dir) {
+  return buildPage(dir, {
+    title: 'Join a Game — ToolHub AI Multiplayer',
+    description: 'Enter your game code to join a live multiplayer quiz.',
+    keywords: 'join quiz game, enter game code, multiplayer join',
+    canonical: SITE_URL + '/join-game',
+    robots: 'noindex',
+  });
+}
+
+function gameRoom(dir) {
+  return buildPage(dir, {
+    title: 'Game Room — ToolHub AI Multiplayer',
+    description: 'Live multiplayer quiz game room.',
+    keywords: 'game room, quiz game, live quiz',
+    canonical: SITE_URL + '/game-room',
+    robots: 'noindex',
+  });
+}
+
+function leaderboard(dir) {
+  return buildPage(dir, {
+    title: 'Leaderboard — ToolHub AI Multiplayer',
+    description: 'Live and final leaderboard for ToolHub AI multiplayer quizzes.',
+    keywords: 'quiz leaderboard, multiplayer scores, game results',
+    canonical: SITE_URL + '/leaderboard',
+    robots: 'noindex',
+  });
+}
+
+function teacherDashboard(dir) {
+  return buildPage(dir, {
+    title: 'Teacher Dashboard — ToolHub AI',
+    description: 'Manage students, host games, and view quiz statistics.',
+    keywords: 'teacher dashboard, quiz stats, student management',
+    canonical: SITE_URL + '/teacher',
+    robots: 'noindex',
+  });
+}
+
+module.exports = { home, tool, quizzes, quizPage, quizBuild, quizProfile, login, register, dashboard, categoryPage, multiplayer, hostGame, joinGame, gameRoom, leaderboard, teacherDashboard, privacy, SITE_URL, SITE_NAME };
+
+function privacy(dir) {
+  return buildPage(dir, {
+    title: 'Privacy Policy — ToolHub AI',
+    description: 'ToolHub AI Privacy Policy. Learn how we collect, use, and protect your data, including full ad-free protection for student accounts.',
+    keywords: 'privacy policy, data protection, GDPR, COPPA, student privacy',
+    canonical: SITE_URL + '/privacy',
+    robots: 'index, follow',
+  });
+}

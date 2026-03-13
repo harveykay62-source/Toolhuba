@@ -14,6 +14,14 @@ async function init() {
     setupAds();
     handleRoute();
     setupKeyboardShortcuts();
+    // Load Google Identity Services if configured
+    if (APP.settings.googleClientId && !document.getElementById('gsi-script')) {
+      const s = document.createElement('script');
+      s.id = 'gsi-script';
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.async = true; s.defer = true;
+      document.head.appendChild(s);
+    }
   } catch(e) {
     document.getElementById('app').innerHTML = `<div class="page-loading"><p style="color:var(--text-muted)">Failed to load. Please refresh.</p></div>`;
   }
@@ -56,16 +64,18 @@ window.addEventListener('popstate', handleRoute);
 // ── Header ────────────────────────────────────────────────────────────────────
 function setupHeader() {
   const ua = document.getElementById('userArea');
-  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator';
+  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator' || APP.session.role === 'teacher';
   const isEducator = APP.session.isVerifiedEducator || APP.session.role === 'educator';
+  const isStudent  = APP.session.isStudent || APP.session.role === 'student';
+  const isTeacher  = APP.session.isTeacher || APP.session.role === 'teacher';
 
   const banner = document.getElementById('premiumBanner');
-  if (!isPremium && !isEducator && !localStorage.getItem('premiumBannerClosed')) {
-    banner.classList.remove('hidden');
+  if (!isPremium && !isEducator && !isStudent && !localStorage.getItem('premiumBannerClosed')) {
+    banner?.classList.remove('hidden');
   }
 
-  // Educators get ad-free experience
-  if (isEducator) {
+  // Students and educators get ad-free experience
+  if (isEducator || isStudent || isTeacher) {
     document.querySelectorAll('.ad-bar, [id*="adBar"]').forEach(el => el.style.display = 'none');
   }
 
@@ -74,9 +84,12 @@ function setupHeader() {
     ua.innerHTML = `
       <div class="user-area">
         ${APP.session.role==='admin' ? `<a class="btn-admin-pill" href="/admin">🛡️ Admin</a>` : ''}
-        ${isEducator ? `<span class="tag" style="font-size:11px;background:#059669;color:#fff;padding:3px 8px;border-radius:6px">🎓 Educator</span>` : ''}
+        ${isTeacher ? `<a class="btn-admin-pill" href="/teacher" style="background:#3b82f6">👩‍🏫 Teacher</a>` : ''}
+        ${isStudent ? `<span class="tag" style="font-size:11px;background:#6366f1;color:#fff;padding:3px 8px;border-radius:6px">🎓 Student</span>` : ''}
+        ${isEducator && !isTeacher ? `<span class="tag" style="font-size:11px;background:#059669;color:#fff;padding:3px 8px;border-radius:6px">🎓 Educator</span>` : ''}
         <button class="btn-ghost btn-sm" onclick="navigate('dashboard')">Dashboard</button>
-        ${isPremium && !isEducator ? `<span class="tag tag-success" style="font-size:11px">👑 Premium</span>` : !isPremium ? `<button class="btn-signup btn-sm" onclick="showPremiumModal()">Upgrade</button>` : ''}
+        ${!isPremium && !isStudent && !isEducator ? `<button class="btn-signup btn-sm" onclick="showPremiumModal()">Upgrade</button>` : ''}
+        ${isPremium && !isEducator && !isStudent && !isTeacher ? `<span class="tag tag-success" style="font-size:11px">👑 Premium</span>` : ''}
         <button class="avatar-btn" style="background:${APP.session.avatarColor||'#6366f1'}" onclick="confirmLogout()">${initials}</button>
       </div>`;
   } else {
@@ -107,9 +120,10 @@ function applyTheme(theme) {
 
 // ── Ads ───────────────────────────────────────────────────────────────────────
 function setupAds() {
-  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator';
+  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator' || APP.session.role === 'teacher';
+  const isStudent  = APP.session.isStudent || APP.session.role === 'student';
   const isEducator = APP.session.isVerifiedEducator;
-  if (isPremium || isEducator || !APP.settings.adsEnabled) return;
+  if (isPremium || isStudent || isEducator || !APP.settings.adsEnabled) return;
 
   const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
   const slot   = APP.settings.adsenseBanner  || '';
@@ -134,8 +148,9 @@ function setupAds() {
 }
 
 function getToolPageAd() {
-  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator';
-  if (isPremium || APP.session.isVerifiedEducator || !APP.settings.adsEnabled) return '';
+  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator' || APP.session.role === 'teacher';
+  const isStudent  = APP.session.isStudent || APP.session.role === 'student';
+  if (isPremium || isStudent || APP.session.isVerifiedEducator || !APP.settings.adsEnabled) return '';
   const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
   const slot   = APP.settings.adsenseBanner  || '';
   setTimeout(() => {
@@ -462,16 +477,34 @@ function showAuthError(msg) {
 }
 
 async function doGoogleLogin() {
-  // In production: use Google Identity Services or passport-google-oauth20
-  // This provides a simulated flow for demo; replace with real OAuth in production
-  try {
-    const email = prompt('Enter your Google email address:');
-    if (!email) return;
-    const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    const data = await apiFetch('/api/auth/google-login', 'POST', { email, name, googleId: 'google_' + Date.now() });
-    if (data.success) location.href = data.redirect || '/';
-  } catch(e) {
-    showAuthError(e.message || 'Google login failed.');
+  // Use real Google Identity Services if GOOGLE_CLIENT_ID is configured
+  const clientId = APP.settings.googleClientId;
+  if (clientId && window.google && window.google.accounts) {
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: async (response) => {
+        try {
+          const data = await apiFetch('/api/auth/google-login', 'POST', { credential: response.credential });
+          if (data.success) location.href = data.redirect || '/';
+        } catch(e) {
+          showAuthError(e.message || 'Google login failed.');
+        }
+      },
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+    google.accounts.id.prompt();
+  } else {
+    // Fallback: simple email prompt (dev mode / no Google Client ID)
+    try {
+      const email = prompt('Enter your Google email address (dev mode):');
+      if (!email) return;
+      const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const data = await apiFetch('/api/auth/google-login', 'POST', { email, name, googleId: 'google_' + Date.now() });
+      if (data.success) location.href = data.redirect || '/';
+    } catch(e) {
+      showAuthError(e.message || 'Google login failed.');
+    }
   }
 }
 

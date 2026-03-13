@@ -43,7 +43,8 @@
     </div>
     <nav class="header-nav">
       <a class="header-nav-btn" href="/" onclick="event.preventDefault();navigate('home')" id="navTools">🔧 Tools</a>
-      <a class="header-nav-btn header-nav-quiz" href="/quizzes" onclick="event.preventDefault();navigate('quizzes')" id="navQuizzes">🎮 Quizzes</a>
+      <a class="header-nav-btn header-nav-quiz" href="/quizzes" onclick="event.preventDefault();navigate('quizzes')" id="navQuizzes">🎓 Quizzes</a>
+      <a class="header-nav-btn" href="/multiplayer" style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(16,185,129,.1));border:1px solid rgba(99,102,241,.3)">🎮 Multiplayer</a>
     </nav>
     <div class="header-actions">
       <button class="mobile-nav-btn" id="mobileMenuBtn" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
@@ -59,7 +60,9 @@
 <!-- Mobile Navigation Drawer -->
 <div class="mobile-nav-drawer" id="mobileNavDrawer">
   <a class="mobile-nav-link" href="/" onclick="event.preventDefault();navigate('home');closeMobileNav()">🔧 Tools</a>
-  <a class="mobile-nav-link" href="/quizzes" onclick="event.preventDefault();navigate('quizzes');closeMobileNav()">🎮 Quizzes</a>
+  <a class="mobile-nav-link" href="/quizzes" onclick="event.preventDefault();navigate('quizzes');closeMobileNav()">🎓 Quizzes</a>
+  <a class="mobile-nav-link" href="/multiplayer">🎮 Multiplayer</a>
+  <a class="mobile-nav-link" href="/privacy">🔒 Privacy</a>
   <div class="mobile-nav-divider"></div>
   <a class="mobile-nav-link" id="mobileNavDash" href="/dashboard" onclick="event.preventDefault();navigate('dashboard');closeMobileNav()" style="display:none">📊 Dashboard</a>
   <a class="mobile-nav-link" id="mobileNavAdmin" href="/admin" onclick="closeMobileNav()" style="display:none">🛡️ Admin Panel</a>
@@ -133,6 +136,17 @@
 </div>
 
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+<footer style="background:#0f172a;border-top:1px solid rgba(255,255,255,.07);padding:28px 20px;text-align:center;margin-top:40px">
+  <div style="max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:center;gap:20px;font-size:.85rem">
+    <a href="/" style="color:#64748b;text-decoration:none;transition:color .15s" onmouseover="this.style.color='#818cf8'" onmouseout="this.style.color='#64748b'">🏠 Home</a>
+    <a href="/quizzes" style="color:#64748b;text-decoration:none;transition:color .15s" onmouseover="this.style.color='#818cf8'" onmouseout="this.style.color='#64748b'">🎓 Quizzes</a>
+    <a href="/multiplayer" style="color:#64748b;text-decoration:none;transition:color .15s" onmouseover="this.style.color='#818cf8'" onmouseout="this.style.color='#64748b'">🎮 Multiplayer</a>
+    <a href="/privacy" style="color:#64748b;text-decoration:none;transition:color .15s" onmouseover="this.style.color='#818cf8'" onmouseout="this.style.color='#64748b'">🔒 Privacy Policy</a>
+    <a href="/register" style="color:#64748b;text-decoration:none;transition:color .15s" onmouseover="this.style.color='#818cf8'" onmouseout="this.style.color='#64748b'">✨ Sign Up Free</a>
+  </div>
+  <div style="color:#334155;font-size:.78rem;margin-top:16px">© 2025 ToolHub AI — Free AI Tools &amp; Quizzes</div>
+</footer>
 
 <script src="/js/app.js"></script>
 <script src="/js/tools.js"></script>

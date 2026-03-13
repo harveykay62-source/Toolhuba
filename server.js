@@ -1,29 +1,30 @@
 require('dotenv').config();
-const express  = require('express');
-const session  = require('express-session');
-const pgSession = require('connect-pg-simple')(session);
-const rateLimit = require('express-rate-limit');
-const helmet    = require('helmet');
+const express     = require('express');
+const http        = require('http');
+const { Server }  = require('socket.io');
+const session     = require('express-session');
+const pgSession   = require('connect-pg-simple')(session);
+const rateLimit   = require('express-rate-limit');
+const helmet      = require('helmet');
 const compression = require('compression');
-const morgan    = require('morgan');
-const cors      = require('cors');
-const path      = require('path');
-const fs        = require('fs');
+const morgan      = require('morgan');
+const cors        = require('cors');
+const path        = require('path');
+const fs          = require('fs');
 
 // ── Data dirs ─────────────────────────────────────────────────────────────────
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const DATA_DIR      = process.env.DATA_DIR || path.join(__dirname, 'data');
 const QUIZ_DATA_DIR = path.join(DATA_DIR, 'quizzes');
 [DATA_DIR, QUIZ_DATA_DIR].forEach(dir => {
   try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch(e) {}
 });
 global.DATA_DIR = DATA_DIR;
 
-const app  = express();
-const PORT = parseInt(process.env.PORT) || 3000;
+const app    = express();
+const server = http.createServer(app);
+const PORT   = parseInt(process.env.PORT) || 3000;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-// ── Trust proxy (required on Render / behind load balancers) ──────────────────
-// Without this req.ip returns the proxy's IP, breaking per-IP rate limits
 app.set('trust proxy', 1);
 
 // ── Core middleware ───────────────────────────────────────────────────────────
@@ -37,14 +38,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 const { pool: pgPool } = require('./db/database');
-app.use(session({
+const sessionMiddleware = session({
   store: new pgSession({ pool: pgPool, tableName: 'session', createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || 'toolhub_secret_change_me_2024',
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: IS_PROD },
   name: 'toolhub.sid',
-}));
+});
+app.use(sessionMiddleware);
+
+// ── Socket.io (shares express sessions) ───────────────────────────────────────
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET','POST'] },
+  transports: ['websocket','polling'],
+});
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
+require('./lib/socketHandler')(io);
+app.set('io', io); // make io available in routes if needed
 
 // ── Analytics tracking middleware ─────────────────────────────────────────────
 const analytics = require('./routes/analytics');
@@ -61,8 +74,9 @@ app.use('/api/tools',           require('./routes/tools-extra'));
 app.use('/api',                 require('./routes/dashboard'));
 app.use('/api/quiz',            require('./routes/quiz'));
 app.use('/api/admin/analytics', analytics.router);
+app.use('/api/multiplayer',     require('./routes/multiplayer'));
 
-// ── /api/init ────────────────────────────────────────────────────────────────
+// ── /api/init ─────────────────────────────────────────────────────────────────
 app.get('/api/init', async (req, res) => {
   try {
     const db = require('./db/database');
@@ -72,14 +86,27 @@ app.get('/api/init', async (req, res) => {
       db.getSetting('adsense_client'), db.getSetting('adsense_slot_banner'),
       db.getSetting('maintenance_mode'),
     ]);
+
+    const isStudent = req.session.isStudent || req.session.role === 'student';
+    const showAds   = adsEnabled === 'true' && !isStudent;
+
     res.json({
-      session: { loggedIn: !!req.session.userId, name: req.session.name || '',
+      session: {
+        loggedIn: !!req.session.userId, name: req.session.name || '',
         role: req.session.role || 'guest', avatarColor: req.session.avatarColor || '#10b981',
         isVerifiedEducator: req.session.isVerifiedEducator || false,
-        email: req.session.email || '' },
-      settings: { siteName: siteName || 'ToolHub AI', adsEnabled: adsEnabled === 'true',
-        adsenseClient: adsenseClient || '', adsenseBanner: adsenseBanner || '',
-        maintenance: maintenance === 'true' },
+        isStudent: req.session.isStudent || false,
+        isTeacher: req.session.isTeacher || false,
+        email: req.session.email || '',
+      },
+      settings: {
+        siteName: siteName || 'ToolHub AI',
+        adsEnabled: showAds,          // false for students
+        adsenseClient: adsenseClient || '',
+        adsenseBanner: adsenseBanner || '',
+        maintenance: maintenance === 'true',
+        googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+      },
       tools: getAllTools(), categories: CATEGORIES, trending: getTrending(),
     });
   } catch(err) {
@@ -88,12 +115,7 @@ app.get('/api/init', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SEO-RENDERED PAGE ROUTES
-// Every public page gets its own unique <title>, <meta description>, <keywords>,
-// canonical URL, Open Graph tags, and JSON-LD structured data so Google
-// can index and display each page with a meaningful search snippet.
-// ═══════════════════════════════════════════════════════════════════════════════
+// ── SEO page routes ───────────────────────────────────────────────────────────
 const SEO = require('./routes/seo');
 const { getToolById } = require('./db/tools');
 const { getQuizWithQuestions } = require('./db/quiz-db');
@@ -103,55 +125,52 @@ const HTML = (res, html) => {
   res.send(html);
 };
 
-// ── Home  / ───────────────────────────────────────────────────────────────────
-app.get('/', (req, res) => HTML(res, SEO.home(__dirname)));
-
-// ── Login  /login ─────────────────────────────────────────────────────────────
-app.get('/login', (req, res) => HTML(res, SEO.login(__dirname)));
-
-// ── Register  /register ───────────────────────────────────────────────────────
-app.get('/register', (req, res) => HTML(res, SEO.register(__dirname)));
-
-// ── Dashboard  /dashboard ─────────────────────────────────────────────────────
-app.get('/dashboard', (req, res) => HTML(res, SEO.dashboard(__dirname)));
-
-// ── Quiz Hub  /quizzes ────────────────────────────────────────────────────────
-app.get('/quizzes', (req, res) => HTML(res, SEO.quizzes(__dirname)));
-
-// ── Quiz Builder  /quizzes/build ──────────────────────────────────────────────
-app.get('/quizzes/build', (req, res) => HTML(res, SEO.quizBuild(__dirname)));
-
-// ── Quiz Profile  /quizzes/profile ────────────────────────────────────────────
+app.get('/',                (req, res) => HTML(res, SEO.home(__dirname)));
+app.get('/login',           (req, res) => HTML(res, SEO.login(__dirname)));
+app.get('/register',        (req, res) => HTML(res, SEO.register(__dirname)));
+app.get('/dashboard',       (req, res) => HTML(res, SEO.dashboard(__dirname)));
+app.get('/quizzes',         (req, res) => HTML(res, SEO.quizzes(__dirname)));
+app.get('/quizzes/build',   (req, res) => HTML(res, SEO.quizBuild(__dirname)));
 app.get('/quizzes/profile', (req, res) => HTML(res, SEO.quizProfile(__dirname)));
 
-// ── Individual Tool  /tool/:id ────────────────────────────────────────────────
 app.get('/tool/:id', (req, res, next) => {
   const t = getToolById(req.params.id);
-  if (!t) return next(); // → 404 / SPA fallback
+  if (!t) return next();
   HTML(res, SEO.tool(__dirname, t));
 });
 
-// ── Individual Quiz  /quiz/:id ────────────────────────────────────────────────
-// Fetches the quiz from DB so the title/description are real.
-app.get('/quiz/:id', async (req, res, next) => {
+app.get('/quiz/:id', async (req, res) => {
   try {
     const quiz = await getQuizWithQuestions(req.params.id);
     HTML(res, SEO.quizPage(__dirname, quiz));
   } catch {
-    // If DB unavailable, fall back to generic quiz SEO page
     HTML(res, SEO.quizzes(__dirname));
   }
 });
 
-// ── Category pages  /category/:cat ───────────────────────────────────────────
-// These give Google crawlable, SEO-rich pages for each category
 app.get('/category/:cat', (req, res, next) => {
   const cat = req.params.cat;
-  if (!['text', 'media', 'utility'].includes(cat)) return next();
+  if (!['text','media','utility'].includes(cat)) return next();
   HTML(res, SEO.categoryPage(__dirname, cat));
 });
 
-// ── Admin  /admin — Protected, NOT indexed ────────────────────────────────────
+// ── Multiplayer pages ─────────────────────────────────────────────────────────
+app.get('/multiplayer',  (req, res) => HTML(res, SEO.multiplayer(__dirname)));
+app.get('/host-game',    (req, res) => HTML(res, SEO.hostGame(__dirname)));
+app.get('/join-game',    (req, res) => HTML(res, SEO.joinGame(__dirname)));
+app.get('/game-room',    (req, res) => HTML(res, SEO.gameRoom(__dirname)));
+app.get('/leaderboard',  (req, res) => HTML(res, SEO.leaderboard(__dirname)));
+app.get('/privacy',      (req, res) => HTML(res, SEO.privacy(__dirname)));
+
+// ── Teacher dashboard ─────────────────────────────────────────────────────────
+app.get('/teacher', (req, res) => {
+  if (!req.session || !['teacher','admin'].includes(req.session.role)) {
+    return res.redirect('/login?redirect=/teacher');
+  }
+  HTML(res, SEO.teacherDashboard(__dirname));
+});
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
 app.get('/admin', (req, res) => {
   if (!req.session || req.session.role !== 'admin') {
     return res.redirect('/login?redirect=/admin&reason=admin_only');
@@ -164,37 +183,25 @@ app.get('/sitemap.xml', async (req, res) => {
   const { getAllTools } = require('./db/tools');
   const { getQuizList } = require('./db/quiz-db');
   const now = new Date().toISOString().split('T')[0];
-
   const tools = getAllTools().filter(t => t.enabled);
-
   let quizRows = [];
   try { quizRows = await getQuizList({ status: 'approved', limit: 200 }); } catch {}
 
-  const staticPages = [
-    { url: '/',                  priority: '1.0', freq: 'daily'   },
-    { url: '/register',          priority: '0.7', freq: 'monthly' },
-    { url: '/quizzes',           priority: '0.8', freq: 'daily'   },
-    { url: '/quizzes/build',     priority: '0.6', freq: 'weekly'  },
-    { url: '/category/text',     priority: '0.9', freq: 'weekly'  },
-    { url: '/category/media',    priority: '0.9', freq: 'weekly'  },
-    { url: '/category/utility',  priority: '0.9', freq: 'weekly'  },
+  const pages = [
+    { url: '/',                 priority: '1.0', freq: 'daily'   },
+    { url: '/register',         priority: '0.7', freq: 'monthly' },
+    { url: '/quizzes',          priority: '0.8', freq: 'daily'   },
+    { url: '/quizzes/build',    priority: '0.6', freq: 'weekly'  },
+    { url: '/multiplayer',      priority: '0.8', freq: 'daily'   },
+    { url: '/category/text',    priority: '0.9', freq: 'weekly'  },
+    { url: '/category/media',   priority: '0.9', freq: 'weekly'  },
+    { url: '/category/utility', priority: '0.9', freq: 'weekly'  },
+    ...tools.map(t => ({ url: `/tool/${t.id}`, priority: t.trending ? '0.9' : '0.8', freq: 'weekly' })),
+    ...quizRows.map(q => ({ url: `/quiz/${q.id}`, priority: '0.7', freq: 'weekly' })),
   ];
 
-  const toolPages = tools.map(t => ({
-    url: `/tool/${t.id}`,
-    priority: t.trending ? '0.9' : '0.8',
-    freq: 'weekly',
-  }));
-
-  const quizPages = quizRows.map(q => ({
-    url: `/quiz/${q.id}`,
-    priority: '0.7',
-    freq: 'weekly',
-  }));
-
-  const all = [...staticPages, ...toolPages, ...quizPages];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    all.map(p =>
+    pages.map(p =>
       `  <url>\n    <loc>${SEO.SITE_URL}${p.url}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.freq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`
     ).join('\n') + `\n</urlset>`;
 
@@ -202,21 +209,13 @@ app.get('/sitemap.xml', async (req, res) => {
   res.send(xml);
 });
 
-// ── Robots.txt ────────────────────────────────────────────────────────────────
 app.get('/robots.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain');
   res.send(
-    `User-agent: *\n` +
-    `Allow: /\n` +
-    `Disallow: /admin\n` +
-    `Disallow: /dashboard\n` +
-    `Disallow: /api/\n` +
-    `Disallow: /login\n\n` +
-    `Sitemap: ${SEO.SITE_URL}/sitemap.xml`
+    `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /dashboard\nDisallow: /api/\nDisallow: /login\nDisallow: /teacher\n\nSitemap: ${SEO.SITE_URL}/sitemap.xml`
   );
 });
 
-// ── Global error handler ──────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
   res.status(500).json({ error: 'Something went wrong.' });
@@ -224,10 +223,11 @@ app.use((err, req, res, next) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 function startServer(port) {
-  const server = app.listen(port, '0.0.0.0');
+  server.listen(port, '0.0.0.0');
   server.on('listening', () => {
     console.log(`\n✅ ToolHub AI → http://localhost:${port}`);
-    console.log(`   Admin → http://localhost:${port}/admin  (admin@toolhub.ai / Admin@123)\n`);
+    console.log(`   Admin      → http://localhost:${port}/admin  (admin@toolhub.ai / Admin@123)`);
+    console.log(`   Multiplayer → http://localhost:${port}/multiplayer\n`);
   });
   server.on('error', err => {
     if (err.code === 'EADDRINUSE') startServer(port + 1);

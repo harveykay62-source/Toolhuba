@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teacher Dashboard — ToolHub AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/multiplayer.css">
+<style>
+body{background:#0f172a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0}
+.td-nav{background:#1e293b;padding:16px 28px;display:flex;align-items:center;gap:20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.td-nav h1{font-size:1.2rem;font-weight:700;color:#fff;margin:0;flex:1}
+.td-nav a{color:#94a3b8;text-decoration:none;font-size:.9rem;padding:6px 14px;border-radius:8px;transition:background .15s}
+.td-nav a:hover,.td-nav a.active{background:rgba(255,255,255,.08);color:#fff}
+.td-body{max-width:1100px;margin:0 auto;padding:32px 20px}
+.td-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px}
+.td-stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px 18px;text-align:center}
+.td-stat-n{font-size:2rem;font-weight:800;color:#818cf8}
+.td-stat-l{font-size:.85rem;color:#64748b;margin-top:4px}
+.td-section{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;margin-bottom:24px}
+.td-section h2{font-size:1.1rem;font-weight:700;color:#e2e8f0;margin:0 0 18px}
+.td-table{width:100%;border-collapse:collapse}
+.td-table th{text-align:left;padding:10px 12px;font-size:.78rem;color:#64748b;border-bottom:1px solid rgba(255,255,255,.08);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.td-table td{padding:11px 12px;font-size:.88rem;border-bottom:1px solid rgba(255,255,255,.05);color:#cbd5e1}
+.td-table tr:last-child td{border-bottom:none}
+.td-table tr:hover td{background:rgba(255,255,255,.03)}
+.td-empty{color:#4b5563;text-align:center;padding:36px;font-size:.9rem}
+.btn-host{background:#6366f1;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:.9rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.btn-host:hover{opacity:.85}
+.score-pill{background:rgba(129,140,248,.15);color:#818cf8;border-radius:20px;padding:2px 10px;font-size:.8rem;font-weight:600}
+.tab-btns{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:16px}
+.tab-btn{background:none;border:none;color:#94a3b8;font-size:.9rem;padding:8px 16px;cursor:pointer;border-radius:8px;font-weight:600}
+.tab-btn.active{background:rgba(99,102,241,.15);color:#818cf8}
+</style>
+</head>
+<body>
+<nav class="td-nav">
+  <h1>👩‍🏫 Teacher Dashboard</h1>
+  <a href="/multiplayer" id="navHost">🎮 Host Game</a>
+  <a href="/quizzes" id="navQuizzes">📚 Quizzes</a>
+  <a href="/dashboard" id="navDash">📊 My Dashboard</a>
+  <a href="/" id="navHome">🏠 Home</a>
+</nav>
+
+<div class="td-body">
+  <!-- Stats row -->
+  <div class="td-stats" id="tdStats">
+    <div class="td-stat"><div class="td-stat-n" id="statGames">—</div><div class="td-stat-l">Games Hosted</div></div>
+    <div class="td-stat"><div class="td-stat-n" id="statStudents">—</div><div class="td-stat-l">Students</div></div>
+    <div class="td-stat"><div class="td-stat-n" id="statPlayers">—</div><div class="td-stat-l">Total Players</div></div>
+    <div class="td-stat"><div class="td-stat-n" id="statAvgScore">—</div><div class="td-stat-l">Avg Score</div></div>
+  </div>
+
+  <!-- Quick actions -->
+  <div style="margin-bottom:24px;display:flex;gap:12px;flex-wrap:wrap">
+    <a href="/host-game?mode=kahoot" class="btn-host">🏫 Host Kahoot Game</a>
+    <a href="/host-game?mode=blooket" class="btn-host" style="background:#10b981">🎲 Host Blooket Game</a>
+    <a href="/join-game" class="btn-host" style="background:rgba(255,255,255,.1)">📋 Join a Game</a>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-btns">
+    <button class="tab-btn active" onclick="showTab('games')">🎮 Game History</button>
+    <button class="tab-btn" onclick="showTab('students')">🎓 My Students</button>
+  </div>
+
+  <!-- Game history -->
+  <div id="tabGames" class="td-section">
+    <h2>🎮 Game History</h2>
+    <div id="gamesTable"><div class="td-empty">Loading…</div></div>
+  </div>
+
+  <!-- Students -->
+  <div id="tabStudents" class="td-section" style="display:none">
+    <h2>🎓 Students in Your Domain</h2>
+    <div id="studentsTable"><div class="td-empty">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+let gamesData = [], studentsData = [];
+
+async function apiFetch(url, method='GET', body=null) {
+  const opts = { method, headers:{'Content-Type':'application/json'}, credentials:'include' };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function showTab(tab) {
+  document.getElementById('tabGames').style.display = tab === 'games' ? '' : 'none';
+  document.getElementById('tabStudents').style.display = tab === 'students' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='games')||(i===1&&tab==='students')));
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(n) { return typeof n === 'number' ? n.toLocaleString() : (n || '—'); }
+function timeAgo(d) {
+  if (!d) return '—';
+  const diff = Date.now() - new Date(d).getTime();
+  const m = Math.floor(diff/60000), h = Math.floor(m/60), day = Math.floor(h/24);
+  if (day>0) return day+'d ago'; if (h>0) return h+'h ago'; if (m>0) return m+'m ago'; return 'just now';
+}
+
+async function loadData() {
+  try {
+    const [gamesRes, studentsRes] = await Promise.all([
+      apiFetch('/api/multiplayer/teacher/game-results'),
+      apiFetch('/api/multiplayer/teacher/students'),
+    ]);
+    gamesData = gamesRes.games || [];
+    studentsData = studentsRes.students || [];
+    renderStats();
+    renderGames();
+    renderStudents();
+  } catch(e) {
+    if (e.message && e.message.includes('403')) {
+      document.body.innerHTML = '<div style="text-align:center;padding:80px;color:#94a3b8"><h2>Access Denied</h2><p>Teacher account required.</p><a href="/" style="color:#818cf8">Go Home</a></div>';
+    }
+  }
+}
+
+function renderStats() {
+  const totalPlayers = gamesData.reduce((s,g) => s + (g.players_json?.length || 0), 0);
+  const allScores = gamesData.flatMap(g => (g.players_json||[]).map(p => p.score || 0));
+  const avgScore = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
+  document.getElementById('statGames').textContent = fmt(gamesData.length);
+  document.getElementById('statStudents').textContent = fmt(studentsData.length);
+  document.getElementById('statPlayers').textContent = fmt(totalPlayers);
+  document.getElementById('statAvgScore').textContent = fmt(avgScore);
+}
+
+function renderGames() {
+  const el = document.getElementById('gamesTable');
+  if (!gamesData.length) { el.innerHTML = '<div class="td-empty">No games hosted yet. <a href="/multiplayer" style="color:#818cf8">Host your first game →</a></div>'; return; }
+  el.innerHTML = `<table class="td-table">
+    <thead><tr><th>Quiz</th><th>Mode</th><th>Players</th><th>Top Score</th><th>Date</th><th></th></tr></thead>
+    <tbody>${gamesData.map(g => {
+      const players = g.players_json || [];
+      const topScore = players.length ? Math.max(...players.map(p=>p.score||0)) : 0;
+      const modeColor = g.game_mode === 'kahoot' ? '#6366f1' : '#10b981';
+      return `<tr>
+        <td><strong>${esc(g.quiz_title||'Unknown Quiz')}</strong></td>
+        <td><span style="background:${modeColor};color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700">${g.game_mode}</span></td>
+        <td>${players.length}</td>
+        <td><span class="score-pill">${fmt(topScore)}</span></td>
+        <td>${timeAgo(g.ended_at)}</td>
+        <td><a href="/leaderboard?code=${esc(g.room_code)}" style="color:#818cf8;font-size:.8rem">Results →</a></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function renderStudents() {
+  const el = document.getElementById('studentsTable');
+  if (!studentsData.length) { el.innerHTML = '<div class="td-empty">No students found for your domain. Students automatically join when they register with an approved school email.</div>'; return; }
+  el.innerHTML = `<table class="td-table">
+    <thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Last Active</th></tr></thead>
+    <tbody>${studentsData.map(s => `<tr>
+      <td><strong>${esc(s.name)}</strong></td>
+      <td>${esc(s.email)}</td>
+      <td>${timeAgo(s.created_at)}</td>
+      <td>${timeAgo(s.last_login)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+loadData();
+</script>
+</body>
+</html>

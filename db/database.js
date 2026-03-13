@@ -149,6 +149,41 @@ async function initDB() {
     );
   }
 
+  // ── School domains & teacher/student flags (multiplayer system) ────────────
+  await pool.query(`CREATE TABLE IF NOT EXISTS school_domains (
+    id SERIAL PRIMARY KEY,
+    domain TEXT UNIQUE NOT NULL,
+    school_name TEXT NOT NULL,
+    approved_by INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS teacher_profiles (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE NOT NULL,
+    school_name TEXT DEFAULT '',
+    domain TEXT DEFAULT '',
+    created_by_admin INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_student BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_teacher BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT`);
+
+  // ── Multiplayer game results (persistent) ──────────────────────────────────
+  await pool.query(`CREATE TABLE IF NOT EXISTS multiplayer_results (
+    id SERIAL PRIMARY KEY,
+    room_code TEXT NOT NULL,
+    game_mode TEXT NOT NULL,
+    quiz_id TEXT,
+    quiz_title TEXT,
+    host_id INTEGER,
+    host_name TEXT,
+    players_json TEXT DEFAULT '[]',
+    final_scores TEXT DEFAULT '{}',
+    started_at TIMESTAMP,
+    ended_at TIMESTAMP DEFAULT NOW()
+  )`);
+
   console.log('✅ Database ready (PostgreSQL)');
 }
 
@@ -213,4 +248,47 @@ module.exports = {
   getSetting, setSetting,
   trackToolUse, trackPageView,
   getDailyUsage, getDisabledTools, setDisabledTool,
+  getApprovedDomains, isApprovedDomain, addSchoolDomain, removeSchoolDomain,
+  createTeacherProfile, getTeacherProfile,
 };
+
+// ── School domain helpers ─────────────────────────────────────────────────────
+async function getApprovedDomains() {
+  const { rows } = await pool.query(`SELECT domain, school_name FROM school_domains ORDER BY domain`);
+  return rows;
+}
+
+async function isApprovedDomain(email) {
+  if (!email) return false;
+  const domain = email.toLowerCase().split('@')[1];
+  if (!domain) return false;
+  const { rows } = await pool.query(`SELECT id FROM school_domains WHERE domain = $1`, [domain]);
+  return rows.length > 0;
+}
+
+async function addSchoolDomain(domain, schoolName, adminId) {
+  await pool.query(
+    `INSERT INTO school_domains (domain, school_name, approved_by) VALUES ($1,$2,$3)
+     ON CONFLICT (domain) DO UPDATE SET school_name=EXCLUDED.school_name`,
+    [domain.toLowerCase(), schoolName, adminId]
+  );
+}
+
+async function removeSchoolDomain(domain) {
+  await pool.query(`DELETE FROM school_domains WHERE domain = $1`, [domain.toLowerCase()]);
+}
+
+// ── Teacher profile helpers ───────────────────────────────────────────────────
+async function createTeacherProfile(userId, schoolName, domain, adminId) {
+  await pool.query(
+    `INSERT INTO teacher_profiles (user_id, school_name, domain, created_by_admin)
+     VALUES ($1,$2,$3,$4) ON CONFLICT (user_id)
+     DO UPDATE SET school_name=EXCLUDED.school_name, domain=EXCLUDED.domain`,
+    [userId, schoolName, domain, adminId]
+  );
+}
+
+async function getTeacherProfile(userId) {
+  const { rows } = await pool.query(`SELECT * FROM teacher_profiles WHERE user_id=$1`, [userId]);
+  return rows[0] || null;
+}

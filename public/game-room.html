@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Game Room — ToolHub AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/multiplayer.css">
+</head>
+<body class="dark-mode">
+<div id="gameRoomApp"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/multiplayer-game.js"></script>
+<script>
+  // State is passed via sessionStorage from host/join pages
+  GameRoom.init();
+</script>
+</body>
+</html>
