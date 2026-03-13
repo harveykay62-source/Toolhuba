@@ -91,4 +91,17 @@ router.get('/me', (req, res) => {
   }
 });
 
+router.post('/change-password', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  try {
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.run('UPDATE users SET password=? WHERE id=?', [hash, req.session.userId]);
+    res.json({ success: true });
+  } catch(err) {
+    res.status(500).json({ error: 'Password change failed.' });
+  }
+});
+
 module.exports = router;

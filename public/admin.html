@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ToolHub Admin — Analytics Dashboard</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1c2333;--bg4:#232c3f;
+  --border:#2a3349;--border2:#354060;
+  --text:#e6eaf2;--text2:#a8b3cc;--text3:#6b7a99;
+  --accent:#5c6ef5;--accent2:#7c6fef;--accent-light:#1e2250;
+  --success:#10b981;--success-bg:#0d2c22;
+  --warn:#f59e0b;--warn-bg:#2d2210;
+  --danger:#ef4444;--danger-bg:#2c1414;
+  --info:#38bdf8;--info-bg:#0d2233;
+  --radius:8px;--radius-lg:12px;--radius-xl:16px;
+  --font:'Inter',system-ui,sans-serif;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+a{color:var(--accent);text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:50}
+.content{padding:24px;flex:1}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.sidebar-logo{padding:20px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-logo-icon{font-size:22px}
+.sidebar-logo-text{font-size:16px;font-weight:800;color:var(--text)}
+.sidebar-logo-badge{font-size:10px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-weight:700;margin-left:4px}
+.nav-section{padding:12px 8px 4px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:var(--radius);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;margin:1px 6px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--accent-light);color:var(--accent);font-weight:600}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+.admin-info{display:flex;align-items:center;gap:10px}
+.admin-avatar{width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.admin-name{font-size:13px;font-weight:600;color:var(--text)}
+.admin-role{font-size:11px;color:var(--text3)}
+
+/* ── Topbar ──────────────────────────────────────────────────────────────── */
+.tb-title{font-size:16px;font-weight:700;color:var(--text)}
+.tb-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-left:auto}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.tb-time{font-size:12px;color:var(--text3);background:var(--bg3);padding:4px 10px;border-radius:6px}
+.btn-back{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);background:var(--bg3);border:1px solid var(--border);font-size:13px;color:var(--text2);transition:all .15s}
+.btn-back:hover{color:var(--text);border-color:var(--border2)}
+.btn-refresh{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);background:var(--accent);color:#fff;font-size:13px;font-weight:600;transition:background .15s}
+.btn-refresh:hover{background:var(--accent2)}
+
+/* ── Cards & Grids ───────────────────────────────────────────────────────── */
+.stat-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.stat-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.card-sm{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.card-sub{font-size:11px;color:var(--text3)}
+
+/* ── Stat Card ───────────────────────────────────────────────────────────── */
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.blue::before{background:var(--accent)}
+.stat-card.green::before{background:var(--success)}
+.stat-card.amber::before{background:var(--warn)}
+.stat-card.red::before{background:var(--danger)}
+.stat-card.purple::before{background:#a855f7}
+.stat-icon{font-size:22px;margin-bottom:12px}
+.stat-value{font-size:30px;font-weight:800;color:var(--text);letter-spacing:-.04em;line-height:1}
+.stat-label{font-size:12px;color:var(--text3);margin-top:6px;font-weight:500}
+.stat-trend{font-size:11px;margin-top:8px;font-weight:600}
+.trend-up{color:var(--success)}
+.trend-down{color:var(--danger)}
+
+/* ── Realtime Pulse ──────────────────────────────────────────────────────── */
+.realtime-badge{display:inline-flex;align-items:center;gap:6px;background:var(--success-bg);color:var(--success);font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid var(--success)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--success);animation:pulse 1.5s infinite}
+
+/* ── Chart ───────────────────────────────────────────────────────────────── */
+.chart-wrap{width:100%;overflow:hidden;position:relative}
+.bar-chart{display:flex;align-items:flex-end;gap:4px;height:120px;padding-top:8px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{width:100%;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;transition:height .4s ease;opacity:.8}
+.bar:hover{opacity:1}
+.bar-label{font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30px;text-align:center}
+.mini-chart{display:flex;align-items:flex-end;gap:2px;height:48px}
+.mini-bar{flex:1;background:var(--accent);border-radius:2px 2px 0 0;opacity:.6;min-height:2px}
+.mini-bar.success{background:var(--success)}
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.table-wrap{overflow-x:auto}
+
+/* ── Visitors Feed ───────────────────────────────────────────────────────── */
+.visitor-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;transition:background .1s}
+.visitor-row:last-child{border-bottom:none}
+.visitor-row:hover{background:var(--bg3)}
+.visitor-dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0}
+.visitor-page{font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.visitor-ip{color:var(--text3);font-family:monospace;font-size:11px}
+.visitor-device{color:var(--text3);font-size:11px;background:var(--bg4);padding:2px 8px;border-radius:10px}
+.visitor-time{color:var(--text3);font-size:11px;white-space:nowrap}
+
+/* ── Event Feed ──────────────────────────────────────────────────────────── */
+.event-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.event-item:last-child{border-bottom:none}
+.event-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+.ev-pageview{background:var(--accent-light);color:var(--accent)}
+.ev-tooluse{background:var(--success-bg);color:var(--success)}
+.ev-signup{background:#1e0a2e;color:#a855f7}
+.event-page{font-weight:500;color:var(--text);flex:1}
+.event-time{color:var(--text3);font-size:10px;white-space:nowrap}
+
+/* ── Progress Bars ───────────────────────────────────────────────────────── */
+.progress-row{display:flex;align-items:center;gap:10px;padding:6px 0}
+.progress-label{font-size:12px;color:var(--text2);width:140px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.progress-track{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.pf-blue{background:var(--accent)}
+.pf-green{background:var(--success)}
+.pf-amber{background:var(--warn)}
+.progress-val{font-size:12px;color:var(--text2);width:36px;text-align:right;flex-shrink:0;font-weight:600}
+
+/* ── Donut Chart ─────────────────────────────────────────────────────────── */
+.donut-wrap{display:flex;align-items:center;gap:24px}
+.donut-svg{flex-shrink:0}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.donut-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.donut-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text2)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── Settings ────────────────────────────────────────────────────────────── */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border-bottom:none}
+.setting-key{font-size:13px;font-weight:600;color:var(--text)}
+.setting-desc{font-size:11px;color:var(--text3);margin-top:2px}
+.setting-input{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:7px 12px;font-size:13px;color:var(--text);min-width:180px}
+.setting-input:focus{outline:none;border-color:var(--accent)}
+.btn-save{padding:7px 16px;background:var(--accent);color:#fff;border-radius:var(--radius);font-size:13px;font-weight:600;transition:background .15s}
+.btn-save:hover{background:var(--accent2)}
+
+/* ── Toggle ──────────────────────────────────────────────────────────────── */
+.toggle{position:relative;display:inline-block;width:40px;height:22px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--bg4);border-radius:22px;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+input:checked+.toggle-slider{background:var(--success)}
+input:checked+.toggle-slider::before{transform:translateX(18px)}
+
+/* ── Badges & Tags ───────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-admin{background:#1e0a2e;color:#c084fc}
+.badge-premium{background:#1e2c08;color:#84cc16}
+.badge-free{background:var(--bg3);color:var(--text3)}
+.badge-banned{background:var(--danger-bg);color:var(--danger)}
+.badge-success{background:var(--success-bg);color:var(--success)}
+
+/* ── Misc ────────────────────────────────────────────────────────────────── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:15px;font-weight:700;color:var(--text)}
+.empty-state{text-align:center;padding:32px;color:var(--text3);font-size:13px}
+.loading-spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 16px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideIn .2s ease}
+.toast.success{border-left:3px solid var(--success)}
+.toast.error{border-left:3px solid var(--danger)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.sep{height:1px;background:var(--border);margin:8px 0}
+.user-select-btn{padding:5px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;margin-right:4px}
+.user-select-btn:hover{border-color:var(--accent);color:var(--accent)}
+.mobile-menu-btn{display:none;padding:8px;border-radius:var(--radius);background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:1100px){.stat-grid-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);transition:transform .3s}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .mobile-menu-btn{display:flex}
+  .stat-grid-3{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .stat-grid-4,.stat-grid-2{grid-template-columns:1fr}
+  .content{padding:16px}
+  .donut-wrap{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+<!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="sidebar-logo-icon">⚡</span>
+    <span class="sidebar-logo-text">ToolHub<span class="sidebar-logo-badge">ADMIN</span></span>
+  </div>
+
+  <nav style="flex:1;overflow-y:auto;padding:8px 0">
+    <div class="nav-section">Analytics</div>
+    <div class="nav-item active" onclick="showSection('realtime')" id="nav-realtime">
+      <span class="nav-icon">🔴</span> Real-time
+    </div>
+    <div class="nav-item" onclick="showSection('overview')" id="nav-overview">
+      <span class="nav-icon">📊</span> Overview
+    </div>
+    <div class="nav-item" onclick="showSection('traffic')" id="nav-traffic">
+      <span class="nav-icon">📈</span> Traffic
+    </div>
+    <div class="nav-item" onclick="showSection('tools')" id="nav-tools-analytics">
+      <span class="nav-icon">🔧</span> Tool Usage
+    </div>
+
+    <div class="nav-section">Management</div>
+    <div class="nav-item" onclick="showSection('users')" id="nav-users">
+      <span class="nav-icon">👥</span> Users
+    </div>
+    <div class="nav-item" onclick="showSection('tool-mgmt')" id="nav-tool-mgmt">
+      <span class="nav-icon">⚙️</span> Tools
+    </div>
+    <div class="nav-item" onclick="showSection('bugs')" id="nav-bugs">
+      <span class="nav-icon">🐛</span> Bug Reports
+    </div>
+    <div class="nav-item" onclick="showSection('settings')" id="nav-settings">
+      <span class="nav-icon">🛠️</span> Settings
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="admin-info">
+      <div class="admin-avatar" id="adminAvatar">A</div>
+      <div>
+        <div class="admin-name" id="adminName">Admin</div>
+        <div class="admin-role">Administrator</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── Main ──────────────────────────────────────────────────────────────── -->
+<div class="main">
+  <div class="topbar">
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+    <span class="tb-title" id="topbarTitle">Real-time Analytics</span>
+    <div class="tb-status">
+      <span class="live-dot"></span>
+      <span id="connectionStatus">Live</span>
+    </div>
+    <div class="tb-time" id="topbarTime">—</div>
+    <button class="btn-refresh" onclick="refreshAll()">↻ Refresh</button>
+    <a href="/" class="btn-back">← Main Site</a>
+  </div>
+
+  <div class="content" id="mainContent">
+    <div class="empty-state"><div class="loading-spin" style="margin:0 auto 12px"></div>Loading dashboard…</div>
+  </div>
+</div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+'use strict';
+/* ── State ────────────────────────────────────────────────────────────────── */
+let ES = null;          // EventSource
+let SECTION = 'realtime';
+let RT = {};            // realtime data
+let HIST = {};          // historical data
+let ADMIN_DATA = {};    // admin stats
+
+/* ── Boot ─────────────────────────────────────────────────────────────────── */
+async function boot() {
+  // Verify admin
+  try {
+    const r = await api('/api/init');
+    if (!r.session || r.session.role !== 'admin') {
+      window.location.href = '/';
+      return;
+    }
+    document.getElementById('adminName').textContent = r.session.name || 'Admin';
+    document.getElementById('adminAvatar').textContent = (r.session.name||'A').slice(0,2).toUpperCase();
+  } catch { window.location.href = '/'; return; }
+
+  startSSE();
+  updateClock();
+  setInterval(updateClock, 1000);
+  await loadAll();
+  showSection('realtime');
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('topbarTime').textContent =
+    now.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' +
+    now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+async function loadAll() {
+  const [rt, hist, admin] = await Promise.all([
+    api('/api/admin/analytics/realtime').catch(()=>{}),
+    api('/api/admin/analytics/historical').catch(()=>{}),
+    api('/api/admin/stats').catch(()=>{}),
+  ]);
+  if (rt)    RT = rt;
+  if (hist)  HIST = hist;
+  if (admin) ADMIN_DATA = admin;
+}
+
+async function refreshAll() {
+  await loadAll();
+  renderSection(SECTION);
+  toast('Refreshed', 'success');
+}
+
+/* ── SSE ──────────────────────────────────────────────────────────────────── */
+function startSSE() {
+  if (ES) ES.close();
+  ES = new EventSource('/api/admin/analytics/stream');
+  ES.onopen = () => { document.getElementById('connectionStatus').textContent = 'Live'; };
+  ES.onerror = () => { document.getElementById('connectionStatus').textContent = 'Reconnecting…'; };
+  ES.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'snapshot') {
+        RT.activeVisitors = msg.visitors;
+        RT.recentEvents = msg.events;
+      } else if (msg.type === 'visitors') {
+        RT.activeVisitors = msg.data;
+        if (RT.activeNow !== undefined) RT.activeNow = msg.data.length;
+      } else if (msg.type === 'event') {
+        RT.recentEvents = [msg.data, ...(RT.recentEvents||[])].slice(0,50);
+      }
+      if (SECTION === 'realtime') renderSection('realtime');
+    } catch {}
+  };
+}
+
+/* ── Section Router ───────────────────────────────────────────────────────── */
+const SECTION_TITLES = {
+  realtime:'Real-time Analytics', overview:'Overview', traffic:'Traffic',
+  'tools-analytics':'Tool Usage', users:'Users', 'tool-mgmt':'Tool Management',
+  bugs:'Bug Reports', settings:'Settings'
+};
+
+function showSection(s) {
+  SECTION = s;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const nav = document.getElementById('nav-' + (s === 'tools-analytics' ? 'tools-analytics' : s));
+  if (nav) nav.classList.add('active');
+  document.getElementById('topbarTitle').textContent = SECTION_TITLES[s] || s;
+  renderSection(s);
+}
+
+function renderSection(s) {
+  const el = document.getElementById('mainContent');
+  switch (s) {
+    case 'realtime':      el.innerHTML = renderRealtime(); break;
+    case 'overview':      el.innerHTML = renderOverview(); break;
+    case 'traffic':       el.innerHTML = renderTraffic(); break;
+    case 'tools-analytics': el.innerHTML = renderToolsAnalytics(); break;
+    case 'users':         el.innerHTML = renderUsers(); setTimeout(bindUsers, 50); break;
+    case 'tool-mgmt':     el.innerHTML = renderToolMgmt(); setTimeout(bindToolMgmt, 50); break;
+    case 'bugs':          el.innerHTML = renderBugs(); break;
+    case 'settings':      el.innerHTML = renderSettings(); setTimeout(bindSettings, 50); break;
+    default: el.innerHTML = '<div class="empty-state">Section coming soon.</div>';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REAL-TIME
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderRealtime() {
+  const visitors = RT.activeVisitors || [];
+  const events = RT.recentEvents || [];
+  const activeNow = visitors.length;
+
+  return `
+  <div style="margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span class="realtime-badge"><span class="live-dot"></span> LIVE</span>
+    <span style="font-size:13px;color:var(--text3)">Updates automatically • last refreshed ${new Date().toLocaleTimeString()}</span>
+  </div>
+
+  <div class="stat-grid-4" style="margin-bottom:24px">
+    ${statCard('👥 Active Now', activeNow, 'visitors in last 5 min', 'blue', '')}
+    ${statCard('👁️ Views Today', fmt(RT.viewsToday||0), 'page views', 'green', '')}
+    ${statCard('⚡ Last Hour', fmt(RT.viewsHour||0), 'page views', 'amber', '')}
+    ${statCard('🔧 Tools Today', fmt(RT.toolUsesToday||0), 'tool uses', 'purple', '')}
+  </div>
+
+  <div class="stat-grid-2">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="card-header" style="padding:16px 20px 12px">
+        <span class="card-title">🟢 Active Visitors <span style="font-size:11px;background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:10px;margin-left:6px">${activeNow} online</span></span>
+      </div>
+      <div id="visitorFeed" style="max-height:320px;overflow-y:auto">
+        ${visitors.length ? visitors.map(v => `
+          <div class="visitor-row">
+            <span class="visitor-dot"></span>
+            <span class="visitor-page">${esc(v.page)}</span>
+            <span class="visitor-ip">${esc(v.ip)}</span>
+            <span class="visitor-device">${esc(v.ua||'Unknown')}</span>
+            <span class="visitor-time">${timeAgo(v.time)}</span>
+          </div>`).join('') : '<div class="empty-state" style="padding:32px">No active visitors right now</div>'}
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="card-header" style="padding:16px 20px 12px">
+        <span class="card-title">⚡ Live Event Stream</span>
+      </div>
+      <div id="eventFeed" style="max-height:320px;overflow-y:auto">
+        ${events.length ? events.slice(0,20).map(e => `
+          <div class="event-item">
+            <span class="event-badge ${e.kind==='tooluse'?'ev-tooluse':'ev-pageview'}">${e.kind==='tooluse'?'TOOL':'VIEW'}</span>
+            <span class="event-page">${esc(e.page||e.tool||'/')}</span>
+            <span class="visitor-device">${esc(e.ua||'Desktop')}</span>
+            <span class="event-time">${timeAgo(e.ts)}</span>
+          </div>`).join('') : '<div class="empty-state" style="padding:32px">No recent events</div>'}
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-grid-2" style="margin-top:0">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📄 Top Pages (last hour)</span></div>
+      ${(RT.topPages||[]).length ? (RT.topPages||[]).map((p,i) => progressRow(esc(p.page), parseInt(p.c), Math.max(...(RT.topPages||[]).map(x=>parseInt(x.c))), i%3===0?'pf-blue':i%3===1?'pf-green':'pf-amber')).join('') : '<div class="empty-state">No data yet</div>'}
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">📱 Devices (last hour)</span></div>
+      ${renderDonut(RT.devices||{Desktop:0,Mobile:0,Tablet:0})}
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OVERVIEW
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderOverview() {
+  const ov = ADMIN_DATA.overview || {};
+  const rev = ADMIN_DATA.revenue || {};
+  const sys = ADMIN_DATA.system || {};
+  const totals = HIST.totals || {};
+
+  return `
+  <div class="stat-grid-4">
+    ${statCard('👥 Total Users', fmt(ov.totalUsers||0), 'registered accounts', 'blue')}
+    ${statCard('👑 Premium', fmt(ov.premiumUsers||0), 'premium subscribers', 'amber')}
+    ${statCard('🔧 Total Uses', fmt(totals.toolUses||ov.totalToolUses||0), 'all-time tool uses', 'green')}
+    ${statCard('📄 Page Views', fmt(totals.pageViews||ov.totalPageViews||0), 'all-time views', 'purple')}
+  </div>
+  <div class="stat-grid-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">💰 Revenue</span></div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div><div style="font-size:28px;font-weight:800;color:var(--success)">$${parseFloat(rev.premium||0).toFixed(2)}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Premium Collected</div></div>
+        <div><div style="font-size:28px;font-weight:800;color:var(--warn)">~$${rev.estimated_ad||0}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Est. Ad Revenue</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🖥️ Server</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${miniStat('Uptime', sys.uptime||'—')}
+        ${miniStat('Memory', (sys.memoryMB||0)+'MB')}
+        ${miniStat('Node', sys.nodeVersion||'—')}
+        ${miniStat('Platform', sys.platform||'—')}
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header"><span class="card-title">📊 Last 30 Days — Page Views & Tool Uses</span></div>
+    ${renderBarChart30()}
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">🏆 Top Tools — All Time</span></div>
+    ${(HIST.allTopTools||[]).slice(0,10).map((t,i) => progressRow(esc(t.tool_name), parseInt(t.c), Math.max(...(HIST.allTopTools||[]).map(x=>parseInt(x.c))), i%3===0?'pf-blue':i%3===1?'pf-green':'pf-amber')).join('') || '<div class="empty-state">No data yet</div>'}
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAFFIC
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderTraffic() {
+  const daily = (HIST.daily30||[]);
+  const totalViews = daily.reduce((s,d)=>s+parseInt(d.page_views||0),0);
+  const totalUses  = daily.reduce((s,d)=>s+parseInt(d.tool_uses||0),0);
+  const avgDaily   = daily.length ? Math.round(totalViews/daily.length) : 0;
+
+  return `
+  <div class="stat-grid-3">
+    ${statCard('📄 Views (30d)', fmt(totalViews), '30-day total', 'blue')}
+    ${statCard('🔧 Uses (30d)', fmt(totalUses), '30-day total', 'green')}
+    ${statCard('📊 Daily Avg', fmt(avgDaily), 'page views/day', 'amber')}
+  </div>
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header"><span class="card-title">📈 Traffic — Last 30 Days</span></div>
+    ${renderBarChart30(true)}
+    <div style="display:flex;gap:16px;margin-top:12px;justify-content:center">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)"><span style="width:12px;height:12px;background:var(--accent);border-radius:2px;display:inline-block"></span>Page Views</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)"><span style="width:12px;height:12px;background:var(--success);border-radius:2px;display:inline-block"></span>Tool Uses</div>
+    </div>
+  </div>
+  <div class="stat-grid-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📄 Top Pages — All Time</span></div>
+      ${(HIST.allTopPages||[]).slice(0,10).map((p,i) => progressRow(esc(p.page), parseInt(p.c), Math.max(...(HIST.allTopPages||[]).map(x=>parseInt(x.c))), 'pf-blue')).join('') || '<div class="empty-state">No data yet</div>'}
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🕐 Today by Hour</span></div>
+      ${renderHourly()}
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOOLS ANALYTICS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderToolsAnalytics() {
+  const topTools = ADMIN_DATA.topTools || [];
+  const allTools = HIST.allTopTools || [];
+  const maxUses  = Math.max(...allTools.map(t=>parseInt(t.c)),1);
+
+  return `
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-header"><span class="card-title">🔧 Top 10 Tools — Last 24h</span></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>#</th><th>Tool</th><th>Category</th><th>Uses</th><th>Bar</th></tr></thead><tbody>
+      ${topTools.map((t,i)=>`
+        <tr>
+          <td style="color:var(--text3)">${i+1}</td>
+          <td style="font-weight:600">${esc(t.tool_name||t.tool_id)}</td>
+          <td><span class="badge badge-free">${esc(t.category||'—')}</span></td>
+          <td style="font-weight:700;color:var(--accent)">${fmt(parseInt(t.uses||0))}</td>
+          <td style="width:120px"><div class="progress-track"><div class="progress-fill pf-blue" style="width:${Math.round(parseInt(t.uses||0)/Math.max(...topTools.map(x=>parseInt(x.uses||0)),1)*100)}%"></div></div></td>
+        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">No tool usage data yet</td></tr>'}
+      </tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">🏆 All-Time Tool Leaderboard</span></div>
+    ${allTools.slice(0,20).map((t,i) => progressRow(esc(t.tool_name), parseInt(t.c), maxUses, i%3===0?'pf-blue':i%3===1?'pf-green':'pf-amber')).join('') || '<div class="empty-state">No data yet</div>'}
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   USERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderUsers() {
+  const users = ADMIN_DATA.recentUsers || [];
+  return `
+  <div class="card" style="margin-bottom:20px">
+    <div class="stat-grid-3" style="margin-bottom:0">
+      ${miniStatCard('Total Users', fmt(ADMIN_DATA.overview?.totalUsers||0), 'blue')}
+      ${miniStatCard('Premium', fmt(ADMIN_DATA.overview?.premiumUsers||0), 'amber')}
+      ${miniStatCard('New Today', fmt(HIST.totals ? (RT.newUsersToday||0) : 0), 'green')}
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="card-header" style="padding:16px 20px 12px">
+      <span class="card-title">👥 Recent Users (last 20)</span>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Last Login</th><th>Actions</th></tr></thead>
+      <tbody id="usersBody">
+        ${users.map(u=>`
+          <tr id="user-row-${u.id}">
+            <td style="color:var(--text3)">${u.id}</td>
+            <td style="font-weight:600">${esc(u.name)}</td>
+            <td style="color:var(--text2)">${esc(u.email)}</td>
+            <td><span class="badge ${u.role==='premium'?'badge-premium':u.role==='admin'?'badge-admin':u.is_active==0?'badge-banned':'badge-free'}">${u.role}${u.is_active==0?' (banned)':''}</span></td>
+            <td style="color:var(--text3);font-size:12px">${fmtDate(u.created_at)}</td>
+            <td style="color:var(--text3);font-size:12px">${u.last_login?fmtDate(u.last_login):'Never'}</td>
+            <td>
+              <button class="user-select-btn" onclick="setRole(${u.id},'premium')">→ Premium</button>
+              <button class="user-select-btn" onclick="setRole(${u.id},'free')">→ Free</button>
+              <button class="user-select-btn" style="color:var(--danger)" onclick="toggleBan(${u.id},${u.is_active})">${u.is_active==0?'Unban':'Ban'}</button>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">No users yet</td></tr>'}
+      </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function bindUsers() {}
+
+async function setRole(id, role) {
+  try {
+    await api(`/api/admin/users/${id}/role`, 'POST', { role });
+    toast(`Role set to ${role}`, 'success');
+    await loadAll();
+    renderSection('users');
+  } catch(e) { toast(e.message||'Error', 'error'); }
+}
+
+async function toggleBan(id, active) {
+  if (!confirm(active ? 'Ban this user?' : 'Unban this user?')) return;
+  try {
+    await api(`/api/admin/users/${id}/toggle`, 'POST');
+    toast('Done', 'success');
+    await loadAll();
+    renderSection('users');
+  } catch(e) { toast(e.message||'Error', 'error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOOL MANAGEMENT
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderToolMgmt() {
+  const tools = ADMIN_DATA.topTools || [];
+  // Load full tool list from /api/admin/tools
+  return `
+  <div id="toolMgmtContent">
+    <div class="empty-state"><div class="loading-spin" style="margin:0 auto 12px"></div>Loading tools…</div>
+  </div>`;
+}
+
+async function bindToolMgmt() {
+  try {
+    const data = await api('/api/admin/tools');
+    const tools = data.tools || [];
+    const el = document.getElementById('toolMgmtContent');
+    if (!el) return;
+    const cats = {};
+    tools.forEach(t => { if (!cats[t.category]) cats[t.category] = []; cats[t.category].push(t); });
+    el.innerHTML = Object.entries(cats).map(([cat, ts]) => `
+      <div class="card" style="margin-bottom:20px;padding:0;overflow:hidden">
+        <div class="card-header" style="padding:14px 20px 12px;background:var(--bg3)">
+          <span class="card-title" style="text-transform:capitalize">⚙️ ${cat} Tools (${ts.length})</span>
+        </div>
+        <table style="table-layout:fixed">
+          <thead><tr><th style="width:40px"></th><th>Tool</th><th>ID</th><th style="width:80px">Status</th><th style="width:100px">Toggle</th></tr></thead>
+          <tbody>${ts.map(t=>`
+            <tr>
+              <td>${t.icon}</td>
+              <td style="font-weight:600">${esc(t.name)}</td>
+              <td style="font-size:11px;color:var(--text3);font-family:monospace">${t.id}</td>
+              <td><span class="badge ${t.enabled?'badge-success':'badge-banned'}">${t.enabled?'ON':'OFF'}</span></td>
+              <td>
+                <label class="toggle">
+                  <input type="checkbox" ${t.enabled?'checked':''} onchange="toggleTool('${t.id}',this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`).join('');
+  } catch(e) { toast('Failed to load tools', 'error'); }
+}
+
+async function toggleTool(toolId, enabled) {
+  try {
+    await api(`/api/admin/tools/${toolId}/toggle`, 'POST', { enabled });
+    toast(`Tool ${enabled?'enabled':'disabled'}`, 'success');
+  } catch(e) { toast(e.message||'Error', 'error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUG REPORTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderBugs() {
+  return `
+  <div id="bugContent">
+    <div class="empty-state"><div class="loading-spin" style="margin:0 auto 12px"></div>Loading…</div>
+  </div>`;
+  setTimeout(loadBugs, 50);
+}
+
+async function loadBugs() {
+  try {
+    const data = await api('/api/admin/bug-reports');
+    const el = document.getElementById('bugContent');
+    if (!el) return;
+    const reports = data.reports || [];
+    el.innerHTML = `
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="card-header" style="padding:16px 20px"><span class="card-title">🐛 Bug Reports (${reports.length})</span></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Tool</th><th>Description</th><th>User</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>${reports.map(r=>`
+            <tr>
+              <td style="color:var(--text3)">${r.id}</td>
+              <td>${esc(r.tool_name||'—')}</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.description||'—')}</td>
+              <td style="color:var(--text3);font-size:12px">${esc(r.user_email||'Anonymous')}</td>
+              <td style="color:var(--text3);font-size:12px">${fmtDate(r.created_at)}</td>
+              <td><span class="badge ${r.status==='resolved'?'badge-success':r.status==='wontfix'?'badge-banned':'badge-free'}">${r.status||'open'}</span></td>
+              <td>
+                <button class="user-select-btn" onclick="setBugStatus(${r.id},'resolved')">✓</button>
+                <button class="user-select-btn" onclick="setBugStatus(${r.id},'wontfix')" style="color:var(--danger)">✕</button>
+              </td>
+            </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">No bug reports</td></tr>'}
+          </tbody></table>
+        </div>
+      </div>`;
+  } catch { }
+}
+
+async function setBugStatus(id, status) {
+  try { await api(`/api/admin/bug-reports/${id}/status`,'POST',{status}); toast('Updated','success'); setTimeout(loadBugs,100); }
+  catch(e) { toast(e.message||'Error','error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SETTINGS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderSettings() {
+  const s = ADMIN_DATA.settings || {};
+  return `
+  <div class="stat-grid-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">⚙️ Site Settings</span></div>
+      ${settingField('site_name','Site Name','text',s.site_name||'ToolHub AI')}
+      ${settingField('free_daily_limit','Free Daily Limit','number',s.free_daily_limit||10)}
+      ${settingField('premium_price','Premium Price ($)','number',s.premium_price||9.99)}
+      <div class="setting-row">
+        <div><div class="setting-key">Ads Enabled</div><div class="setting-desc">Show Google AdSense ads</div></div>
+        <label class="toggle"><input type="checkbox" id="set_ads_enabled" ${s.ads_enabled==='true'?'checked':''} onchange="saveSetting('ads_enabled',this.checked+'')"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-key">Maintenance Mode</div><div class="setting-desc">Show maintenance message</div></div>
+        <label class="toggle"><input type="checkbox" id="set_maintenance" ${s.maintenance_mode==='true'?'checked':''} onchange="saveSetting('maintenance_mode',this.checked+'')"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">💰 AdSense / PayPal</span></div>
+      ${settingField('adsense_client','AdSense Client ID','text',s.adsense_client||'')}
+      ${settingField('adsense_slot_banner','AdSense Banner Slot','text',s.adsense_slot_banner||'')}
+      ${settingField('paypal_client_id','PayPal Client ID','text',s.paypal_client_id||'')}
+    </div>
+  </div>
+  <div class="card" style="margin-top:0">
+    <div class="card-header"><span class="card-title">🔑 Admin Account</span></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">New Admin Password</div>
+        <input type="password" id="newPw" placeholder="Enter new password" class="setting-input">
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="btn-save" onclick="changePassword()">Update Password</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function settingField(key, label, type, value) {
+  return `
+    <div class="setting-row">
+      <div><div class="setting-key">${label}</div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="${type}" id="set_${key}" value="${esc(String(value))}" class="setting-input" placeholder="${label}">
+        <button class="btn-save" onclick="saveSetting('${key}',document.getElementById('set_${key}').value)">Save</button>
+      </div>
+    </div>`;
+}
+
+function bindSettings() {}
+
+async function saveSetting(key, value) {
+  try {
+    await api('/api/admin/settings', 'POST', { key, value });
+    toast('Saved!', 'success');
+    if (ADMIN_DATA.settings) ADMIN_DATA.settings[key] = value;
+  } catch(e) { toast(e.message||'Failed', 'error'); }
+}
+
+async function changePassword() {
+  const pw = document.getElementById('newPw')?.value;
+  if (!pw || pw.length < 6) { toast('Password must be 6+ characters', 'error'); return; }
+  try {
+    await api('/api/auth/change-password', 'POST', { newPassword: pw });
+    toast('Password updated!', 'success');
+    document.getElementById('newPw').value = '';
+  } catch(e) { toast(e.message||'Failed', 'error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHART HELPERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderBarChart30(twoSeries = false) {
+  const daily = (HIST.daily30 || []).slice(-30);
+  if (!daily.length) return '<div class="empty-state" style="height:120px">No data yet</div>';
+  const maxV = Math.max(...daily.map(d => parseInt(d.page_views||0)), 1);
+  const maxU = Math.max(...daily.map(d => parseInt(d.tool_uses||0)), 1);
+
+  const bars = daily.map(d => {
+    const pct = Math.round(parseInt(d.page_views||0)/maxV*100);
+    const uPct = Math.round(parseInt(d.tool_uses||0)/maxU*100);
+    const label = (d.date||'').slice(5);
+    return `<div class="bar-col">
+      ${twoSeries ? `<div style="display:flex;gap:2px;align-items:flex-end;flex:1;width:100%">
+        <div class="bar" style="height:${pct}%;flex:1;background:var(--accent)"></div>
+        <div class="bar" style="height:${uPct}%;flex:1;background:var(--success)"></div>
+      </div>` : `<div class="bar" style="height:${pct}%"></div>`}
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="bar-chart">${bars}</div>`;
+}
+
+function renderHourly() {
+  const hours = RT.hourlyToday || [];
+  if (!hours.length) return '<div class="empty-state" style="height:80px">No data yet today</div>';
+  const maxV = Math.max(...hours.map(h=>parseInt(h.c||0)), 1);
+  const filled = Array.from({length:24},(_,i)=>{
+    const h = hours.find(x=>parseInt(x.hour)===i);
+    return { hr: i, c: h?parseInt(h.c):0 };
+  });
+  return `<div class="bar-chart" style="height:80px">${filled.map(h=>`
+    <div class="bar-col">
+      <div class="bar" style="height:${Math.round(h.c/maxV*100)}%;background:var(--accent)"></div>
+      <div class="bar-label">${h.hr}h</div>
+    </div>`).join('')}</div>`;
+}
+
+function renderDonut(devices = {}) {
+  const data = [
+    { label: 'Desktop', val: devices.Desktop||0, color: '#5c6ef5' },
+    { label: 'Mobile',  val: devices.Mobile||0,  color: '#10b981' },
+    { label: 'Tablet',  val: devices.Tablet||0,  color: '#f59e0b' },
+  ];
+  const total = data.reduce((s,d)=>s+d.val,0) || 1;
+  let angle = 0;
+  const paths = data.map(d => {
+    const pct = d.val/total;
+    const startAngle = angle;
+    angle += pct * 2 * Math.PI;
+    const r = 50; const cx = 60; const cy = 60;
+    const x1 = cx + r * Math.cos(startAngle - Math.PI/2);
+    const y1 = cy + r * Math.sin(startAngle - Math.PI/2);
+    const x2 = cx + r * Math.cos(angle - Math.PI/2);
+    const y2 = cy + r * Math.sin(angle - Math.PI/2);
+    const large = pct > 0.5 ? 1 : 0;
+    if (pct === 0) return '';
+    return `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${d.color}" opacity="0.85"/>`;
+  });
+  // Inner circle
+  const inner = `<circle cx="60" cy="60" r="28" fill="var(--bg2)"/>`;
+  const center = `<text x="60" y="64" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">${fmt(total)}</text>`;
+
+  return `<div class="donut-wrap">
+    <svg class="donut-svg" width="120" height="120" viewBox="0 0 120 120">${paths.join('')}${inner}${center}</svg>
+    <div class="donut-legend">${data.map(d=>`
+      <div class="donut-item">
+        <span class="donut-dot" style="background:${d.color}"></span>
+        <span style="color:var(--text2)">${d.label}</span>
+        <span style="font-weight:700;margin-left:auto;padding-left:12px">${fmt(d.val)}</span>
+        <span style="color:var(--text3);font-size:11px;margin-left:4px">${total?Math.round(d.val/total*100):0}%</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function progressRow(label, val, max, cls='pf-blue') {
+  const pct = max ? Math.round(val/max*100) : 0;
+  return `<div class="progress-row">
+    <span class="progress-label" title="${label}">${label}</span>
+    <div class="progress-track"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
+    <span class="progress-val">${fmt(val)}</span>
+  </div>`;
+}
+
+function statCard(title, value, sub, color, trend='') {
+  return `<div class="stat-card ${color}">
+    <div class="stat-icon">${title.split(' ')[0]}</div>
+    <div class="stat-value">${value}</div>
+    <div class="stat-label">${title.split(' ').slice(1).join(' ')}</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px">${sub}</div>
+    ${trend ? `<div class="stat-trend trend-up">${trend}</div>` : ''}
+  </div>`;
+}
+
+function miniStat(label, val) {
+  return `<div style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:3px">${label}</div>
+    <div style="font-size:14px;font-weight:700;color:var(--text)">${val}</div>
+  </div>`;
+}
+
+function miniStatCard(label, val, color) {
+  const colors = {blue:'var(--accent)',green:'var(--success)',amber:'var(--warn)'};
+  return `<div style="text-align:center;padding:16px;background:var(--bg3);border-radius:var(--radius)">
+    <div style="font-size:24px;font-weight:800;color:${colors[color]||'var(--text)'}">${val}</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:4px">${label}</div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function fmt(n) {
+  n = parseInt(n) || 0;
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000)    return (n/1000).toFixed(1)+'K';
+  return n.toString();
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - (ts||0);
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff/60000)+'m ago';
+  return Math.floor(diff/3600000)+'h ago';
+}
+
+async function api(url, method='GET', body=null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error||'Request failed'); }
+  return r.json();
+}
+
+function toast(msg, type='success') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+/* ── Start ────────────────────────────────────────────────────────────────── */
+boot();
+
+// Periodically refresh real-time data every 10s
+setInterval(async () => {
+  const rt = await api('/api/admin/analytics/realtime').catch(()=>null);
+  if (rt) { RT = rt; if (SECTION === 'realtime') renderSection('realtime'); }
+}, 10_000);
+</script>
+</body>
+</html>

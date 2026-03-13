@@ -33,7 +33,7 @@ function handleRoute() {
     navigate('home'); return;
   }
   if (path === '/dashboard') { renderDashboard(); return; }
-  if (path === '/admin') { history.replaceState({},'','/'); openAdminDrawer(); renderHome(); return; }
+  if (path === '/admin') { window.location.href = '/admin'; return; }
   // Quiz routes
   if (path.startsWith('/quizzes') || path === '/quiz') { renderQuizHub(); return; }
   if (path.startsWith('/quiz/')) { const id = path.replace('/quiz/',''); renderQuizPlay(id); return; }
@@ -963,5 +963,40 @@ async function drawerRejectQuiz(id) {
     if (el) { el.style.opacity = '0.4'; el.querySelector('.btn-primary')?.remove(); }
   } catch(e) { toast('Failed: '+e.message,'error'); }
 }
+
+// ── Mobile Navigation ─────────────────────────────────────────────────────────
+function toggleMobileNav() {
+  const drawer = document.getElementById('mobileNavDrawer');
+  const btn = document.getElementById('mobileMenuBtn');
+  if (!drawer) return;
+  const open = drawer.classList.toggle('open');
+  if (btn) btn.textContent = open ? '✕' : '☰';
+  if (open) {
+    // Update visibility based on session
+    const loggedIn = APP.session?.loggedIn;
+    const isAdmin = APP.session?.role === 'admin';
+    const el = (id) => document.getElementById(id);
+    if (el('mobileNavDash'))   el('mobileNavDash').style.display   = loggedIn ? 'flex' : 'none';
+    if (el('mobileNavAdmin'))  el('mobileNavAdmin').style.display  = isAdmin  ? 'flex' : 'none';
+    if (el('mobileNavLogin'))  el('mobileNavLogin').style.display  = !loggedIn ? 'flex' : 'none';
+    if (el('mobileNavSignup')) el('mobileNavSignup').style.display = !loggedIn ? 'flex' : 'none';
+  }
+}
+
+function closeMobileNav() {
+  const drawer = document.getElementById('mobileNavDrawer');
+  const btn = document.getElementById('mobileMenuBtn');
+  if (drawer) drawer.classList.remove('open');
+  if (btn) btn.textContent = '☰';
+}
+
+// Close mobile nav on outside click
+document.addEventListener('click', (e) => {
+  const drawer = document.getElementById('mobileNavDrawer');
+  const btn = document.getElementById('mobileMenuBtn');
+  if (drawer?.classList.contains('open') && !drawer.contains(e.target) && e.target !== btn) {
+    closeMobileNav();
+  }
+});
 
 init();

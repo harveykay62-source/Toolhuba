@@ -1004,25 +1004,104 @@ function renderGIFMaker(tool) {
   buildToolPage(tool, () => {
     document.getElementById('toolContent').innerHTML = `
       <div class="tool-section"><label class="tool-label">Upload Images (ordered, max 20)</label>
-        <input type="file" class="tool-input" id="gifFiles" accept="image/*" multiple></div>
-      <div class="tool-row" style="margin-bottom:14px">
-        <div class="tool-col"><label class="tool-label">Delay (ms/frame)</label><input type="number" class="tool-input" id="gifDelay" value="200" min="50" max="2000" style="width:100px"></div>
-        <div class="tool-col"><label class="tool-label">Width (px)</label><input type="number" class="tool-input" id="gifW" value="320" min="50" max="800" style="width:100px"></div>
+        <input type="file" class="tool-input" id="gifFiles" accept="image/*" multiple onchange="previewGIFFrames(this)"></div>
+      <div id="gifPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+      <div class="tool-row" style="margin-bottom:14px;gap:16px;flex-wrap:wrap">
+        <div><label class="tool-label">Delay (ms/frame)</label><input type="number" class="tool-input" id="gifDelay" value="200" min="50" max="5000" style="width:120px"></div>
+        <div><label class="tool-label">Width (px)</label><input type="number" class="tool-input" id="gifW" value="320" min="50" max="800" style="width:120px"></div>
+        <div><label class="tool-label">Quality (1=best)</label><input type="number" class="tool-input" id="gifQ" value="10" min="1" max="20" style="width:120px"></div>
       </div>
       <div class="btn-group"><button class="btn btn-primary" onclick="doGIF()">🎞️ Create GIF</button></div>
+      <div id="gifProgress" style="display:none;margin:12px 0">
+        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="gifBar" style="height:100%;background:var(--accent);width:0%;transition:width .3s"></div></div>
+        <div id="gifStatus" style="font-size:12px;color:var(--text-muted);margin-top:6px">Processing…</div>
+      </div>
       <div id="gifOut"></div>`;
   });
 }
+
+function previewGIFFrames(inp) {
+  const files = Array.from(inp.files || []);
+  const preview = document.getElementById('gifPreview');
+  if (!preview) return;
+  preview.innerHTML = files.slice(0,10).map((f,i) => {
+    const url = URL.createObjectURL(f);
+    return `<div style="text-align:center"><img src="${url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border)"><div style="font-size:10px;color:var(--text-muted);margin-top:2px">${i+1}</div></div>`;
+  }).join('') + (files.length > 10 ? `<div style="font-size:12px;color:var(--text-muted);align-self:center">+${files.length-10} more</div>` : '');
+}
+
 async function doGIF() {
-  const files=Array.from(document.getElementById('gifFiles').files||[]);
-  if(!files.length){toast('Please select images.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Creating GIF…';
-  try{const fd=new FormData();files.forEach(f=>fd.append('images',f));fd.append('delay',document.getElementById('gifDelay').value);fd.append('width',document.getElementById('gifW').value);
-  const d=await apiFetch('/api/tools/gif-maker','POST',fd);
-  document.getElementById('gifOut').innerHTML=d.gif?`<img src="${d.gif}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);margin-top:12px"><br><a href="${d.gif}" download="animation.gif" class="btn btn-secondary btn-sm" style="margin-top:8px;display:inline-flex">${ICONS.download} Download GIF</a>`:
-  `<div class="info-box">GIF creation requires gifencoder: npm install gifencoder</div>`;
-  toast('Done!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  const files = Array.from(document.getElementById('gifFiles').files || []);
+  if (files.length < 2) { toast('Please select at least 2 images.', 'warn'); return; }
+  const btn = document.querySelector('#toolContent .btn-primary');
+  const prog = document.getElementById('gifProgress');
+  const bar = document.getElementById('gifBar');
+  const statusEl = document.getElementById('gifStatus');
+  if (btn) { btn.disabled = true; btn._orig = btn.innerHTML; btn.textContent = '⏳ Creating GIF…'; }
+  if (prog) prog.style.display = 'block';
+
+  try {
+    // Load gif.js from CDN
+    if (!window.GIF) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    const delay = parseInt(document.getElementById('gifDelay').value) || 200;
+    const width = parseInt(document.getElementById('gifW').value) || 320;
+    const quality = parseInt(document.getElementById('gifQ').value) || 10;
+
+    // Load all images
+    const imgs = await Promise.all(files.map(f => new Promise((res, rej) => {
+      const img = new Image();
+      const url = URL.createObjectURL(f);
+      img.onload = () => { URL.revokeObjectURL(url); res(img); };
+      img.onerror = rej;
+      img.src = url;
+    })));
+
+    if (statusEl) statusEl.textContent = 'Building frames…';
+    if (bar) bar.style.width = '20%';
+
+    // Draw each frame to canvas and add to GIF
+    const gif = new GIF({ workers: 2, quality, width, height: Math.round(imgs[0].naturalHeight * width / imgs[0].naturalWidth) });
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = gif.options.height;
+    const ctx = canvas.getContext('2d');
+
+    imgs.forEach((img, i) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      gif.addFrame(ctx, { copy: true, delay });
+      if (bar) bar.style.width = (20 + i/imgs.length * 60) + '%';
+    });
+
+    gif.on('progress', p => { if (bar) bar.style.width = (80 + p * 20) + '%'; if (statusEl) statusEl.textContent = `Encoding… ${Math.round(p*100)}%`; });
+
+    const blob = await new Promise(res => { gif.on('finished', res); gif.render(); });
+    const url = URL.createObjectURL(blob);
+
+    if (bar) bar.style.width = '100%';
+    if (statusEl) statusEl.textContent = 'Done!';
+
+    document.getElementById('gifOut').innerHTML = `
+      <img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);margin-top:12px">
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <a href="${url}" download="animation.gif" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px">${ICONS.download} Download GIF</a>
+        <span style="font-size:12px;color:var(--text-muted);align-self:center">${imgs.length} frames · ${delay}ms · ${width}px wide</span>
+      </div>`;
+    toast('GIF created!', 'success');
+  } catch(e) {
+    toast('GIF error: ' + (e.message || 'Unknown error. Try fewer/smaller images.'), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = btn._orig || btn.innerHTML; }
+    setTimeout(() => { if (prog) prog.style.display = 'none'; }, 2000);
+  }
 }
 
 function renderScreenshotResizer(tool) {

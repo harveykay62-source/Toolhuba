@@ -3,43 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ToolHub AI — 66 Free Online Tools | AI Detector, Humanizer, Paraphraser & More</title>
-<meta name="description" content="66 free online tools: AI content detector, AI humanizer, paraphraser, grammar fixer, image converter, QR generator, calculators and more. No sign-up required — instant results.">
-<meta name="keywords" content="free online tools, AI detector, AI humanizer, paraphraser, grammar fixer, text tools, image tools, QR code generator, word counter, password generator">
+
 <meta name="author" content="ToolHub AI">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="https://toolhuba.onrender.com/">
 
 <!-- Google Search Console Verification -->
 <meta name="google-site-verification" content="MufxIbo7xa4HDVzP0DdPWYfqx6XxDiKnuqI8ddEu83g" />
 
 <!-- Open Graph -->
-<meta property="og:type" content="website">
-<meta property="og:title" content="ToolHub AI — 66 Free Online Tools">
-<meta property="og:description" content="AI Detector, Humanizer, Paraphraser, Grammar Fixer, Image Tools, Calculators and more — all free, no sign-up.">
-<meta property="og:url" content="https://toolhuba.onrender.com/">
+
 <meta property="og:site_name" content="ToolHub AI">
 
 <!-- Twitter Card -->
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="ToolHub AI — 66 Free Online Tools">
-<meta name="twitter:description" content="AI Detector, Humanizer, Paraphraser and 63 more free tools. No sign-up required.">
 
 <!-- Structured Data -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "ToolHub AI",
-  "url": "https://toolhuba.onrender.com/",
-  "description": "66 free online tools including AI detector, AI humanizer, paraphraser, grammar fixer, image converter, calculators and more.",
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": "https://toolhuba.onrender.com/?q={search_term_string}",
-    "query-input": "required name=search_term_string"
-  }
-}
-</script>
 
 <meta name="theme-color" content="#6366f1">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
@@ -80,6 +56,7 @@
       <button class="header-nav-btn header-nav-quiz" onclick="navigate('quizzes')" id="navQuizzes">🎮 Quizzes</button>
     </nav>
     <div class="header-actions">
+      <button class="mobile-nav-btn" id="mobileMenuBtn" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
       <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
         <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
         <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
@@ -88,6 +65,18 @@
     </div>
   </div>
 </header>
+
+<!-- Mobile Navigation Drawer -->
+<div class="mobile-nav-drawer" id="mobileNavDrawer">
+  <div class="mobile-nav-link" onclick="navigate('home');closeMobileNav()">🔧 Tools</div>
+  <div class="mobile-nav-link" onclick="navigate('quizzes');closeMobileNav()">🎮 Quizzes</div>
+  <div class="mobile-nav-divider"></div>
+  <div class="mobile-nav-link" id="mobileNavDash" onclick="navigate('dashboard');closeMobileNav()" style="display:none">📊 Dashboard</div>
+  <div class="mobile-nav-link" id="mobileNavAdmin" onclick="window.location.href='/admin';closeMobileNav()" style="display:none">🛡️ Admin Panel</div>
+  <div class="mobile-nav-link" onclick="showLogin();closeMobileNav()" id="mobileNavLogin">Sign In</div>
+  <div class="mobile-nav-link" onclick="showSignup();closeMobileNav()" id="mobileNavSignup">Sign Up Free →</div>
+</div>
+
 <div class="search-overlay" id="searchOverlay" onclick="if(event.target===this)closeSearch()">
   <div class="search-modal">
     <div class="search-header">
