@@ -20,6 +20,11 @@ global.DATA_DIR = DATA_DIR;
 
 const app  = express();
 const PORT = parseInt(process.env.PORT) || 3000;
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+// ── Trust proxy (required on Render / behind load balancers) ──────────────────
+// Without this req.ip returns the proxy's IP, breaking per-IP rate limits
+app.set('trust proxy', 1);
 
 // ── Core middleware ───────────────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -37,7 +42,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'toolhub_secret_change_me_2024',
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' },
+  cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: IS_PROD },
   name: 'toolhub.sid',
 }));
 
@@ -136,6 +141,14 @@ app.get('/quiz/:id', async (req, res, next) => {
   }
 });
 
+// ── Category pages  /category/:cat ───────────────────────────────────────────
+// These give Google crawlable, SEO-rich pages for each category
+app.get('/category/:cat', (req, res, next) => {
+  const cat = req.params.cat;
+  if (!['text', 'media', 'utility'].includes(cat)) return next();
+  HTML(res, SEO.categoryPage(__dirname, cat));
+});
+
 // ── Admin  /admin — Protected, NOT indexed ────────────────────────────────────
 app.get('/admin', (req, res) => {
   if (!req.session || req.session.role !== 'admin') {
@@ -156,10 +169,13 @@ app.get('/sitemap.xml', async (req, res) => {
   try { quizRows = await getQuizList({ status: 'approved', limit: 200 }); } catch {}
 
   const staticPages = [
-    { url: '/',               priority: '1.0', freq: 'daily'   },
-    { url: '/register',       priority: '0.7', freq: 'monthly' },
-    { url: '/quizzes',        priority: '0.8', freq: 'daily'   },
-    { url: '/quizzes/build',  priority: '0.6', freq: 'weekly'  },
+    { url: '/',                  priority: '1.0', freq: 'daily'   },
+    { url: '/register',          priority: '0.7', freq: 'monthly' },
+    { url: '/quizzes',           priority: '0.8', freq: 'daily'   },
+    { url: '/quizzes/build',     priority: '0.6', freq: 'weekly'  },
+    { url: '/category/text',     priority: '0.9', freq: 'weekly'  },
+    { url: '/category/media',    priority: '0.9', freq: 'weekly'  },
+    { url: '/category/utility',  priority: '0.9', freq: 'weekly'  },
   ];
 
   const toolPages = tools.map(t => ({

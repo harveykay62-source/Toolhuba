@@ -79,18 +79,28 @@ router.post('/admin/settings', requireAdmin, async (req, res) => {
 });
 
 router.post('/admin/users/:id/role', requireAdmin, async (req, res) => {
-  const { role } = req.body;
-  if (!['free','premium'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
-  await db.run('UPDATE users SET role=? WHERE id=?', [role, req.params.id]);
-  res.json({ success: true });
+  try {
+    const { role } = req.body;
+    if (!['free','premium'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+    await db.run('UPDATE users SET role=? WHERE id=?', [role, req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Set role error:', err);
+    res.status(500).json({ error: 'Failed to update role' });
+  }
 });
 
 router.post('/admin/users/:id/toggle', requireAdmin, async (req, res) => {
-  const user = await db.get('SELECT is_active FROM users WHERE id=?', [req.params.id]);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  const newStatus = user.is_active ? 0 : 1;
-  await db.run('UPDATE users SET is_active=? WHERE id=?', [newStatus, req.params.id]);
-  res.json({ success: true, is_active: newStatus });
+  try {
+    const user = await db.get('SELECT is_active FROM users WHERE id=?', [req.params.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const newStatus = user.is_active ? 0 : 1;
+    await db.run('UPDATE users SET is_active=? WHERE id=?', [newStatus, req.params.id]);
+    res.json({ success: true, is_active: newStatus });
+  } catch (err) {
+    console.error('Toggle user error:', err);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
 });
 
 router.post('/admin/paypal-buttons', requireAdmin, async (req, res) => {

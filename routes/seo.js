@@ -13,11 +13,13 @@ const path = require('path');
 const SITE_NAME = 'ToolHub AI';
 const SITE_URL  = process.env.SITE_URL || 'https://toolhuba.onrender.com';
 
-// Cache the template — it never changes at runtime
-let _tpl = null;
+// Cache the template per dir — reset on process restart
+const _tplCache = new Map();
 function getTemplate(dir) {
-  if (!_tpl) _tpl = fs.readFileSync(path.join(dir, 'public', 'index.html'), 'utf8');
-  return _tpl;
+  if (!_tplCache.has(dir)) {
+    _tplCache.set(dir, fs.readFileSync(path.join(dir, 'public', 'index.html'), 'utf8'));
+  }
+  return _tplCache.get(dir);
 }
 
 // ── Tag-stripping helpers ─────────────────────────────────────────────────────
@@ -31,9 +33,11 @@ const STRIP = [
   /<meta\s+property="og:description"[^>]*>/i,
   /<meta\s+property="og:url"[^>]*>/i,
   /<meta\s+property="og:type"[^>]*>/i,
+  /<meta\s+property="og:image"[^>]*>/i,
   /<meta\s+name="twitter:card"[^>]*>/i,
   /<meta\s+name="twitter:title"[^>]*>/i,
   /<meta\s+name="twitter:description"[^>]*>/i,
+  /<meta\s+name="twitter:image"[^>]*>/i,
   /<script\s+type="application\/ld\+json">[\s\S]*?<\/script>/i,
 ];
 
@@ -82,9 +86,11 @@ function buildPage(dir, opts) {
     `<meta property="og:description" content="${safeDesc}">`,
     `<meta property="og:url" content="${safeUrl}">`,
     `<meta property="og:site_name" content="${esc(SITE_NAME)}">`,
-    `<meta name="twitter:card" content="summary">`,
+    `<meta property="og:image" content="${esc(SITE_URL)}/og-image.png">`,
+    `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${safeTitle}">`,
     `<meta name="twitter:description" content="${safeDesc}">`,
+    `<meta name="twitter:image" content="${esc(SITE_URL)}/og-image.png">`,
     jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>` : '',
   ].filter(Boolean).join('\n');
 
@@ -331,14 +337,14 @@ function categoryPage(dir, cat) {
     title: data.title,
     description: data.description,
     keywords: data.kws,
-    canonical: `${SITE_URL}/?category=${cat}`,
+    canonical: `${SITE_URL}/category/${cat}`,
     ogType: 'website',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
       'name': data.title,
       'description': data.description,
-      'url': `${SITE_URL}/?category=${cat}`,
+      'url': `${SITE_URL}/category/${cat}`,
       'isPartOf': { '@type': 'WebSite', 'name': SITE_NAME, 'url': SITE_URL }
     }
   });

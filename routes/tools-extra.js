@@ -360,8 +360,9 @@ router.post('/ip-lookup', async (req, res) => {
   try {
     const https = require('https');
     const target = ipClean === 'me' ? '' : ipClean;
+    const token = process.env.IPINFO_TOKEN ? `?token=${process.env.IPINFO_TOKEN}` : '';
     const data = await new Promise((resolve, reject) => {
-      https.get(`https://ipinfo.io/${target}?token=`, r => {
+      https.get(`https://ipinfo.io/${target}${token}`, r => {
         let body = '';
         r.on('data', d => body += d);
         r.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(new Error('Parse error')); } });

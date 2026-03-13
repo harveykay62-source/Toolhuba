@@ -1771,29 +1771,10 @@ function renderDashboard() {
           </div>
           ${d.user?.role!=='premium'?`<div style="margin-top:20px"><button class="btn btn-primary btn-lg" onclick="showPremiumModal()">👑 Upgrade to Premium</button></div>`:''}
           <div class="section-title" style="margin-top:24px">Recent Activity</div>
-          ${(d.history||[]).map(h=>`<div style="display:flex;gap:12px;align-items:center;padding:10px;border-bottom:1px solid var(--border)"><span style="font-size:18px">🔧</span><div><div style="font-size:14px;font-weight:600">${h.tool_name}</div><div style="font-size:12px;color:var(--text-muted)">${h.created_at}</div></div></div>`).join('')||'<div class="info-box">No activity yet. Start using tools!</div>'}
+          ${(d.history||[]).map(h=>`<div style="display:flex;gap:12px;align-items:center;padding:10px;border-bottom:1px solid var(--border)"><span style="font-size:18px">🔧</span><div><div style="font-size:14px;font-weight:600">${h.tool_name}</div><div style="font-size:12px;color:var(--text-muted)">${new Date(h.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="info-box">No activity yet. Start using tools!</div>'}
         </div>`;
     }).catch(() => {
       document.getElementById('app').innerHTML = `<div class="tool-page"><button class="tool-page-back" onclick="navigate('home')">${ICONS.back} Back</button><div class="info-box">Please <span class="modal-link" onclick="showLogin()">sign in</span> to view your dashboard.</div></div>`;
     });
   }
-}
-
-function renderAdmin() {
-  apiFetch('/api/admin/stats').then(d => {
-    document.getElementById('app').innerHTML = `
-      <div class="tool-page">
-        <button class="tool-page-back" onclick="navigate('home')">${ICONS.back} Back</button>
-        <h1 style="font-size:22px;font-weight:700;margin-bottom:20px">⚙️ Admin Panel</h1>
-        <div class="stat-grid">
-          <div class="stat-card"><div class="stat-value">${d.users?.total||0}</div><div class="stat-label">Total Users</div></div>
-          <div class="stat-card"><div class="stat-value">${d.users?.premium||0}</div><div class="stat-label">Premium</div></div>
-          <div class="stat-card"><div class="stat-value">${d.usage?.today||0}</div><div class="stat-label">Uses Today</div></div>
-          <div class="stat-card"><div class="stat-value">${d.usage?.total||0}</div><div class="stat-label">Total Uses</div></div>
-        </div>
-        <div class="info-box" style="margin-top:20px">Full admin panel available. Configure AdSense, PayPal, and tool settings through the API.</div>
-      </div>`;
-  }).catch(() => {
-    document.getElementById('app').innerHTML = `<div class="tool-page"><button class="tool-page-back" onclick="navigate('home')">${ICONS.back} Back</button><div class="info-box">Admin access required.</div></div>`;
-  });
 }

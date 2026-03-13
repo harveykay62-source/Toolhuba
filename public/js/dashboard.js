@@ -82,7 +82,7 @@ async function renderDashboard() {
                   <span class="tool-cat-tag cat-${h.category}">${h.category}</span>
                   <span class="history-item-tool">${escHtml(h.tool_name)}</span>
                   <span class="history-item-time">${timeSince(h.created_at)}</span>
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="navigate('tool','${toolIdFromName(h.tool_name)}')" title="Open tool">▶</button>
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="const tid=toolIdFromName('${escHtml(h.tool_name)}');if(tid)navigate('tool',tid);" title="Open tool">▶</button>
                 </div>`).join('')}
             </div>` : `<p class="text-muted">No activity yet. <a onclick="navigate('home')" style="cursor:pointer;color:var(--accent)">Try a tool!</a></p>`}
         </div>

@@ -3,20 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <meta name="author" content="ToolHub AI">
-
-<!-- Google Search Console Verification -->
 <meta name="google-site-verification" content="MufxIbo7xa4HDVzP0DdPWYfqx6XxDiKnuqI8ddEu83g" />
-
-<!-- Open Graph -->
-
 <meta property="og:site_name" content="ToolHub AI">
-
-<!-- Twitter Card -->
-
-<!-- Structured Data -->
-
 <meta name="theme-color" content="#6366f1">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,20 +29,20 @@
 </div>
 <header class="site-header" id="siteHeader">
   <div class="header-inner">
-    <a class="logo" onclick="navigate('home')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')navigate('home')">
+    <a class="logo" href="/" onclick="event.preventDefault();navigate('home')" aria-label="ToolHub AI Home">
       <span class="logo-icon">⚡</span>
       <span class="logo-text">ToolHub<span class="logo-ai"> AI</span></span>
     </a>
     <div class="header-search-wrap">
       <button class="header-search-btn" id="headerSearch" aria-label="Search tools">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Search 66 tools…
+        Search tools…
         <kbd>⌘K</kbd>
       </button>
     </div>
     <nav class="header-nav">
-      <button class="header-nav-btn" onclick="navigate('home')" id="navTools">🔧 Tools</button>
-      <button class="header-nav-btn header-nav-quiz" onclick="navigate('quizzes')" id="navQuizzes">🎮 Quizzes</button>
+      <a class="header-nav-btn" href="/" onclick="event.preventDefault();navigate('home')" id="navTools">🔧 Tools</a>
+      <a class="header-nav-btn header-nav-quiz" href="/quizzes" onclick="event.preventDefault();navigate('quizzes')" id="navQuizzes">🎮 Quizzes</a>
     </nav>
     <div class="header-actions">
       <button class="mobile-nav-btn" id="mobileMenuBtn" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
@@ -68,11 +57,11 @@
 
 <!-- Mobile Navigation Drawer -->
 <div class="mobile-nav-drawer" id="mobileNavDrawer">
-  <div class="mobile-nav-link" onclick="navigate('home');closeMobileNav()">🔧 Tools</div>
-  <div class="mobile-nav-link" onclick="navigate('quizzes');closeMobileNav()">🎮 Quizzes</div>
+  <a class="mobile-nav-link" href="/" onclick="event.preventDefault();navigate('home');closeMobileNav()">🔧 Tools</a>
+  <a class="mobile-nav-link" href="/quizzes" onclick="event.preventDefault();navigate('quizzes');closeMobileNav()">🎮 Quizzes</a>
   <div class="mobile-nav-divider"></div>
-  <div class="mobile-nav-link" id="mobileNavDash" onclick="navigate('dashboard');closeMobileNav()" style="display:none">📊 Dashboard</div>
-  <div class="mobile-nav-link" id="mobileNavAdmin" onclick="window.location.href='/admin';closeMobileNav()" style="display:none">🛡️ Admin Panel</div>
+  <a class="mobile-nav-link" id="mobileNavDash" href="/dashboard" onclick="event.preventDefault();navigate('dashboard');closeMobileNav()" style="display:none">📊 Dashboard</a>
+  <a class="mobile-nav-link" id="mobileNavAdmin" href="/admin" onclick="closeMobileNav()" style="display:none">🛡️ Admin Panel</a>
   <div class="mobile-nav-link" onclick="showLogin();closeMobileNav()" id="mobileNavLogin">Sign In</div>
   <div class="mobile-nav-link" onclick="showSignup();closeMobileNav()" id="mobileNavSignup">Sign Up Free →</div>
 </div>
@@ -81,22 +70,28 @@
   <div class="search-modal">
     <div class="search-header">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="search" id="searchInput" placeholder="Search 66 tools…" autocomplete="off" spellcheck="false">
+      <input type="search" id="searchInput" placeholder="Search tools…" autocomplete="off" spellcheck="false">
       <button class="search-close" onclick="closeSearch()">Esc</button>
     </div>
     <div id="searchResults" class="search-results"></div>
   </div>
 </div>
+
 <main id="app" class="main-content">
   <div class="page-loading"><div class="spinner"></div><p>Loading…</p></div>
 </main>
+
 <div id="adBarBottom" class="ad-bar ad-bar-bottom hidden">
   <div class="ad-label">Advertisement</div>
   <div id="adBottom" class="ad-unit"></div>
 </div>
+
+<!-- Auth Modal -->
 <div class="modal-overlay" id="authModal" onclick="if(event.target===this)closeModal('authModal')">
   <div id="authModalContent"></div>
 </div>
+
+<!-- Premium Modal -->
 <div class="modal-overlay" id="premiumModal" onclick="if(event.target===this)closeModal('premiumModal')">
   <div class="modal premium-modal" id="premiumModalContent">
     <button class="modal-x" onclick="closeModal('premiumModal')">×</button>
@@ -121,6 +116,8 @@
     </div>
   </div>
 </div>
+
+<!-- Limit Modal -->
 <div class="modal-overlay" id="limitModal" onclick="if(event.target===this)closeModal('limitModal')">
   <div class="modal limit-modal">
     <button class="modal-x" onclick="closeModal('limitModal')">×</button>
@@ -133,33 +130,11 @@
     </div>
   </div>
 </div>
+
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
-
-<!-- ── Admin Panel Drawer ───────────────────────────────────────────────── -->
-<div id="adminDrawerBackdrop" class="admin-drawer-backdrop" onclick="closeAdminDrawer()"></div>
-<aside id="adminDrawer" class="admin-drawer">
-  <div class="admin-drawer-header">
-    <div class="admin-drawer-title">
-      <span class="admin-drawer-icon">🛡️</span>
-      <span>Admin Panel</span>
-      <span class="admin-live-dot"></span>
-    </div>
-    <button class="admin-drawer-close" onclick="closeAdminDrawer()" title="Close">×</button>
-  </div>
-  <div id="adminDrawerContent" class="admin-drawer-content">
-    <div class="page-loading"><div class="spinner"></div></div>
-  </div>
-</aside>
-
-<!-- ── Admin FAB ───────────────────────────────────────────────────────── -->
-<button id="adminFab" class="admin-fab hidden" onclick="openAdminDrawer()" title="Open Admin Panel">
-  🛡️
-  <span id="adminFabBadge" class="admin-fab-badge hidden">!</span>
-</button>
 
 <script src="/js/app.js"></script>
 <script src="/js/tools.js"></script>
-<script src="/js/admin.js"></script>
 <script src="/js/quiz.js"></script>
 <script src="/js/quiz-engine.js"></script>
 </body>

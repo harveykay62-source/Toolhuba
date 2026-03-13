@@ -233,8 +233,11 @@ input:checked+.toggle-slider::before{transform:translateX(18px)}
     <div class="nav-item" onclick="showSection('traffic')" id="nav-traffic">
       <span class="nav-icon">📈</span> Traffic
     </div>
-    <div class="nav-item" onclick="showSection('tools')" id="nav-tools-analytics">
+    <div class="nav-item" onclick="showSection('tools-analytics')" id="nav-tools-analytics">
       <span class="nav-icon">🔧</span> Tool Usage
+    </div>
+    <div class="nav-item" onclick="showSection('quizzes')" id="nav-quizzes">
+      <span class="nav-icon">🎮</span> Quizzes
     </div>
 
     <div class="nav-section">Management</div>
@@ -365,13 +368,14 @@ function startSSE() {
 const SECTION_TITLES = {
   realtime:'Real-time Analytics', overview:'Overview', traffic:'Traffic',
   'tools-analytics':'Tool Usage', users:'Users', 'tool-mgmt':'Tool Management',
-  bugs:'Bug Reports', settings:'Settings'
+  bugs:'Bug Reports', settings:'Settings', quizzes:'Quiz Management'
 };
 
 function showSection(s) {
   SECTION = s;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const nav = document.getElementById('nav-' + (s === 'tools-analytics' ? 'tools-analytics' : s));
+  const navId = 'nav-' + s;
+  const nav = document.getElementById(navId);
   if (nav) nav.classList.add('active');
   document.getElementById('topbarTitle').textContent = SECTION_TITLES[s] || s;
   renderSection(s);
@@ -380,14 +384,15 @@ function showSection(s) {
 function renderSection(s) {
   const el = document.getElementById('mainContent');
   switch (s) {
-    case 'realtime':      el.innerHTML = renderRealtime(); break;
-    case 'overview':      el.innerHTML = renderOverview(); break;
-    case 'traffic':       el.innerHTML = renderTraffic(); break;
+    case 'realtime':        el.innerHTML = renderRealtime(); break;
+    case 'overview':        el.innerHTML = renderOverview(); break;
+    case 'traffic':         el.innerHTML = renderTraffic(); break;
     case 'tools-analytics': el.innerHTML = renderToolsAnalytics(); break;
-    case 'users':         el.innerHTML = renderUsers(); setTimeout(bindUsers, 50); break;
-    case 'tool-mgmt':     el.innerHTML = renderToolMgmt(); setTimeout(bindToolMgmt, 50); break;
-    case 'bugs':          el.innerHTML = renderBugs(); break;
-    case 'settings':      el.innerHTML = renderSettings(); setTimeout(bindSettings, 50); break;
+    case 'users':           el.innerHTML = renderUsers(); setTimeout(bindUsers, 50); break;
+    case 'tool-mgmt':       el.innerHTML = renderToolMgmt(); setTimeout(bindToolMgmt, 50); break;
+    case 'bugs':            el.innerHTML = renderBugs(); break;
+    case 'settings':        el.innerHTML = renderSettings(); setTimeout(bindSettings, 50); break;
+    case 'quizzes':         el.innerHTML = renderQuizAdmin(); setTimeout(loadQuizAdmin, 50); break;
     default: el.innerHTML = '<div class="empty-state">Section coming soon.</div>';
   }
 }
@@ -592,13 +597,13 @@ function renderUsers() {
             <td style="color:var(--text3)">${u.id}</td>
             <td style="font-weight:600">${esc(u.name)}</td>
             <td style="color:var(--text2)">${esc(u.email)}</td>
-            <td><span class="badge ${u.role==='premium'?'badge-premium':u.role==='admin'?'badge-admin':u.is_active==0?'badge-banned':'badge-free'}">${u.role}${u.is_active==0?' (banned)':''}</span></td>
+            <td><span class="badge ${u.role==='premium'?'badge-premium':u.role==='admin'?'badge-admin':!u.is_active?'badge-banned':'badge-free'}">${u.role}${!u.is_active?' (banned)':''}</span></td>
             <td style="color:var(--text3);font-size:12px">${fmtDate(u.created_at)}</td>
             <td style="color:var(--text3);font-size:12px">${u.last_login?fmtDate(u.last_login):'Never'}</td>
             <td>
               <button class="user-select-btn" onclick="setRole(${u.id},'premium')">→ Premium</button>
               <button class="user-select-btn" onclick="setRole(${u.id},'free')">→ Free</button>
-              <button class="user-select-btn" style="color:var(--danger)" onclick="toggleBan(${u.id},${u.is_active})">${u.is_active==0?'Unban':'Ban'}</button>
+              <button class="user-select-btn" style="color:var(--danger)" onclick="toggleBan(${u.id},${u.is_active?1:0})">${!u.is_active?'Unban':'Ban'}</button>
             </td>
           </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">No users yet</td></tr>'}
       </tbody>
@@ -685,11 +690,11 @@ async function toggleTool(toolId, enabled) {
    BUG REPORTS
    ═══════════════════════════════════════════════════════════════════════════ */
 function renderBugs() {
+  setTimeout(loadBugs, 50);
   return `
   <div id="bugContent">
     <div class="empty-state"><div class="loading-spin" style="margin:0 auto 12px"></div>Loading…</div>
   </div>`;
-  setTimeout(loadBugs, 50);
 }
 
 async function loadBugs() {
@@ -928,7 +933,11 @@ function esc(s) {
 
 function fmtDate(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+  try {
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return '—';
+    return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+  } catch { return '—'; }
 }
 
 function timeAgo(ts) {
@@ -957,6 +966,76 @@ function toast(msg, type='success') {
 
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   QUIZ ADMIN
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderQuizAdmin() {
+  return `<div id="quizAdminContent"><div class="empty-state"><div class="loading-spin" style="margin:0 auto 12px"></div>Loading quizzes…</div></div>`;
+}
+
+async function loadQuizAdmin() {
+  try {
+    const data = await api('/api/quiz/admin/pending');
+    const el = document.getElementById('quizAdminContent');
+    if (!el) return;
+    const quizzes = data.quizzes || [];
+    const stats   = data.stats   || [];
+    const statHtml = stats.map(s => `<span style="padding:3px 12px;border-radius:20px;font-size:12px;background:var(--bg3);border:1px solid var(--border)">${s.status}: <strong>${s.count}</strong></span>`).join('');
+    if (!quizzes.length) {
+      el.innerHTML = `
+        <div class="card" style="text-align:center;padding:48px">
+          <div style="font-size:48px;margin-bottom:12px">✅</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">All clear!</div>
+          <div style="font-size:13px;color:var(--text3)">No quizzes pending review.</div>
+          ${statHtml ? `<div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">${statHtml}</div>` : ''}
+        </div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+        ${statHtml}
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="card-header" style="padding:16px 20px"><span class="card-title">🎮 Pending Review (${quizzes.length})</span></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Title</th><th>Category</th><th>Questions</th><th>Creator</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody>${quizzes.map(q => `
+            <tr id="qa-${q.id}">
+              <td style="font-weight:600">${esc(q.title)}</td>
+              <td><span class="badge badge-free">${esc(q.category||'—')}</span></td>
+              <td style="text-align:center">${q.questions_count||0}</td>
+              <td style="font-size:12px;color:var(--text3)">${esc(q.creator_name||'Unknown')}</td>
+              <td style="font-size:12px;color:var(--text3)">${fmtDate(q.created_at)}</td>
+              <td>
+                <button class="user-select-btn" style="color:var(--success)" onclick="adminApproveQuiz('${q.id}')">✅ Approve</button>
+                <button class="user-select-btn" style="color:var(--danger)" onclick="adminRejectQuiz('${q.id}')">❌ Reject</button>
+                <button class="user-select-btn" onclick="window.open('/quiz/${q.id}','_blank')">👁 Preview</button>
+              </td>
+            </tr>`).join('')}
+          </tbody></table>
+        </div>
+      </div>`;
+  } catch(e) { toast('Failed to load quizzes', 'error'); }
+}
+
+async function adminApproveQuiz(id) {
+  try {
+    await api(`/api/quiz/admin/${id}/approve`, 'POST');
+    toast('✅ Quiz approved!', 'success');
+    document.getElementById(`qa-${id}`)?.remove();
+  } catch(e) { toast(e.message||'Error', 'error'); }
+}
+
+async function adminRejectQuiz(id) {
+  const reason = prompt('Rejection reason (optional):') || 'Does not meet guidelines';
+  try {
+    await api(`/api/quiz/admin/${id}/reject`, 'POST', { reason });
+    toast('Quiz rejected', 'warn');
+    const el = document.getElementById(`qa-${id}`);
+    if (el) el.style.opacity = '0.4';
+  } catch(e) { toast(e.message||'Error', 'error'); }
 }
 
 /* ── Start ────────────────────────────────────────────────────────────────── */

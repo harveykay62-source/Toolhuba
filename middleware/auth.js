@@ -13,12 +13,15 @@ const requireAdmin = (req, res, next) => {
 const checkUsageLimit = async (req, res, next) => {
   try {
     const db = require('../db/database');
+    const userId = req.session?.userId;
+    const role   = req.session?.role;
 
-    if (!req.session.userId) {
+    if (!userId) {
       const today = new Date().toISOString().split('T')[0];
+      const ip = req.ip || '';
       const row = await db.get(
         `SELECT COUNT(*) as count FROM tool_usage WHERE ip_address=$1 AND DATE(created_at)=$2 AND user_id IS NULL`,
-        [req.ip, today]
+        [ip, today]
       );
       if (row && parseInt(row.count) >= 3) {
         return res.status(429).json({ error: 'Daily limit reached', message: 'Sign up free for 10 uses/day!', limitReached: true });
@@ -26,11 +29,11 @@ const checkUsageLimit = async (req, res, next) => {
       return next();
     }
 
-    if (req.session.role === 'premium' || req.session.role === 'admin') return next();
+    if (role === 'premium' || role === 'admin') return next();
 
     const today = new Date().toISOString().split('T')[0];
     const dailyLimit = parseInt(await db.getSetting('free_daily_limit') || '10');
-    const usage = await db.getDailyUsage(req.session.userId, today);
+    const usage = await db.getDailyUsage(userId, today);
 
     if (usage >= dailyLimit) {
       return res.status(429).json({
@@ -42,7 +45,7 @@ const checkUsageLimit = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('checkUsageLimit error:', err.message);
-    next();
+    next(); // fail open — don't block users on a DB hiccup
   }
 };
 

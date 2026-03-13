@@ -14,10 +14,6 @@ async function init() {
     setupAds();
     handleRoute();
     setupKeyboardShortcuts();
-    if (APP.session.role === 'admin') {
-      setupAdminTopbar();
-      document.getElementById('adminFab').classList.remove('hidden');
-    }
   } catch(e) {
     document.getElementById('app').innerHTML = `<div class="page-loading"><p style="color:var(--text-muted)">Failed to load. Please refresh.</p></div>`;
   }
@@ -32,9 +28,12 @@ function handleRoute() {
     if (tool) { renderToolPage(tool); return; }
     navigate('home'); return;
   }
+  if (path.startsWith('/category/')) {
+    const cat = path.replace('/category/','');
+    renderHome(cat); return;
+  }
   if (path === '/dashboard') { renderDashboard(); return; }
   if (path === '/admin') { window.location.href = '/admin'; return; }
-  // Quiz routes
   if (path.startsWith('/quizzes') || path === '/quiz') { renderQuizHub(); return; }
   if (path.startsWith('/quiz/')) { const id = path.replace('/quiz/',''); renderQuizPlay(id); return; }
   renderHome();
@@ -44,11 +43,11 @@ function navigate(page, id='') {
   if (page === 'home')        { history.pushState({},'','/');             renderHome(); }
   else if (page === 'tool')   { history.pushState({},'',`/tool/${id}`);  const t=APP.tools.find(t=>t.id===id); if(t) renderToolPage(t); }
   else if (page === 'dashboard') { history.pushState({},'','/dashboard'); renderDashboard(); }
-  else if (page === 'admin')  { openAdminDrawer(); return; }
+  else if (page === 'admin')  { window.location.href = '/admin'; return; }
   else if (page === 'quizzes'){ history.pushState({},'','/quizzes');      destroyQuizThree(); renderQuizHub(); }
+  else if (page === 'category') { history.pushState({},'',`/category/${id}`); renderHome(id); }
   window.scrollTo({top:0,behavior:'smooth'});
-  // Update active nav button
-  document.getElementById('navTools')?.classList.toggle('active', page==='home'||page==='tool');
+  document.getElementById('navTools')?.classList.toggle('active', page==='home'||page==='tool'||page==='category');
   document.getElementById('navQuizzes')?.classList.toggle('active', page==='quizzes');
 }
 
@@ -59,7 +58,6 @@ function setupHeader() {
   const ua = document.getElementById('userArea');
   const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin';
 
-  // Premium banner for non-premium users
   const banner = document.getElementById('premiumBanner');
   if (!isPremium && !localStorage.getItem('premiumBannerClosed')) {
     banner.classList.remove('hidden');
@@ -69,7 +67,7 @@ function setupHeader() {
     const initials = APP.session.name ? APP.session.name.slice(0,2).toUpperCase() : '?';
     ua.innerHTML = `
       <div class="user-area">
-        ${APP.session.role==='admin' ? `<button class="btn-admin-pill" onclick="openAdminDrawer()">🛡️ Admin</button>` : ''}
+        ${APP.session.role==='admin' ? `<a class="btn-admin-pill" href="/admin">🛡️ Admin</a>` : ''}
         <button class="btn-ghost btn-sm" onclick="navigate('dashboard')">Dashboard</button>
         ${isPremium ? `<span class="tag tag-success" style="font-size:11px">👑 Premium</span>` : `<button class="btn-signup btn-sm" onclick="showPremiumModal()">Upgrade</button>`}
         <button class="avatar-btn" style="background:${APP.session.avatarColor||'#6366f1'}" onclick="confirmLogout()">${initials}</button>
@@ -108,7 +106,6 @@ function setupAds() {
   const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
   const slot   = APP.settings.adsenseBanner  || '';
 
-  // Show top banner
   const topBar = document.getElementById('adBarTop');
   if (topBar) {
     topBar.classList.remove('hidden');
@@ -133,14 +130,13 @@ function getToolPageAd() {
   if (isPremium || !APP.settings.adsEnabled) return '';
   const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
   const slot   = APP.settings.adsenseBanner  || '';
-  const id = 'ad_' + Math.random().toString(36).slice(2);
   setTimeout(() => {
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
   }, 100);
   return `
     <div class="tool-ad">
       <div class="ad-label">Advertisement</div>
-      <ins id="${id}" class="adsbygoogle" style="display:block;width:100%;min-height:90px"
+      <ins class="adsbygoogle" style="display:block;width:100%;min-height:90px"
         data-ad-client="${client}" data-ad-slot="${slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>
     </div>`;
 }
@@ -196,408 +192,21 @@ function setupKeyboardShortcuts() {
   });
 }
 
-function setupKeyboardShortcuts() {
-  document.addEventListener('keydown', e => {
-    if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); openSearch(); }
-    if (e.key==='Escape') { closeSearch(); closeAdminDrawer(); closeModal('authModal'); closeModal('premiumModal'); closeModal('limitModal'); }
-  });
-}
-
-// ── Admin Topbar ──────────────────────────────────────────────────────────────
-function setupAdminTopbar() {
-  const header = document.getElementById('siteHeader');
-  const bar = document.createElement('div');
-  bar.id = 'adminTopbar';
-  bar.className = 'admin-topbar';
-  bar.innerHTML = `
-    <span class="admin-topbar-label">🛡️ Admin Mode</span>
-    <span class="admin-topbar-stat" id="topbarUsers">…</span>
-    <span class="admin-topbar-stat" id="topbarUses">…</span>
-    <span class="admin-topbar-stat" id="topbarRevenue">…</span>
-    <div class="admin-topbar-actions">
-      <button class="admin-topbar-btn" onclick="openAdminDrawer()">Open Admin Panel</button>
-      <button class="admin-topbar-btn danger" id="maintBtn" onclick="toggleMaintMode()">Maintenance Off</button>
-    </div>`;
-  header.insertAdjacentElement('afterend', bar);
-  // Load quick stats silently
-  apiFetch('/api/admin/stats').then(d => {
-    document.getElementById('topbarUsers').textContent = `${d.overview.totalUsers} users`;
-    document.getElementById('topbarUses').textContent = `${d.overview.totalToolUses.toLocaleString()} uses`;
-    document.getElementById('topbarRevenue').textContent = `$${parseFloat(d.revenue.premium||0).toFixed(2)} revenue`;
-    const maint = d.settings.maintenance_mode === 'true';
-    const btn = document.getElementById('maintBtn');
-    if (btn) { btn.textContent = maint ? 'Maintenance ON' : 'Maintenance Off'; btn.style.background = maint ? 'rgba(239,68,68,.4)' : ''; }
-    // Cache stats for drawer
-    window._adminStats = d;
-  }).catch(()=>{});
-}
-
-async function toggleMaintMode() {
-  const current = window._adminStats?.settings?.maintenance_mode === 'true';
-  const next = !current;
-  await apiFetch('/api/admin/settings', 'POST', { key:'maintenance_mode', value: next?'true':'false' });
-  if (window._adminStats) window._adminStats.settings.maintenance_mode = next?'true':'false';
-  const btn = document.getElementById('maintBtn');
-  if (btn) { btn.textContent = next ? 'Maintenance ON' : 'Maintenance Off'; btn.style.background = next ? 'rgba(239,68,68,.4)' : ''; }
-  toast(next ? '⚠️ Maintenance mode enabled.' : '✅ Maintenance mode off.', next?'warn':'success');
-}
-
-// ── Admin Drawer ──────────────────────────────────────────────────────────────
-let _adminDrawerTab = 'overview';
-let _adminDrawerLoaded = false;
-
-function openAdminDrawer() {
-  if (APP.session.role !== 'admin') return;
-  document.getElementById('adminDrawer').classList.add('open');
-  document.getElementById('adminDrawerBackdrop').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  loadAdminDrawer();
-}
-
-function closeAdminDrawer() {
-  document.getElementById('adminDrawer').classList.remove('open');
-  document.getElementById('adminDrawerBackdrop').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-async function loadAdminDrawer(forceReload) {
-  if (_adminDrawerLoaded && !forceReload && window._adminStats) {
-    renderAdminDrawerContent(window._adminStats);
-    return;
-  }
-  try {
-    const d = await apiFetch('/api/admin/stats');
-    window._adminStats = d;
-    _adminDrawerLoaded = true;
-    renderAdminDrawerContent(d);
-    // Update topbar stats too
-    const tu = document.getElementById('topbarUsers'); if(tu) tu.textContent = `${d.overview.totalUsers} users`;
-    const tuse = document.getElementById('topbarUses'); if(tuse) tuse.textContent = `${d.overview.totalToolUses.toLocaleString()} uses`;
-    const tr = document.getElementById('topbarRevenue'); if(tr) tr.textContent = `$${parseFloat(d.revenue.premium||0).toFixed(2)} revenue`;
-  } catch(e) {
-    document.getElementById('adminDrawerContent').innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Failed to load admin data.</div>`;
-  }
-}
-
-function renderAdminDrawerContent(d) {
-  const el = document.getElementById('adminDrawerContent');
-  el.innerHTML = `
-    <div class="admin-quick-stats">
-      <div class="admin-qs-item">
-        <div class="admin-qs-val">${d.overview.totalUsers.toLocaleString()}</div>
-        <div class="admin-qs-lbl">Total Users</div>
-      </div>
-      <div class="admin-qs-item">
-        <div class="admin-qs-val" style="color:var(--amber)">${d.overview.premiumUsers}</div>
-        <div class="admin-qs-lbl">Premium</div>
-      </div>
-      <div class="admin-qs-item">
-        <div class="admin-qs-val">${d.overview.totalToolUses.toLocaleString()}</div>
-        <div class="admin-qs-lbl">Tool Uses</div>
-      </div>
-      <div class="admin-qs-item">
-        <div class="admin-qs-val" style="color:var(--green)">$${parseFloat(d.revenue.premium||0).toFixed(2)}</div>
-        <div class="admin-qs-lbl">Revenue</div>
-      </div>
-    </div>
-    <div class="admin-drawer-tabs">
-      <button class="admin-drawer-tab ${_adminDrawerTab==='overview'?'active':''}" data-tab="overview" onclick="switchDrawerTab('overview')">📊 Overview</button>
-      <button class="admin-drawer-tab ${_adminDrawerTab==='users'?'active':''}" data-tab="users" onclick="switchDrawerTab('users')">👥 Users</button>
-      <button class="admin-drawer-tab ${_adminDrawerTab==='tools'?'active':''}" data-tab="top-tools" onclick="switchDrawerTab('top-tools')">🔥 Top Tools</button>
-      <button class="admin-drawer-tab ${_adminDrawerTab==='manage-tools'?'active':''}" data-tab="manage-tools" onclick="switchDrawerTab('manage-tools')">🛠 Enable/Disable</button>
-      <button class="admin-drawer-tab ${_adminDrawerTab==='settings'?'active':''}" data-tab="settings" onclick="switchDrawerTab('settings')">⚙️ Settings</button>
-      <button class="admin-drawer-tab ${_adminDrawerTab==='transactions'?'active':''}" data-tab="transactions" onclick="switchDrawerTab('transactions')">💳 Transactions</button>
-      <button class="admin-drawer-tab ${_adminDrawerTab==='bug-reports'?'active':''}" data-tab="bug-reports" onclick="switchDrawerTab('bug-reports')">🐛 Bug Reports</button>
-      <button class="admin-drawer-tab ${_adminDrawerTab==='quizzes'?'active':''}" data-tab="quizzes" onclick="switchDrawerTab('quizzes')">🎮 Quizzes</button>
-    </div>
-    <div id="drawerTabBody" class="admin-drawer-tab-body"></div>`;
-  renderDrawerTab(_adminDrawerTab, d);
-}
-
-function switchDrawerTab(tab) {
-  _adminDrawerTab = tab;
-  document.querySelectorAll('.admin-drawer-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  renderDrawerTab(tab, window._adminStats);
-}
-
-function renderDrawerTab(tab, d) {
-  const body = document.getElementById('drawerTabBody');
-  if (!body) return;
-
-  if (tab === 'overview') {
-    body.innerHTML = `
-      <div style="margin-bottom:20px">
-        <div class="dash-section-title" style="margin-bottom:12px">System Status</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-          <div class="workspace-panel" style="padding:14px;margin:0">
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">Uptime</div>
-            <div style="font-size:18px;font-weight:700">${d.system.uptime}</div>
-          </div>
-          <div class="workspace-panel" style="padding:14px;margin:0">
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">Memory</div>
-            <div style="font-size:18px;font-weight:700">${d.system.memoryMB} MB</div>
-          </div>
-          <div class="workspace-panel" style="padding:14px;margin:0">
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">Active (24h)</div>
-            <div style="font-size:18px;font-weight:700">${d.overview.activeUsers}</div>
-          </div>
-          <div class="workspace-panel" style="padding:14px;margin:0">
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">Page Views</div>
-            <div style="font-size:18px;font-weight:700">${d.overview.totalPageViews.toLocaleString()}</div>
-          </div>
-        </div>
-      </div>
-      <div class="dash-section-title" style="margin-bottom:12px">Recent Signups</div>
-      <div style="overflow-x:auto">
-        <table class="admin-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Status</th></tr></thead>
-          <tbody>${d.recentUsers.slice(0,8).map(u=>`
-            <tr>
-              <td>${u.name}</td>
-              <td style="font-size:12px;color:var(--text-muted)">${u.email}</td>
-              <td><span class="tool-cat-tag cat-${u.role==='premium'?'text':'utility'}">${u.role}</span></td>
-              <td style="font-size:12px">${new Date(u.created_at).toLocaleDateString()}</td>
-              <td style="color:${u.is_active?'var(--green)':'var(--red)'}">●</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
-
-  } else if (tab === 'users') {
-    body.innerHTML = `
-      <div style="overflow-x:auto">
-        <table class="admin-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Actions</th></tr></thead>
-          <tbody>${d.recentUsers.map(u=>`
-            <tr>
-              <td style="font-weight:600">${u.name}</td>
-              <td style="font-size:12px;color:var(--text-muted)">${u.email}</td>
-              <td>
-                <select style="padding:3px 6px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)" onchange="setUserRole(${u.id},this.value)">
-                  <option value="free" ${u.role==='free'?'selected':''}>Free</option>
-                  <option value="premium" ${u.role==='premium'?'selected':''}>Premium</option>
-                </select>
-              </td>
-              <td style="font-size:12px">${u.last_login?new Date(u.last_login).toLocaleDateString():'Never'}</td>
-              <td>
-                <button style="padding:3px 8px;font-size:11px;border-radius:6px;border:1px solid;cursor:pointer;color:${u.is_active?'#ef4444':'#22c55e'};border-color:${u.is_active?'#ef444430':'#22c55e30'};background:${u.is_active?'#ef444410':'#22c55e10'}" onclick="toggleUser(${u.id},${u.is_active})">${u.is_active?'Ban':'Unban'}</button>
-              </td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
-
-  } else if (tab === 'top-tools') {
-    body.innerHTML = `
-      <div style="overflow-x:auto">
-        <table class="admin-table">
-          <thead><tr><th>#</th><th>Tool</th><th>Category</th><th>Uses</th><th>Bar</th></tr></thead>
-          <tbody>${d.topTools.map((t,i)=>{
-            const maxUses = d.topTools[0]?.uses || 1;
-            const pct = Math.round((t.uses/maxUses)*100);
-            return `<tr>
-              <td style="color:var(--text-muted);font-size:12px">${i+1}</td>
-              <td style="font-weight:600">${t.tool_name}</td>
-              <td><span class="tool-cat-tag cat-${t.category}">${t.category}</span></td>
-              <td style="font-weight:700;color:var(--accent)">${t.uses.toLocaleString()}</td>
-              <td style="width:100px"><div style="background:var(--bg-muted);border-radius:3px;height:6px;overflow:hidden"><div style="background:var(--accent);height:100%;width:${pct}%;border-radius:3px"></div></div></td>
-            </tr>`;
-          }).join('')}
-          </tbody>
-        </table>
-      </div>`;
-
-  } else if (tab === 'manage-tools') {
-    body.innerHTML = '<div style="padding:20px;text-align:center"><div class="spinner"></div></div>';
-    apiFetch('/api/admin/tools').then(td => {
-      const cats = {};
-      for (const t of td.tools) { if (!cats[t.category]) cats[t.category] = []; cats[t.category].push(t); }
-      const catLabels = { text:'📝 Text', media:'🎬 Media', utility:'⚙️ Utility' };
-      let html = '';
-      Object.entries(cats).forEach(([cat, tools]) => {
-        html += `<div style="margin-bottom:20px">
-          <div class="dash-section-title" style="margin-bottom:10px">${catLabels[cat]||cat} <span style="font-weight:400;color:var(--text-3)">(${tools.length})</span></div>
-          <div class="tool-toggle-grid">`;
-        tools.forEach(t => {
-          html += `<div class="tool-toggle-card ${t.enabled?'':'disabled'}">
-            <div class="tool-toggle-card-info">
-              <div class="tool-toggle-card-name">${t.icon} ${t.name}</div>
-              <div class="tool-toggle-card-cat">${t.category}</div>
-            </div>
-            <label class="switch" style="flex-shrink:0">
-              <input type="checkbox" ${t.enabled?'checked':''} onchange="toggleTool('${t.id}',this.checked)">
-              <span class="switch-track"></span>
-            </label>
-          </div>`;
-        });
-        html += `</div></div>`;
-      });
-      body.innerHTML = html;
-    }).catch(()=>{ body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px">Failed to load tools.</p>'; });
-
-  } else if (tab === 'settings') {
-    const s = d.settings;
-    body.innerHTML = `
-      <div style="margin-bottom:20px">
-        <div class="dash-section-title" style="margin-bottom:14px">💼 Site Settings</div>
-        ${drawerSettingRow('Site Name', 'site_name', s.site_name, 'text')}
-        ${drawerSettingRow('Free Daily Limit', 'free_daily_limit', s.free_daily_limit, 'number')}
-        ${drawerSettingRow('Premium Price (USD)', 'premium_price', s.premium_price, 'text')}
-        <div class="drawer-setting-row">
-          <div><div class="drawer-setting-label">Maintenance Mode</div><div class="drawer-setting-sub">Show maintenance notice to all users</div></div>
-          <label class="switch"><input type="checkbox" ${s.maintenance_mode==='true'?'checked':''} onchange="saveSetting('maintenance_mode',this.checked?'true':'false');"><span class="switch-track"></span></label>
-        </div>
-      </div>
-      <div style="margin-bottom:20px">
-        <div class="dash-section-title" style="margin-bottom:14px">💰 Revenue</div>
-        <div class="drawer-setting-row" style="padding:14px 0">
-          <div><div class="drawer-setting-label">Auto-calculated Revenue</div><div class="drawer-setting-sub">Completed PayPal transactions</div></div>
-          <span style="font-size:24px;font-weight:800;color:var(--green)">$${parseFloat(d.revenue?.premium||0).toFixed(2)}</span>
-        </div>
-        ${drawerSettingRow('Manual Revenue Override (USD)', 'revenue_earned', s.revenue_earned||'0', 'number')}
-      </div>
-      <div style="margin-bottom:20px">
-        <div class="dash-section-title" style="margin-bottom:14px">📢 AdSense</div>
-        ${drawerSettingRow('Publisher ID (ca-pub-...)', 'adsense_client', s.adsense_client, 'text')}
-        ${drawerSettingRow('Banner Slot ID', 'adsense_slot_banner', s.adsense_slot_banner, 'text')}
-        <div class="drawer-setting-row">
-          <div><div class="drawer-setting-label">Enable Ads</div><div class="drawer-setting-sub">Show AdSense banners to free users</div></div>
-          <label class="switch"><input type="checkbox" ${s.ads_enabled==='true'?'checked':''} onchange="saveSetting('ads_enabled',this.checked?'true':'false')"><span class="switch-track"></span></label>
-        </div>
-      </div>
-      <div>
-        <div class="dash-section-title" style="margin-bottom:14px">🅿️ PayPal</div>
-        ${drawerSettingRow('PayPal Client ID', 'paypal_client_id', s.paypal_client_id, 'text')}
-        <div style="margin-top:14px">
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">Add Custom PayPal Button</div>
-          <textarea class="tool-textarea" id="ppBtnHtml" placeholder="Paste PayPal button HTML…" rows="4" style="margin-bottom:8px"></textarea>
-          <div style="display:grid;grid-template-columns:1fr 1fr 120px;gap:8px;margin-bottom:8px">
-            <input class="drawer-setting-input" style="width:100%" id="ppBtnName" placeholder="Button name">
-            <input class="drawer-setting-input" style="width:100%" type="number" id="ppBtnPrice" placeholder="Price (9.99)" step="0.01">
-            <select class="drawer-setting-input" style="width:100%" id="ppBtnType">
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-              <option value="onetime">One-time</option>
-            </select>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="savePaypalBtn()">💾 Save Button</button>
-        </div>
-        ${d.paypalButtons?.length ? `
-          <div style="margin-top:14px">
-            <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">SAVED BUTTONS</div>
-            ${d.paypalButtons.map(b=>`
-              <div class="drawer-setting-row">
-                <span class="drawer-setting-label">${b.name} — $${b.price}/${b.plan_type}</span>
-                <span style="color:${b.is_active?'var(--green)':'var(--text-muted)'}">● ${b.is_active?'Active':'Inactive'}</span>
-              </div>`).join('')}
-          </div>` : ''}
-      </div>`;
-
-  } else if (tab === 'bug-reports') {
-    body.innerHTML = '<div style="padding:20px;text-align:center"><div class="spinner"></div></div>';
-    apiFetch('/api/admin/bug-reports').then(bd => {
-      if (!bd.reports.length) {
-        body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No bug reports yet.</div>';
-        return;
-      }
-      const statusColor = { open:'var(--amber)', resolved:'var(--green)', wontfix:'var(--text-muted)' };
-      body.innerHTML = `<div style="overflow-x:auto">
-        <table class="admin-table">
-          <thead><tr><th>Tool</th><th>Description</th><th>User</th><th>Date</th><th>Status</th></tr></thead>
-          <tbody>${bd.reports.map(r => `
-            <tr>
-              <td style="font-size:12px;color:var(--accent)">${r.tool_name || '—'}</td>
-              <td style="font-size:12px;max-width:260px;word-break:break-word">${r.description}</td>
-              <td style="font-size:11px;color:var(--text-muted)">${r.user_email || 'Guest'}</td>
-              <td style="font-size:11px">${new Date(r.created_at).toLocaleDateString()}</td>
-              <td>
-                <select style="padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:${statusColor[r.status]||'var(--text)'}" onchange="setBugStatus(${r.id},this.value)">
-                  <option value="open" ${r.status==='open'?'selected':''}>Open</option>
-                  <option value="resolved" ${r.status==='resolved'?'selected':''}>Resolved</option>
-                  <option value="wontfix" ${r.status==='wontfix'?'selected':''}>Won't Fix</option>
-                </select>
-              </td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
-    }).catch(() => { body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px">Failed to load reports.</p>'; });
-
-  } else if (tab === 'transactions') {
-    if (!d.transactions?.length) {
-      body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">No transactions yet.</div>`;
-      return;
-    }
-    body.innerHTML = `
-      <div style="overflow-x:auto">
-        <table class="admin-table">
-          <thead><tr><th>User</th><th>Amount</th><th>Plan</th><th>Date</th><th>Status</th></tr></thead>
-          <tbody>${d.transactions.map(t=>`
-            <tr>
-              <td>
-                <div style="font-weight:600;font-size:13px">${t.name}</div>
-                <div style="font-size:11px;color:var(--text-muted)">${t.email}</div>
-              </td>
-              <td style="font-weight:700;color:var(--green)">$${parseFloat(t.amount).toFixed(2)}</td>
-              <td><span class="tool-cat-tag cat-text">${t.plan}</span></td>
-              <td style="font-size:12px">${new Date(t.created_at).toLocaleDateString()}</td>
-              <td style="color:${t.status==='completed'?'var(--green)':'var(--amber)'}">● ${t.status}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  } else if (tab === 'quizzes') {
-    body.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
-    apiFetch('/api/quiz/admin/pending').then(data => {
-      const quizzes = data.quizzes || [];
-      const stats   = data.stats   || [];
-      if (!quizzes.length) {
-        body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted)">
-          <div style="font-size:40px;margin-bottom:10px">✅</div>
-          <strong>All clear!</strong> No quizzes pending review.
-          <br><br><button class="btn btn-primary btn-sm" onclick="navigateQuiz('hub')">🎮 Visit Quiz Hub</button>
-        </div>`; return;
-      }
-      body.innerHTML = `
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-          ${stats.map(s=>`<span style="padding:3px 10px;border-radius:999px;font-size:12px;background:var(--bg);border:1px solid var(--border)">${s.status}: <strong>${s.count}</strong></span>`).join('')}
-          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="navigateQuiz('admin')">Full Admin Panel →</button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          ${quizzes.slice(0,10).map(q => `
-            <div style="padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:10px" id="dqr-${q.id}">
-              <div style="font-weight:700;margin-bottom:4px">${q.title}</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">
-                ${q.category} · ${q.questions_count} Qs · by ${q.creator_name} · ${new Date(q.created_at).toLocaleDateString()}
-                ${q.wildcard_enabled?'· ⚡ Wildcards':''}
-              </div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="btn btn-primary btn-sm" onclick="drawerApproveQuiz('${q.id}')">✅ Approve</button>
-                <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="drawerRejectQuiz('${q.id}')">❌ Reject</button>
-                <button class="btn btn-ghost btn-sm" onclick="window.open('/quiz/${q.id}','_blank')">👁 Preview</button>
-              </div>
-            </div>`).join('')}
-        </div>`;
-    }).catch(() => {
-      body.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Failed to load quiz queue.</div>`;
-    });
-  }
-}
-
-function drawerSettingRow(label, key, value, type) {
-  return `<div class="drawer-setting-row">
-    <div><div class="drawer-setting-label">${label}</div></div>
-    <input type="${type||'text'}" class="drawer-setting-input" value="${value||''}" onblur="saveSetting('${key}',this.value)">
-  </div>`;
-}
-
 // ── Home ──────────────────────────────────────────────────────────────────────
 let activeCategory = 'all';
 
-function renderHome() {
+function renderHome(initialCat) {
+  if (initialCat) activeCategory = initialCat;
   const toolCount = APP.tools.length;
   document.title = `ToolHub AI — ${toolCount} Free Online Tools`;
   const app = document.getElementById('app');
+
+  const catDescriptions = {
+    text: { icon: '📝', name: 'Text Tools', tagline: 'Humanizer, Detector, Grammar, Paraphraser & more', bg: 'cat-text-bg' },
+    media: { icon: '🎬', name: 'Media Tools', tagline: 'Image converter, QR codes, Color palettes & more', bg: 'cat-media-bg' },
+    utility: { icon: '⚙️', name: 'Utility Tools', tagline: 'Calculators, Converters, Formatters & more', bg: 'cat-utility-bg' },
+  };
+
   app.innerHTML = `
     <div class="hero">
       <div class="hero-badge">✦ ${toolCount} Free Tools — No Sign-up Required</div>
@@ -607,11 +216,11 @@ function renderHome() {
         <button class="btn btn-primary btn-lg" onclick="document.getElementById('categoryFilter').scrollIntoView({behavior:'smooth'})">Browse All ${toolCount} Tools</button>
         <button class="btn btn-secondary btn-lg" onclick="openSearch()">🔍 Search Tools</button>
       </div>
-      <div class="hero-stats">
+        <div class="hero-stats">
         <div class="hero-stat"><div class="hero-stat-num">${toolCount}</div><div class="hero-stat-label">Free Tools</div></div>
         <div class="hero-stat"><div class="hero-stat-num">3</div><div class="hero-stat-label">Categories</div></div>
         <div class="hero-stat"><div class="hero-stat-num">0</div><div class="hero-stat-label">Sign-ups needed</div></div>
-        <div class="hero-stat"><div class="hero-stat-num">∞</div><div class="hero-stat-label">Free uses/day</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">10</div><div class="hero-stat-label">Free uses/day</div></div>
       </div>
     </div>
 
@@ -620,7 +229,7 @@ function renderHome() {
         <div class="home-feature"><span>⚡</span> Instant results — no loading screens</div>
         <div class="home-feature"><span>🔒</span> Your text never leaves your browser for rule-based tools</div>
         <div class="home-feature"><span>📱</span> Works on desktop, tablet, and mobile</div>
-        <div class="home-feature"><span>🆓</span> 100% free — no credit card, no limits</div>
+        <div class="home-feature"><span>🆓</span> 100% free — no credit card required</div>
       </div>
     </div>
 
@@ -629,24 +238,13 @@ function renderHome() {
       <div class="trending-strip" id="trendingStrip"></div>
 
       <div class="home-categories-intro">
-        <div class="home-cat-card cat-text-bg" onclick="filterCategory('text')">
-          <div class="home-cat-icon">📝</div>
-          <div class="home-cat-name">Text Tools</div>
-          <div class="home-cat-desc">Humanizer, Detector, Grammar, Paraphraser &amp; more</div>
-          <div class="home-cat-count">${APP.tools.filter(t=>t.category==='text').length} tools</div>
-        </div>
-        <div class="home-cat-card cat-media-bg" onclick="filterCategory('media')">
-          <div class="home-cat-icon">🎬</div>
-          <div class="home-cat-name">Media Tools</div>
-          <div class="home-cat-desc">Image converter, QR codes, Color palettes &amp; more</div>
-          <div class="home-cat-count">${APP.tools.filter(t=>t.category==='media').length} tools</div>
-        </div>
-        <div class="home-cat-card cat-utility-bg" onclick="filterCategory('utility')">
-          <div class="home-cat-icon">⚙️</div>
-          <div class="home-cat-name">Utility Tools</div>
-          <div class="home-cat-desc">Calculators, Converters, Formatters &amp; more</div>
-          <div class="home-cat-count">${APP.tools.filter(t=>t.category==='utility').length} tools</div>
-        </div>
+        ${Object.entries(catDescriptions).map(([catId, cat]) => `
+          <a href="/category/${catId}" class="home-cat-card ${cat.bg}" onclick="event.preventDefault();navigate('category','${catId}')">
+            <div class="home-cat-icon">${cat.icon}</div>
+            <div class="home-cat-name">${cat.name}</div>
+            <div class="home-cat-desc">${cat.tagline}</div>
+            <div class="home-cat-count">${APP.tools.filter(t=>t.category===catId).length} tools</div>
+          </a>`).join('')}
       </div>
 
       <div class="cat-tabs" id="categoryFilter"></div>
@@ -660,22 +258,22 @@ function renderHome() {
           <div class="home-why-card">
             <div class="home-why-icon">🤖</div>
             <div class="home-why-title">AI-Powered Text Tools</div>
-            <div class="home-why-text">Our AI Humanizer uses 50+ linguistic rules to make AI text sound natural. Our AI Detector spots AI writing using 15 statistical signals. No black boxes — pure rules.</div>
+            <div class="home-why-text">Our AI Humanizer uses 50+ linguistic rules to make AI text sound natural. Our AI Detector spots AI writing using 15 statistical signals.</div>
           </div>
           <div class="home-why-card">
             <div class="home-why-icon">🔐</div>
             <div class="home-why-title">Privacy First</div>
-            <div class="home-why-text">Rule-based tools (like converters, formatters, and calculators) run entirely in your browser. Your data stays with you.</div>
+            <div class="home-why-text">Rule-based tools (converters, formatters, calculators) run entirely in your browser. Your data stays with you.</div>
           </div>
           <div class="home-why-card">
             <div class="home-why-icon">⚡</div>
             <div class="home-why-title">Genuinely Fast</div>
-            <div class="home-why-text">No round-trips to expensive AI APIs for most tools. Results in milliseconds. Our server-side tools are lightweight and quick too.</div>
+            <div class="home-why-text">No round-trips to expensive AI APIs for most tools. Results in milliseconds. Our server-side tools are lightweight and quick.</div>
           </div>
           <div class="home-why-card">
             <div class="home-why-icon">🧩</div>
             <div class="home-why-title">Modular Architecture</div>
-            <div class="home-why-text">Every tool is independently maintained in its own module. This means rock-solid stability — one tool updating never breaks another.</div>
+            <div class="home-why-text">Every tool is independently maintained in its own module. Rock-solid stability — one tool updating never breaks another.</div>
           </div>
         </div>
       </div>
@@ -685,30 +283,28 @@ function renderHome() {
       <div class="footer-inner">
         <div class="footer-logo">⚡ ToolHub AI</div>
         <div class="footer-links">
-          <a onclick="navigate('home')">Home</a>
-          <a onclick="navigate('tool','ai-detector')">AI Detector</a>
-          <a onclick="navigate('tool','ai-humanizer')">AI Humanizer</a>
-          <a onclick="navigate('tool','paraphraser')">Paraphraser</a>
-          <a onclick="navigate('tool','grammar-fixer')">Grammar Fixer</a>
-          <a onclick="navigate('tool','text-diff')">Text Diff</a>
-          <a onclick="navigate('tool','qr-generator')">QR Generator</a>
-          <a onclick="navigate('tool','json-formatter')">JSON Formatter</a>
-          <a onclick="navigate('tool','color-contrast')">Color Contrast</a>
-          <a onclick="navigate('tool','uuid-generator')">UUID Generator</a>
-          <a onclick="navigate('tool','pomodoro-timer')">Pomodoro Timer</a>
-          <a onclick="navigate('tool','csv-to-json')">CSV to JSON</a>
-          <a onclick="navigate('tool','typing-test')">Typing Test</a>
-          <a onclick="navigate('tool','password-generator')">Password Generator</a>
+          <a href="/" onclick="event.preventDefault();navigate('home')">Home</a>
+          <a href="/category/text" onclick="event.preventDefault();navigate('category','text')">Text Tools</a>
+          <a href="/category/media" onclick="event.preventDefault();navigate('category','media')">Media Tools</a>
+          <a href="/category/utility" onclick="event.preventDefault();navigate('category','utility')">Utility Tools</a>
+          <a href="/quizzes" onclick="event.preventDefault();navigate('quizzes')">Quizzes</a>
+          <a href="/tool/ai-detector" onclick="event.preventDefault();navigate('tool','ai-detector')">AI Detector</a>
+          <a href="/tool/ai-humanizer" onclick="event.preventDefault();navigate('tool','ai-humanizer')">AI Humanizer</a>
+          <a href="/tool/paraphraser" onclick="event.preventDefault();navigate('tool','paraphraser')">Paraphraser</a>
+          <a href="/tool/grammar-fixer" onclick="event.preventDefault();navigate('tool','grammar-fixer')">Grammar Fixer</a>
+          <a href="/tool/qr-generator" onclick="event.preventDefault();navigate('tool','qr-generator')">QR Generator</a>
+          <a href="/tool/json-formatter" onclick="event.preventDefault();navigate('tool','json-formatter')">JSON Formatter</a>
+          <a href="/tool/password-generator" onclick="event.preventDefault();navigate('tool','password-generator')">Password Generator</a>
         </div>
-        <div class="footer-copy">© ${new Date().getFullYear()} ToolHub AI — ${toolCount} free online tools. No sign-up. No limits.</div>
+        <div class="footer-copy">© ${new Date().getFullYear()} ToolHub AI — ${toolCount} free online tools. No account required.</div>
       </div>
     </footer>`;
 
   const trending = APP.tools.filter(t => t.trending);
   document.getElementById('trendingStrip').innerHTML = trending.map(t => `
-    <div class="trending-chip" onclick="navigate('tool','${t.id}')">
+    <a href="/tool/${t.id}" class="trending-chip" onclick="event.preventDefault();navigate('tool','${t.id}')">
       ${t.icon} ${t.name} <span class="chip-fire">HOT</span>
-    </div>`).join('');
+    </a>`).join('');
 
   renderCategoryFilter();
   renderToolsGrid(activeCategory);
@@ -740,7 +336,7 @@ function renderToolsGrid(cat) {
 
 function renderToolCard(t) {
   return `
-    <div class="tool-card${t.trending?' featured':''}" onclick="navigate('tool','${t.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')navigate('tool','${t.id}')">
+    <a href="/tool/${t.id}" class="tool-card${t.trending?' featured':''}" onclick="event.preventDefault();navigate('tool','${t.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')navigate('tool','${t.id}')">
       <div class="tool-card-top">
         <div class="tool-icon cat-${t.category}">${t.icon}</div>
         ${t.trending?`<span class="tool-badge trending">🔥 Hot</span>`:''}
@@ -749,11 +345,11 @@ function renderToolCard(t) {
       <div class="tool-desc">${t.description}</div>
       <div class="tool-card-footer">
         <span class="tool-cat-tag cat-${t.category}">${APP.categories[t.category]?.name||t.category}</span>
-        <button class="btn-run" onclick="event.stopPropagation();navigate('tool','${t.id}')">
+        <button class="btn-run" onclick="event.stopPropagation();event.preventDefault();navigate('tool','${t.id}')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run
         </button>
       </div>
-    </div>`;
+    </a>`;
 }
 
 // ── Premium Modal ─────────────────────────────────────────────────────────────
@@ -792,7 +388,7 @@ function showLogin(msg='') {
       <div id="authErr"></div>
       <div class="modal-input-group">
         <input class="modal-input" id="loginEmail" type="email" placeholder="Email address" autocomplete="email">
-        <input class="modal-input" id="loginPassword" type="password" placeholder="Password" autocomplete="current-password">
+        <input class="modal-input" id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="btn btn-primary w-full" onclick="doLogin()">Sign in</button>
       <div class="modal-divider">Don't have an account? <span class="modal-link" onclick="showSignup()">Sign up free</span></div>
@@ -811,7 +407,7 @@ function showSignup() {
       <div class="modal-input-group">
         <input class="modal-input" id="regName" type="text" placeholder="Your name" autocomplete="name">
         <input class="modal-input" id="regEmail" type="email" placeholder="Email address" autocomplete="email">
-        <input class="modal-input" id="regPassword" type="password" placeholder="Password (min 6 chars)" autocomplete="new-password">
+        <input class="modal-input" id="regPassword" type="password" placeholder="Password (min 6 chars)" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()">
       </div>
       <button class="btn btn-primary w-full" onclick="doSignup()">Create free account</button>
       <div class="modal-divider">Already have an account? <span class="modal-link" onclick="showLogin()">Sign in</span></div>
@@ -835,6 +431,7 @@ async function doSignup() {
   const email=document.getElementById('regEmail')?.value.trim();
   const password=document.getElementById('regPassword')?.value;
   if (!name||!email||!password) { showAuthError('Please fill in all fields.'); return; }
+  if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
   try {
     const data = await apiFetch('/api/auth/register','POST',{name,email,password});
     if (data.success) location.href = data.redirect||'/';
@@ -915,55 +512,6 @@ const ICONS = {
   run:      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
 };
 
-// ── Admin Helper Functions ────────────────────────────────────────────────────
-async function setUserRole(id, role) {
-  try { await apiFetch(`/api/admin/users/${id}/role`,'POST',{role}); toast('Role updated','success'); }
-  catch(e) { toast('Failed: '+e.message,'error'); }
-}
-async function toggleUser(id, isActive) {
-  try { await apiFetch(`/api/admin/users/${id}/toggle`,'POST',{}); toast(isActive?'User banned':'User unbanned','success'); loadAdminDrawer(true); }
-  catch(e) { toast('Failed: '+e.message,'error'); }
-}
-async function toggleTool(toolId, enabled) {
-  try { await apiFetch(`/api/admin/tools/${toolId}/toggle`,'POST',{enabled}); toast(`Tool ${enabled?'enabled':'disabled'}`,'success'); }
-  catch(e) { toast('Failed: '+e.message,'error'); }
-}
-async function saveSetting(key, value) {
-  try { await apiFetch('/api/admin/settings','POST',{key,value}); toast('Saved','success'); }
-  catch(e) { toast('Failed: '+e.message,'error'); }
-}
-async function savePaypalBtn() {
-  const name = document.getElementById('ppBtnName')?.value.trim();
-  const html = document.getElementById('ppBtnHtml')?.value.trim();
-  const price = document.getElementById('ppBtnPrice')?.value;
-  const plan_type = document.getElementById('ppBtnType')?.value;
-  if (!name||!html||!price) { toast('Fill in all PayPal button fields','error'); return; }
-  try { await apiFetch('/api/admin/paypal-buttons','POST',{name,button_html:html,price,plan_type}); toast('PayPal button saved','success'); loadAdminDrawer(true); }
-  catch(e) { toast('Failed: '+e.message,'error'); }
-}
-async function setBugStatus(id, status) {
-  try { await apiFetch(`/api/admin/bug-reports/${id}/status`,'POST',{status}); toast('Status updated','success'); }
-  catch(e) { toast('Failed: '+e.message,'error'); }
-}
-
-async function drawerApproveQuiz(id) {
-  try {
-    await apiFetch(`/api/quiz/admin/${id}/approve`, 'POST');
-    toast('✅ Quiz approved!', 'success');
-    document.getElementById(`dqr-${id}`)?.remove();
-  } catch(e) { toast('Failed: '+e.message,'error'); }
-}
-
-async function drawerRejectQuiz(id) {
-  const reason = prompt('Rejection reason (optional):') || 'Does not meet guidelines';
-  try {
-    await apiFetch(`/api/quiz/admin/${id}/reject`, 'POST', { reason });
-    toast('Quiz rejected', 'warn');
-    const el = document.getElementById(`dqr-${id}`);
-    if (el) { el.style.opacity = '0.4'; el.querySelector('.btn-primary')?.remove(); }
-  } catch(e) { toast('Failed: '+e.message,'error'); }
-}
-
 // ── Mobile Navigation ─────────────────────────────────────────────────────────
 function toggleMobileNav() {
   const drawer = document.getElementById('mobileNavDrawer');
@@ -972,7 +520,6 @@ function toggleMobileNav() {
   const open = drawer.classList.toggle('open');
   if (btn) btn.textContent = open ? '✕' : '☰';
   if (open) {
-    // Update visibility based on session
     const loggedIn = APP.session?.loggedIn;
     const isAdmin = APP.session?.role === 'admin';
     const el = (id) => document.getElementById(id);
@@ -990,7 +537,6 @@ function closeMobileNav() {
   if (btn) btn.textContent = '☰';
 }
 
-// Close mobile nav on outside click
 document.addEventListener('click', (e) => {
   const drawer = document.getElementById('mobileNavDrawer');
   const btn = document.getElementById('mobileMenuBtn');
