@@ -59,8 +59,8 @@ function navigate(page, id='') {
   else if (page === 'category') { history.pushState({},'',`/category/${id}`); renderHome(id); }
   window.scrollTo({top:0,behavior:'smooth'});
   document.getElementById('navTools')?.classList.toggle('active', page==='home'||page==='tool'||page==='category');
-  document.getElementById('navQuizzes')?.classList.toggle('active', page==='quizzes');
-  document.getElementById('navLive')?.classList.toggle('active', page==='live');
+  // Quizzes tab is active for both /quizzes and /live since Live is now inside Quizzes
+  document.getElementById('navQuizzes')?.classList.toggle('active', page==='quizzes'||page==='live');
 }
 
 window.addEventListener('popstate', handleRoute);
@@ -68,8 +68,8 @@ window.addEventListener('popstate', handleRoute);
 // ── Header ────────────────────────────────────────────────────────────────────
 function setupHeader() {
   const ua = document.getElementById('userArea');
-  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator';
-  const isEducator = APP.session.isVerifiedEducator || APP.session.role === 'educator';
+  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator' || APP.session.role === 'gamemaster';
+  const isEducator = APP.session.isVerifiedEducator || APP.session.role === 'educator' || APP.session.role === 'gamemaster';
 
   const banner = document.getElementById('premiumBanner');
   if (!isPremium && !isEducator && !localStorage.getItem('premiumBannerClosed')) {

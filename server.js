@@ -75,11 +75,13 @@ app.get('/api/init', async (req, res) => {
     ]);
     const { isEducatorEmail } = require('./game/engine');
     const isVerified = isEducatorEmail(req.session?.email);
+    const isGamemaster = ['gamemaster','admin'].includes(req.session?.role);
     res.json({
       session: { loggedIn: !!req.session.userId, name: req.session.name || '',
         role: req.session.role || 'guest', avatarColor: req.session.avatarColor || '#10b981',
-        isVerifiedEducator: isVerified, email: req.session.email || '' },
-      settings: { siteName: siteName || 'ToolHub AI', adsEnabled: isVerified ? false : adsEnabled === 'true',
+        isVerifiedEducator: isVerified || isGamemaster, email: req.session.email || '',
+        isGamemaster },
+      settings: { siteName: siteName || 'ToolHub AI', adsEnabled: (isVerified || isGamemaster) ? false : adsEnabled === 'true',
         adsenseClient: adsenseClient || '', adsenseBanner: adsenseBanner || '',
         maintenance: maintenance === 'true' },
       tools: getAllTools(), categories: CATEGORIES, trending: getTrending(),

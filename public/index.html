@@ -3,13 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ToolHub AI — Free AI Tools, Live Quizzes & Multiplayer Games for Teachers</title>
+<meta name="description" content="ToolHub AI offers 40+ free AI-powered text tools, live multiplayer quiz games, curriculum-aligned quizzes for Year 1–13, and a teacher Game Master system. No signup required.">
+<meta name="keywords" content="AI tools, free quiz, live multiplayer quiz, classroom games, teacher tools, KS1 KS2 GCSE quizzes, text tools, grammar fixer, AI paraphraser">
 <meta name="author" content="ToolHub AI">
-<meta name="google-site-verification" content="MufxIbo7xa4HDVzP0DdPWYfqx6XxDiKnuqI8ddEu83g" />
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://toolhub.ai/">
+<meta name="google-site-verification" content="MufxIbo7xa4HDVzP0DdPWYfqx6XxDiKnuqI8ddEu83g">
+<!-- Open Graph -->
+<meta property="og:type" content="website">
 <meta property="og:site_name" content="ToolHub AI">
-<meta name="theme-color" content="#6366f1">
+<meta property="og:title" content="ToolHub AI — Free AI Tools & Live Quiz Games">
+<meta property="og:description" content="40+ free AI tools, multiplayer quiz games with Blook avatars, and curriculum-aligned content for teachers. Try it free.">
+<meta property="og:url" content="https://toolhub.ai/">
+<meta property="og:image" content="https://toolhub.ai/og-image.png">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ToolHub AI — Free AI Tools & Live Quiz Games">
+<meta name="twitter:description" content="40+ free AI tools, live multiplayer quizzes, and educator tools. Free forever.">
+<meta name="theme-color" content="#2563eb">
+<!-- JSON-LD structured data -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"ToolHub AI","url":"https://toolhub.ai","description":"Free AI-powered text tools and live multiplayer quiz platform for teachers and students","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://toolhub.ai/?q={search_term_string}"},"query-input":"required name=search_term_string"}}
+</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/css/quiz.css">
 <link rel="stylesheet" href="/css/multiplayer.css">
@@ -44,8 +63,7 @@
     </div>
     <nav class="header-nav">
       <a class="header-nav-btn" href="/" onclick="event.preventDefault();navigate('home')" id="navTools">🔧 Tools</a>
-      <a class="header-nav-btn header-nav-quiz" href="/quizzes" onclick="event.preventDefault();navigate('quizzes')" id="navQuizzes">🎮 Quizzes</a>
-      <a class="header-nav-btn" href="/live" onclick="event.preventDefault();navigate('live')" id="navLive" style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border-radius:8px;padding:6px 12px">⚡ Live</a>
+      <a class="header-nav-btn header-nav-quiz" href="/quizzes" onclick="event.preventDefault();navigate('quizzes')" id="navQuizzes">🎮 Quizzes & Live</a>
     </nav>
     <div class="header-actions">
       <button class="mobile-nav-btn" id="mobileMenuBtn" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
@@ -61,8 +79,7 @@
 <!-- Mobile Navigation Drawer -->
 <div class="mobile-nav-drawer" id="mobileNavDrawer">
   <a class="mobile-nav-link" href="/" onclick="event.preventDefault();navigate('home');closeMobileNav()">🔧 Tools</a>
-  <a class="mobile-nav-link" href="/quizzes" onclick="event.preventDefault();navigate('quizzes');closeMobileNav()">🎮 Quizzes</a>
-  <a class="mobile-nav-link" href="/live" onclick="event.preventDefault();navigate('live');closeMobileNav()" style="color:#7c3aed;font-weight:700">⚡ Live Games</a>
+  <a class="mobile-nav-link" href="/quizzes" onclick="event.preventDefault();navigate('quizzes');closeMobileNav()">🎮 Quizzes & Live Games</a>
   <div class="mobile-nav-divider"></div>
   <a class="mobile-nav-link" id="mobileNavDash" href="/dashboard" onclick="event.preventDefault();navigate('dashboard');closeMobileNav()" style="display:none">📊 Dashboard</a>
   <a class="mobile-nav-link" id="mobileNavAdmin" href="/admin" onclick="closeMobileNav()" style="display:none">🛡️ Admin Panel</a>

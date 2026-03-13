@@ -68,7 +68,7 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    await db.run(`UPDATE users SET last_login=NOW() WHERE id=$1`, [user.id]);
+    await db.run('UPDATE users SET last_login=NOW() WHERE id=?', [user.id]);
 
     req.session.userId = user.id;
     req.session.email = user.email;
@@ -108,6 +108,47 @@ router.post('/change-password', async (req, res) => {
     res.json({ success: true });
   } catch(err) {
     res.status(500).json({ error: 'Password change failed.' });
+  }
+});
+
+// ── Promo Code / Game Master Activation ──────────────────────────────────────
+// Valid codes map to their role upgrade
+const PROMO_CODES = {
+  'TEACHER2026':  'gamemaster',
+  'EDUCATOR2026': 'gamemaster',
+  'TOOLHUBPRO':   'gamemaster',
+};
+
+router.post('/redeem-promo', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'No code provided' });
+
+  const normalized = String(code).trim().toUpperCase();
+  const targetRole = PROMO_CODES[normalized];
+
+  if (!targetRole) {
+    return res.status(400).json({ error: 'Invalid or expired promo code.' });
+  }
+
+  // Prevent re-downgrade if already gamemaster or admin
+  if (['gamemaster', 'admin'].includes(req.session.role)) {
+    return res.json({ success: true, role: req.session.role, alreadyActive: true,
+      message: '✅ Game Master status already active on your account!' });
+  }
+
+  try {
+    await db.run('UPDATE users SET role=? WHERE id=?', [targetRole, req.session.userId]);
+    req.session.role = targetRole;
+    res.json({
+      success: true,
+      role: targetRole,
+      message: '🎉 Game Master unlocked! Ads removed, Verified Educator badge granted.',
+      perks: ['No ads', 'Verified Educator badge', 'Export quiz data to PDF/CSV', 'Unlimited test sessions'],
+    });
+  } catch(err) {
+    console.error('Promo redeem error:', err);
+    res.status(500).json({ error: 'Failed to apply promo code.' });
   }
 });
 

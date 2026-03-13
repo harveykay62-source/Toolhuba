@@ -263,6 +263,59 @@ function advanceQuestion(io, code) {
   lobby._timer = setTimeout(() => {
     questionTimeUp(io, code);
   }, (timeLimit + 2) * 1000);
+
+  // ── AI Bot Auto-Answer ──────────────────────────────────────────────────
+  // If this lobby has AI bots, schedule them to answer at random human-like delays
+  if (lobby.hasBots) {
+    const correctIdx = q.correctAnswer ?? q.correct;
+    const bots = [...lobby.players.values()].filter(p => p.isAIBot && !p.answeredCurrent);
+    for (const bot of bots) {
+      // Random delay between 2s and (timeLimit-2)s to simulate human thinking
+      const delay = (2 + Math.random() * (timeLimit - 4)) * 1000;
+      setTimeout(() => {
+        const currentLobby = lobbies.get(code);
+        if (!currentLobby || currentLobby.state !== 'playing') return;
+        if (bot.answeredCurrent) return;
+
+        // Bot picks answer based on its accuracy rating
+        let chosenAnswer;
+        if (Math.random() < bot.botAccuracy) {
+          chosenAnswer = correctIdx; // correct
+        } else {
+          // Pick a wrong answer
+          const wrong = [0, 1, 2, 3].filter(i => i !== correctIdx);
+          chosenAnswer = wrong[Math.floor(Math.random() * wrong.length)];
+        }
+
+        bot.answeredCurrent = true;
+        bot.totalAnswered++;
+        const isCorrect = chosenAnswer === correctIdx;
+        if (isCorrect) bot.totalCorrect++;
+
+        const elapsed = delay / 1000;
+        const qAnswers = currentLobby.answers.get(currentLobby.currentQuestion);
+        if (qAnswers) qAnswers.set(bot.id, { answerIndex: chosenAnswer, isCorrect, elapsed });
+
+        // Apply mode-specific bot scoring
+        if (currentLobby.gameMode === 'ai-kingdom') {
+          processAIKingdom(bot, isCorrect, 0, currentLobby);
+        } else if (currentLobby.gameMode === 'data-heist') {
+          processDataHeist(bot, isCorrect, 0, currentLobby);
+        } else if (currentLobby.gameMode === 'evolution-race') {
+          processEvolution(bot, isCorrect, 0);
+        }
+
+        updateHostDashboard(io, currentLobby);
+
+        // Check if all real+bot players answered
+        const active = [...currentLobby.players.values()].filter(p => !p.isHost && p.isConnected);
+        if (active.every(p => p.answeredCurrent) && active.length > 0) {
+          clearTimeout(currentLobby._timer);
+          questionTimeUp(io, code);
+        }
+      }, delay);
+    }
+  }
 }
 
 function submitAnswer(io, socket, { answerIndex }) {
@@ -702,7 +755,42 @@ function initSocketIO(server) {
       const lobby = lobbies.get(info.lobbyCode);
       if (!lobby) return callback?.({ error: 'Lobby not found' });
       if (lobby.hostId !== socket.id) return callback?.({ error: 'Only the host can start' });
-      if (lobby.players.size < 2) return callback?.({ error: 'Need at least 1 player' });
+
+      // ── AI Bot Single-Player Testing ────────────────────────────────────
+      // If the host is alone, spawn AI bots so the game can be tested solo.
+      const realPlayers = [...lobby.players.values()].filter(p => !p.isHost);
+      if (realPlayers.length === 0) {
+        const BOT_NAMES = ['Bot Alex 🤖', 'Bot Jamie 🤖', 'Bot Sam 🤖', 'Bot Taylor 🤖'];
+        const BOT_COUNT = 4;
+        for (let i = 0; i < BOT_COUNT; i++) {
+          const botId = `bot_${Date.now()}_${i}`;
+          const blook = BLOOKS[i % BLOOKS.length];
+          const botPlayer = {
+            id: botId,
+            name: BOT_NAMES[i] || `Bot ${i + 1} 🤖`,
+            blook,
+            isHost: false,
+            isConnected: true,
+            isAIBot: true,  // flag for auto-answering
+            gameState: GAME_MODES[lobby.gameMode]?.initPlayerState() || {},
+            answeredCurrent: false,
+            totalCorrect: 0,
+            totalAnswered: 0,
+            // Bot difficulty: 0=easy, 1=medium, 2=hard, 3=random
+            botAccuracy: [0.45, 0.65, 0.80, Math.random()][i] || 0.6,
+          };
+          lobby.players.set(botId, botPlayer);
+          // Bots don't need real sockets — they're driven by server-side timers
+        }
+        lobby.hasBots = true;
+        io.to(info.lobbyCode).emit('lobby:botsSpawned', {
+          bots: [...lobby.players.values()].filter(p => p.isAIBot).map(p => ({
+            name: p.name, blook: p.blook,
+          })),
+          message: `⚡ Test Mode: ${BOT_COUNT} AI Bot students added!`,
+        });
+        callback?.({ success: true, testMode: true, botCount: BOT_COUNT });
+      }
 
       // Apply any last-minute settings
       if (data?.senMode !== undefined) lobby.settings.senMode = data.senMode;
@@ -715,10 +803,11 @@ function initSocketIO(server) {
         settings: lobby.settings,
         modeName: GAME_MODES[lobby.gameMode]?.name,
         modeIcon: GAME_MODES[lobby.gameMode]?.icon,
+        testMode: lobby.hasBots || false,
       });
 
       setTimeout(() => advanceQuestion(io, info.lobbyCode), 3000);
-      callback?.({ success: true });
+      if (!lobby.hasBots) callback?.({ success: true });
     });
 
     // ── Submit Answer ────────────────────────────────────────────────────

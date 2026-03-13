@@ -444,3 +444,57 @@ router.post('/admin/reseed', requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
+
+// ── GET /api/quiz/export?format=pdf|csv  (Game Master only) ──────────────────
+router.get('/export', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
+  if (!['gamemaster','admin'].includes(req.session.role)) {
+    return res.status(403).json({ error: 'Game Master access required' });
+  }
+  const format = (req.query.format || 'csv').toLowerCase();
+  try {
+    const { rows: quizzes } = await pool.query(
+      `SELECT q.id, q.title, q.category, q.plays, q.likes, q.questions_count,
+              q.status, q.created_at, u.name AS creator
+       FROM quizzes q
+       LEFT JOIN users u ON u.id = q.creator_id
+       WHERE q.creator_id = $1
+       ORDER BY q.created_at DESC`,
+      [req.session.userId]
+    );
+
+    if (format === 'csv') {
+      const header = 'ID,Title,Category,Plays,Likes,Questions,Status,Created,Creator\n';
+      const rows = quizzes.map(q =>
+        [q.id, `"${(q.title||'').replace(/"/g,'""')}"`, q.category, q.plays, q.likes,
+         q.questions_count, q.status, (q.created_at||'').toString().slice(0,10),
+         `"${(q.creator||'').replace(/"/g,'""')}"`].join(',')
+      ).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="quiz-data.csv"');
+      return res.send(header + rows);
+    }
+
+    // PDF — minimal HTML→text fallback (no puppeteer needed on Render free tier)
+    const lines = quizzes.map((q,i) =>
+      `${i+1}. ${q.title} | ${q.category} | ${q.plays} plays | ${q.questions_count} Qs | ${(q.created_at||'').toString().slice(0,10)}`
+    ).join('\n');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Quiz Export</title>
+<style>body{font-family:Arial,sans-serif;padding:32px;max-width:800px;margin:0 auto}
+h1{color:#2563eb}table{width:100%;border-collapse:collapse;margin-top:20px}
+th{background:#2563eb;color:#fff;padding:10px 12px;text-align:left}
+td{padding:9px 12px;border-bottom:1px solid #e5e7eb}tr:nth-child(even){background:#f9fafb}
+</style></head><body>
+<h1>📊 Quiz Data Export</h1>
+<p>Exported: ${new Date().toLocaleDateString()} · ${quizzes.length} quiz(zes) · Game Master: ${req.session.name}</p>
+<table><tr><th>#</th><th>Title</th><th>Category</th><th>Plays</th><th>Questions</th><th>Status</th><th>Created</th></tr>
+${quizzes.map((q,i)=>`<tr><td>${i+1}</td><td>${q.title||''}</td><td>${q.category||''}</td><td>${q.plays||0}</td><td>${q.questions_count||0}</td><td>${q.status||''}</td><td>${(q.created_at||'').toString().slice(0,10)}</td></tr>`).join('')}
+</table></body></html>`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="quiz-data.html"');
+    return res.send(html);
+  } catch(e) {
+    console.error('Export error:', e.message);
+    res.status(500).json({ error: 'Export failed' });
+  }
+});

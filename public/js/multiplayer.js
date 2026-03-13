@@ -25,15 +25,33 @@ const MP = {
 };
 
 // ── Socket Connection ────────────────────────────────────────────────────────
+function disconnectSocket() {
+  if (MP.socket) {
+    MP.socket.removeAllListeners(); // ← prevent duplicate listener leak
+    MP.socket.disconnect();
+    MP.socket = null;
+  }
+  clearInterval(MP.timerInterval);
+  MP.timerInterval = null;
+}
+
 function connectSocket() {
+  // If already connected reuse the socket — only register listeners once
   if (MP.socket && MP.socket.connected) return;
+
+  // Clean up any stale socket from a previous session to avoid listener pile-up
+  if (MP.socket) {
+    MP.socket.removeAllListeners();
+    MP.socket.disconnect();
+  }
+
   const url = window.location.origin;
   MP.socket = io(url, { transports: ['websocket', 'polling'] });
 
   MP.socket.on('connect', () => console.log('[MP] Connected:', MP.socket.id));
   MP.socket.on('disconnect', () => {
     console.log('[MP] Disconnected');
-    if (MP.code) toast('Connection lost. Trying to reconnect...', 'warn');
+    if (MP.code) toast('Connection lost. Trying to reconnect…', 'warn');
   });
 
   // ── Lobby Events ───────────────────────────────────────────────────────
@@ -48,12 +66,23 @@ function connectSocket() {
   MP.socket.on('lobby:playerDisconnected', (data) => {
     toast(`${data.name} disconnected`, 'warn', 2000);
   });
+  // AI Bot test mode banner
+  MP.socket.on('lobby:botsSpawned', (data) => {
+    toast(data.message || '⚡ Test Mode: AI Bots added!', 'success', 4000);
+    const banner = document.getElementById('mpTestBanner');
+    if (banner) { banner.style.display = 'flex'; banner.textContent = data.message || '⚡ Test Mode Active — AI Bots spawned'; }
+    // Also refresh player list
+    if (MP.isHost) renderLobbyPlayers();
+  });
 
   // ── Game Events ────────────────────────────────────────────────────────
   MP.socket.on('game:started', (data) => {
     MP.gameMode = data.gameMode;
     MP.senMode = data.settings?.senMode || false;
     if (MP.senMode) document.documentElement.classList.add('sen-mode');
+    if (data.testMode) {
+      toast('⚡ Test Mode: running with AI Bots', 'info', 3000);
+    }
     if (MP.isHost) {
       renderHostGameView(data);
     } else {
@@ -94,12 +123,13 @@ function connectSocket() {
   });
 
   MP.socket.on('game:ended', (data) => {
+    clearInterval(MP.timerInterval);
     MP.leaderboard = data.leaderboard || [];
     MP.heatmap = data.heatmap || [];
     renderEndScreen(data);
   });
 
-  MP.socket.on('game:paused', (data) => {
+  MP.socket.on('game:paused', () => {
     renderPausedOverlay(true);
   });
   MP.socket.on('game:resumed', () => {
