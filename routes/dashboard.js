@@ -24,9 +24,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     res.json({
       user: { name: req.session.name, email: req.session.email, role: req.session.role, avatarColor: req.session.avatarColor, created_at: user ? user.created_at : null, premium_expires_at: user ? user.premium_expires_at : null },
-      stats: { totalUses: totalUses ? parseInt(totalUses.count) : 0, todayUses: todayUses ? parseInt(todayUses.count) : 0, dailyLimit: req.session.role === 'free' ? dailyLimit : 'unlimited', favoriteTool: favTool ? favTool.tool_name : 'None yet' },
+      stats: { totalUses: totalUses ? parseInt(totalUses.count) : 0, todayUses: todayUses ? parseInt(todayUses.count) : 0, dailyLimit: (req.session.role === 'free') ? dailyLimit : 'unlimited', favoriteTool: favTool ? favTool.tool_name : 'None yet' },
       history, weeklyData,
-      adsEnabled: req.session.role === 'free' ? adsEnabled : false,
+      adsEnabled: (req.session.role === 'free') ? adsEnabled : false,
       paypalButtons
     });
   } catch (err) {
@@ -45,7 +45,7 @@ router.get('/admin/stats', requireAdmin, async (req, res) => {
       db.get(`SELECT COUNT(DISTINCT user_id) as count FROM tool_usage WHERE created_at >= NOW() - INTERVAL '24 hours'`),
       db.all(`SELECT * FROM daily_stats ORDER BY date DESC LIMIT 14`),
       db.all(`SELECT tool_name,tool_id,category,COUNT(*) as uses FROM tool_usage GROUP BY tool_id,tool_name,category ORDER BY uses DESC LIMIT 10`),
-      db.all(`SELECT u.id,u.name,u.email,u.role,u.created_at,u.last_login,u.is_active, COUNT(tu.id) as total_uses FROM users u LEFT JOIN tool_usage tu ON tu.user_id=u.id WHERE u.role!='admin' GROUP BY u.id,u.name,u.email,u.role,u.created_at,u.last_login,u.is_active ORDER BY u.created_at DESC LIMIT 20`),
+      db.all(`SELECT id,name,email,role,created_at,last_login,is_active FROM users WHERE role!='admin' ORDER BY created_at DESC LIMIT 20`),
       db.get(`SELECT COALESCE(SUM(amount),0) as total FROM premium_transactions WHERE status='completed'`),
       db.all(`SELECT pt.*,u.name,u.email FROM premium_transactions pt JOIN users u ON u.id=pt.user_id ORDER BY pt.created_at DESC LIMIT 20`),
       db.all('SELECT key,value FROM settings'),
@@ -204,125 +204,6 @@ router.post('/admin/bug-reports/:id/status', requireAdmin, async (req, res) => {
   if (!['open','resolved','wontfix'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
   await db.run('UPDATE bug_reports SET status=? WHERE id=?', [status, req.params.id]);
   res.json({ success: true });
-});
-
-// ── User search ────────────────────────────────────────────────────────────────
-router.get('/admin/users/search', requireAdmin, async (req, res) => {
-  try {
-    const { q = '', role = '', limit = 50 } = req.query;
-    let sql = `SELECT id,name,email,role,created_at,last_login,is_active,avatar_color FROM users WHERE role!='admin'`;
-    const params = [];
-    if (q) { params.push('%' + q.toLowerCase() + '%'); sql += ` AND (LOWER(name) LIKE $${params.length} OR LOWER(email) LIKE $${params.length})`; }
-    if (role) { params.push(role); sql += ` AND role=$${params.length}`; }
-    params.push(parseInt(limit) || 50);
-    sql += ` ORDER BY created_at DESC LIMIT $${params.length}`;
-    const users = await db.all(sql, params);
-    res.json({ users });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── User activity (tools used by a specific user) ─────────────────────────────
-router.get('/admin/users/:id/activity', requireAdmin, async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const [user, activity, stats] = await Promise.all([
-      db.get('SELECT id,name,email,role,created_at,last_login,is_active,avatar_color FROM users WHERE id=$1', [userId]),
-      db.all(`SELECT tool_name,category,created_at FROM tool_usage WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50`, [userId]),
-      db.all(`SELECT tool_name, COUNT(*) as uses FROM tool_usage WHERE user_id=$1 GROUP BY tool_name ORDER BY uses DESC LIMIT 10`, [userId]),
-    ]);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user, activity, topTools: stats });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── Unique visitors analytics ─────────────────────────────────────────────────
-router.get('/admin/analytics/unique-users', requireAdmin, async (req, res) => {
-  try {
-    const days = parseInt(req.query.days) || 30;
-    const [
-      uniqueIPs30d, uniqueIPsToday, uniqueIPsWeek,
-      uniqueRegistered30d, newUsersByDay, returningVsNew,
-      topUsersByUsage, avgUsesPerUser
-    ] = await Promise.all([
-      db.get(`SELECT COUNT(DISTINCT ip_address) as c FROM page_views WHERE created_at >= NOW() - INTERVAL '${days} days'`),
-      db.get(`SELECT COUNT(DISTINCT ip_address) as c FROM page_views WHERE DATE(created_at)=CURRENT_DATE`),
-      db.get(`SELECT COUNT(DISTINCT ip_address) as c FROM page_views WHERE created_at >= NOW() - INTERVAL '7 days'`),
-      db.get(`SELECT COUNT(DISTINCT user_id) as c FROM tool_usage WHERE user_id IS NOT NULL AND created_at >= NOW() - INTERVAL '${days} days'`),
-      db.all(`SELECT DATE(created_at) as d, COUNT(*) as c FROM users WHERE role!='admin' AND created_at >= NOW() - INTERVAL '${days} days' GROUP BY d ORDER BY d ASC`),
-      db.all(`SELECT DATE(pv.created_at) as d, COUNT(DISTINCT pv.ip_address) as unique_visitors, COUNT(*) as total_views FROM page_views pv WHERE pv.created_at >= NOW() - INTERVAL '${days} days' GROUP BY DATE(pv.created_at) ORDER BY d ASC`),
-      db.all(`SELECT u.id, u.name, u.email, u.role, COUNT(tu.id) as total_uses, MAX(tu.created_at) as last_active FROM users u LEFT JOIN tool_usage tu ON tu.user_id=u.id WHERE u.role!='admin' GROUP BY u.id,u.name,u.email,u.role ORDER BY total_uses DESC LIMIT 20`),
-      db.get(`SELECT AVG(cnt) as avg FROM (SELECT user_id, COUNT(*) as cnt FROM tool_usage WHERE user_id IS NOT NULL GROUP BY user_id) t`),
-    ]);
-
-    res.json({
-      uniqueIPs: {
-        today: parseInt(uniqueIPsToday?.c || 0),
-        week: parseInt(uniqueIPsWeek?.c || 0),
-        thirtyDays: parseInt(uniqueIPs30d?.c || 0),
-      },
-      uniqueRegistered30d: parseInt(uniqueRegistered30d?.c || 0),
-      newUsersByDay: newUsersByDay || [],
-      dailyUniqueVsTotal: returningVsNew || [],
-      topUsersByUsage: topUsersByUsage || [],
-      avgUsesPerUser: parseFloat(avgUsesPerUser?.avg || 0).toFixed(1),
-    });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── Export data as CSV ────────────────────────────────────────────────────────
-router.get('/admin/export/:type', requireAdmin, async (req, res) => {
-  const { type } = req.params;
-  try {
-    let rows, headers, filename;
-    if (type === 'users') {
-      rows = await db.all(`SELECT id,name,email,role,created_at,last_login,is_active FROM users WHERE role!='admin' ORDER BY created_at DESC`);
-      headers = ['id','name','email','role','created_at','last_login','is_active'];
-      filename = 'toolhub-users.csv';
-    } else if (type === 'tool-usage') {
-      rows = await db.all(`SELECT tool_name,category,COUNT(*) as uses FROM tool_usage GROUP BY tool_name,category ORDER BY uses DESC`);
-      headers = ['tool_name','category','uses'];
-      filename = 'toolhub-tool-usage.csv';
-    } else if (type === 'page-views') {
-      rows = await db.all(`SELECT date,page_views,tool_uses,new_users FROM daily_stats ORDER BY date DESC LIMIT 90`);
-      headers = ['date','page_views','tool_uses','new_users'];
-      filename = 'toolhub-traffic.csv';
-    } else {
-      return res.status(400).json({ error: 'Invalid export type' });
-    }
-    const csv = [headers.join(','), ...rows.map(r => headers.map(h => JSON.stringify(r[h] ?? '')).join(','))].join('\n');
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csv);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── Session duration estimate (based on consecutive pageviews) ─────────────────
-router.get('/admin/analytics/engagement', requireAdmin, async (req, res) => {
-  try {
-    const [
-      avgViewsPerSession, bounceEstimate, topEntryPages, topExitEstimate, sessionLengths
-    ] = await Promise.all([
-      db.get(`SELECT AVG(cnt) as avg FROM (SELECT ip_address, DATE(created_at) as d, COUNT(*) as cnt FROM page_views GROUP BY ip_address, d) t`),
-      db.get(`SELECT ROUND(100.0 * SUM(CASE WHEN cnt=1 THEN 1 ELSE 0 END) / COUNT(*), 1) as bounce_rate FROM (SELECT ip_address, DATE(created_at) as d, COUNT(*) as cnt FROM page_views GROUP BY ip_address, d) t`),
-      db.all(`SELECT page, COUNT(*) as c FROM page_views WHERE page NOT LIKE '/api%' GROUP BY page ORDER BY c DESC LIMIT 10`),
-      db.all(`SELECT page, COUNT(*) as c FROM page_views WHERE page NOT LIKE '/api%' GROUP BY page ORDER BY c DESC LIMIT 10`),
-      db.all(`SELECT ip_address, DATE(created_at) as d, COUNT(*) as pages FROM page_views GROUP BY ip_address,d ORDER BY pages DESC LIMIT 500`),
-    ]);
-
-    // Estimate avg session duration (assume 90s per page as rough heuristic)
-    const avgPages = parseFloat(avgViewsPerSession?.avg || 1);
-    const estAvgDuration = Math.round(avgPages * 90);
-
-    res.json({
-      avgPagesPerSession: parseFloat(avgPages).toFixed(1),
-      estimatedAvgDuration: estAvgDuration,
-      estimatedAvgDurationFmt: estAvgDuration >= 60
-        ? `${Math.floor(estAvgDuration/60)}m ${estAvgDuration%60}s`
-        : `${estAvgDuration}s`,
-      bounceRate: parseFloat(bounceEstimate?.bounce_rate || 0).toFixed(1) + '%',
-      topEntryPages: topEntryPages || [],
-    });
-  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

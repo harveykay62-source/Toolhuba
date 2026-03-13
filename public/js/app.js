@@ -34,33 +34,21 @@ function handleRoute() {
   }
   if (path === '/dashboard') { renderDashboard(); return; }
   if (path === '/admin') { window.location.href = '/admin'; return; }
-  if (path.startsWith('/live')) {
-    const code = path.replace('/live/','').replace('/live','');
-    if (code && code.length === 6) { renderJoinScreen(code); }
-    else { renderMultiplayerHub(); }
-    return;
-  }
-  if (path === '/teacher-quizzes') { renderTeacherQuizzes(); return; }
-  if (path.startsWith('/quiz/')) { const id = path.replace('/quiz/',''); renderQuizPlay(id); return; }
   if (path.startsWith('/quizzes') || path === '/quiz') { renderQuizHub(); return; }
+  if (path.startsWith('/quiz/')) { const id = path.replace('/quiz/',''); renderQuizPlay(id); return; }
   renderHome();
 }
 
 function navigate(page, id='') {
-  // Clean up any running timers/intervals before navigating
-  if (window._pomInterval) { clearInterval(window._pomInterval); window._pomInterval = null; }
-  if (window._typingInterval) { clearInterval(window._typingInterval); window._typingInterval = null; }
   if (page === 'home')        { history.pushState({},'','/');             renderHome(); }
-  else if (page === 'tool')   { history.pushState({},'',`/tool/${id}`);  const t=APP.tools.find(t=>t.id===id); if(t) renderToolPage(t); else { toast('Tool not found or disabled.','warn'); navigate('home'); return; } }
+  else if (page === 'tool')   { history.pushState({},'',`/tool/${id}`);  const t=APP.tools.find(t=>t.id===id); if(t) renderToolPage(t); else { toast('Tool not found.','warn'); navigate('home'); return; } }
   else if (page === 'dashboard') { history.pushState({},'','/dashboard'); renderDashboard(); }
   else if (page === 'admin')  { window.location.href = '/admin'; return; }
-  else if (page === 'live')   { history.pushState({},'','/live');         renderMultiplayerHub(); }
   else if (page === 'quizzes'){ history.pushState({},'','/quizzes');      destroyQuizThree(); renderQuizHub(); }
   else if (page === 'category') { history.pushState({},'',`/category/${id}`); renderHome(id); }
   window.scrollTo({top:0,behavior:'smooth'});
   document.getElementById('navTools')?.classList.toggle('active', page==='home'||page==='tool'||page==='category');
-  // Quizzes tab is active for both /quizzes and /live since Live is now inside Quizzes
-  document.getElementById('navQuizzes')?.classList.toggle('active', page==='quizzes'||page==='live');
+  document.getElementById('navQuizzes')?.classList.toggle('active', page==='quizzes');
 }
 
 window.addEventListener('popstate', handleRoute);
@@ -68,8 +56,8 @@ window.addEventListener('popstate', handleRoute);
 // ── Header ────────────────────────────────────────────────────────────────────
 function setupHeader() {
   const ua = document.getElementById('userArea');
-  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator' || APP.session.role === 'gamemaster';
-  const isEducator = APP.session.isVerifiedEducator || APP.session.role === 'educator' || APP.session.role === 'gamemaster';
+  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator';
+  const isEducator = APP.session.isVerifiedEducator || APP.session.role === 'educator';
 
   const banner = document.getElementById('premiumBanner');
   if (!isPremium && !isEducator && !localStorage.getItem('premiumBannerClosed')) {
@@ -188,7 +176,7 @@ function renderSearchResults(q, container) {
     ? APP.tools.filter(t =>
         t.name.toLowerCase().includes(q.toLowerCase()) ||
         t.description.toLowerCase().includes(q.toLowerCase()) ||
-        (t.tags||[]).some(tag => tag.toLowerCase().includes(q.toLowerCase())))
+        (t.tags||[]).some(tag => tag.includes(q.toLowerCase())))
     : APP.tools;
   if (!filtered.length) {
     container.innerHTML = `<div class="search-empty">No tools found for "${q}"</div>`;
@@ -231,10 +219,10 @@ function renderHome(initialCat) {
     <div class="hero">
       <div class="hero-badge">✦ ${toolCount} Free Tools — No Sign-up Required</div>
       <h1 class="hero-title">Every tool you need,<br>completely free.</h1>
-      <p class="hero-sub">Text humanizer, AI detector, paraphraser, image tools, calculators, code formatters and dozens more. One place, zero cost.</p>
+      <p class="hero-sub">AI Humanizer, AI Detector, Paraphraser, Image Tools, Calculators, Code Formatters and more — all in one place, all free, forever.</p>
       <div class="hero-cta-row">
         <button class="btn btn-primary btn-lg" onclick="document.getElementById('categoryFilter').scrollIntoView({behavior:'smooth'})">Browse All ${toolCount} Tools</button>
-        <button class="btn btn-secondary btn-lg" onclick="navigate('live')">⚡ Live Multiplayer</button>
+        <button class="btn btn-secondary btn-lg" onclick="openSearch()">🔍 Search Tools</button>
       </div>
         <div class="hero-stats">
         <div class="hero-stat"><div class="hero-stat-num">${toolCount}</div><div class="hero-stat-label">Free Tools</div></div>
@@ -246,10 +234,10 @@ function renderHome(initialCat) {
 
     <div class="home-features-bar">
       <div class="home-features-inner">
-        <div class="home-feature"><span>⚡</span> Results in milliseconds, not seconds</div>
-        <div class="home-feature"><span>🔒</span> Rule-based tools run entirely in your browser</div>
-        <div class="home-feature"><span>📱</span> Works on any device, any screen size</div>
-        <div class="home-feature"><span>🆓</span> Properly free — no credit card, no tricks</div>
+        <div class="home-feature"><span>⚡</span> Instant results — no loading screens</div>
+        <div class="home-feature"><span>🔒</span> Your text never leaves your browser for rule-based tools</div>
+        <div class="home-feature"><span>📱</span> Works on desktop, tablet, and mobile</div>
+        <div class="home-feature"><span>🆓</span> 100% free — no credit card required</div>
       </div>
     </div>
 
@@ -271,41 +259,29 @@ function renderHome(initialCat) {
       <div id="toolsContainer"></div>
     </div>
 
-    <!-- Live Games Banner -->
-    <div style="max-width:1200px;margin:32px auto;padding:0 20px">
-      <div style="background:linear-gradient(135deg,#7c3aed 0%,#ec4899 50%,#f59e0b 100%);border-radius:20px;padding:40px 32px;color:#fff;display:flex;align-items:center;gap:32px;flex-wrap:wrap;cursor:pointer;transition:transform 0.2s" onclick="navigate('live')" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div style="font-size:56px">⚡</div>
-        <div style="flex:1;min-width:200px">
-          <div style="font-size:24px;font-weight:800;margin-bottom:4px">ToolHub Live — Multiplayer Quiz Games</div>
-          <div style="opacity:0.9;font-size:15px">Host real-time games for your class. Three game modes, Blook avatars, teacher dashboard, and zero student data stored.</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.2);padding:12px 24px;border-radius:12px;font-weight:700;white-space:nowrap;backdrop-filter:blur(4px)">Play Now →</div>
-      </div>
-    </div>
-
     <div class="home-why-section">
       <div class="container">
-        <div class="section-title" style="text-align:center;margin-bottom:24px">Why people use ToolHub</div>
+        <div class="section-title" style="text-align:center;margin-bottom:24px">Why ToolHub AI?</div>
         <div class="home-why-grid">
           <div class="home-why-card">
             <div class="home-why-icon">🤖</div>
-            <div class="home-why-title">Text Tools That Actually Work</div>
-            <div class="home-why-text">The humanizer applies 50+ linguistic transformations. The detector scores writing across 15 statistical dimensions. These aren't wrappers around ChatGPT.</div>
+            <div class="home-why-title">AI-Powered Text Tools</div>
+            <div class="home-why-text">Our AI Humanizer uses 50+ linguistic rules to make AI text sound natural. Our AI Detector spots AI writing using 15 statistical signals.</div>
           </div>
           <div class="home-why-card">
             <div class="home-why-icon">🔐</div>
-            <div class="home-why-title">Your Data Stays Local</div>
-            <div class="home-why-text">Converters, formatters, and calculators run in your browser. Nothing is uploaded. Server-side tools process and discard — we don't keep your text.</div>
+            <div class="home-why-title">Privacy First</div>
+            <div class="home-why-text">Rule-based tools (converters, formatters, calculators) run entirely in your browser. Your data stays with you.</div>
           </div>
           <div class="home-why-card">
             <div class="home-why-icon">⚡</div>
-            <div class="home-why-title">No Loading Spinners</div>
-            <div class="home-why-text">Most tools return results in under 100ms. No queuing behind API rate limits. Rule-based tools are instant; server tools are lightweight.</div>
+            <div class="home-why-title">Genuinely Fast</div>
+            <div class="home-why-text">No round-trips to expensive AI APIs for most tools. Results in milliseconds. Our server-side tools are lightweight and quick.</div>
           </div>
           <div class="home-why-card">
-            <div class="home-why-icon">🎓</div>
-            <div class="home-why-title">Built for Classrooms</div>
-            <div class="home-why-text">Live multiplayer quiz games, teacher dashboards, accessibility mode, and GDPR-compliant student sessions. Educators with .edu emails get ad-free access.</div>
+            <div class="home-why-icon">🧩</div>
+            <div class="home-why-title">Modular Architecture</div>
+            <div class="home-why-text">Every tool is independently maintained in its own module. Rock-solid stability — one tool updating never breaks another.</div>
           </div>
         </div>
       </div>
@@ -316,7 +292,6 @@ function renderHome(initialCat) {
         <div class="footer-logo">⚡ ToolHub AI</div>
         <div class="footer-links">
           <a href="/" onclick="event.preventDefault();navigate('home')">Home</a>
-          <a href="/live" onclick="event.preventDefault();navigate('live')">Live Games</a>
           <a href="/category/text" onclick="event.preventDefault();navigate('category','text')">Text Tools</a>
           <a href="/category/media" onclick="event.preventDefault();navigate('category','media')">Media Tools</a>
           <a href="/category/utility" onclick="event.preventDefault();navigate('category','utility')">Utility Tools</a>
@@ -324,6 +299,10 @@ function renderHome(initialCat) {
           <a href="/tool/ai-detector" onclick="event.preventDefault();navigate('tool','ai-detector')">AI Detector</a>
           <a href="/tool/ai-humanizer" onclick="event.preventDefault();navigate('tool','ai-humanizer')">AI Humanizer</a>
           <a href="/tool/paraphraser" onclick="event.preventDefault();navigate('tool','paraphraser')">Paraphraser</a>
+          <a href="/tool/grammar-fixer" onclick="event.preventDefault();navigate('tool','grammar-fixer')">Grammar Fixer</a>
+          <a href="/tool/qr-generator" onclick="event.preventDefault();navigate('tool','qr-generator')">QR Generator</a>
+          <a href="/tool/json-formatter" onclick="event.preventDefault();navigate('tool','json-formatter')">JSON Formatter</a>
+          <a href="/tool/password-generator" onclick="event.preventDefault();navigate('tool','password-generator')">Password Generator</a>
         </div>
         <div class="footer-copy">© ${new Date().getFullYear()} ToolHub AI — ${toolCount} free online tools. No account required.</div>
       </div>
@@ -415,6 +394,11 @@ function showLogin(msg='') {
       <p>Sign in to your ToolHub account.</p>
       ${msg?`<div class="modal-error">${msg}</div>`:''}
       <div id="authErr"></div>
+      <button class="btn-google-login" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <div class="auth-divider"><span>or sign in with email</span></div>
       <div class="modal-input-group">
         <input class="modal-input" id="loginEmail" type="email" placeholder="Email address" autocomplete="email">
         <input class="modal-input" id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
@@ -433,6 +417,11 @@ function showSignup() {
       <h2>Create account</h2>
       <p>Free forever. No credit card required.</p>
       <div id="authErr"></div>
+      <button class="btn-google-login" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <div class="auth-divider"><span>or sign up with email</span></div>
       <div class="modal-input-group">
         <input class="modal-input" id="regName" type="text" placeholder="Your name" autocomplete="name">
         <input class="modal-input" id="regEmail" type="email" placeholder="Email address" autocomplete="email">
@@ -470,6 +459,20 @@ async function doSignup() {
 function showAuthError(msg) {
   const el = document.getElementById('authErr');
   if (el) el.innerHTML = `<div class="modal-error">${msg}</div>`;
+}
+
+async function doGoogleLogin() {
+  // In production: use Google Identity Services or passport-google-oauth20
+  // This provides a simulated flow for demo; replace with real OAuth in production
+  try {
+    const email = prompt('Enter your Google email address:');
+    if (!email) return;
+    const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const data = await apiFetch('/api/auth/google-login', 'POST', { email, name, googleId: 'google_' + Date.now() });
+    if (data.success) location.href = data.redirect || '/';
+  } catch(e) {
+    showAuthError(e.message || 'Google login failed.');
+  }
 }
 
 async function confirmLogout() {

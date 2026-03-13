@@ -36,8 +36,8 @@ async function renderDashboard() {
             <div style="color:var(--text-2);font-size:14px;margin-top:4px">${escHtml(d.user.email)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px">
-            <span class="dash-role-badge ${d.user.role === 'premium' ? 'premium' : 'free'}">
-              ${d.user.role === 'premium' ? '⭐ Premium' : '🆓 Free'}
+            <span class="dash-role-badge ${d.user.role === 'premium' ? 'premium' : d.user.role === 'educator' ? 'educator' : d.user.role === 'admin' ? 'admin' : 'free'}">
+              ${d.user.role === 'admin' ? '🛡️ Admin' : d.user.role === 'educator' ? '🎓 Educator' : d.user.role === 'premium' ? '⭐ Premium' : '🆓 Free'}
             </span>
             ${d.user.role === 'free' ? `<button class="btn-signup btn-sm" onclick="showPremiumModal()">Upgrade</button>` : ''}
           </div>
@@ -73,6 +73,29 @@ async function renderDashboard() {
             <button class="btn btn-primary btn-sm" onclick="showPremiumModal()">Upgrade for unlimited ↗</button>
           </div>` : ''}
 
+        ${['educator','admin'].includes(d.user.role) ? `
+        <div class="dash-section" style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.05));border:1px solid rgba(16,185,129,.2);border-radius:var(--radius-lg);padding:20px;margin-bottom:20px">
+          <div class="dash-section-title" style="color:#10b981">🎓 Educator Tools</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Exclusive features for your school account — ad-free experience included.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer" onclick="navigate('quizzes')">
+              <div style="font-size:24px;margin-bottom:6px">🎮</div>
+              <div style="font-weight:600;font-size:13px">Quiz Builder</div>
+              <div style="font-size:11px;color:var(--text-muted)">Create quizzes for your class</div>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer" onclick="navigate('quizzes')">
+              <div style="font-size:24px;margin-bottom:6px">📊</div>
+              <div style="font-weight:600;font-size:13px">Student Results</div>
+              <div style="font-size:11px;color:var(--text-muted)">Track class performance</div>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer" onclick="navigate('home')">
+              <div style="font-size:24px;margin-bottom:6px">📚</div>
+              <div style="font-weight:600;font-size:13px">Curriculum Tools</div>
+              <div style="font-size:11px;color:var(--text-muted)">${APP.tools.length}+ tools available</div>
+            </div>
+          </div>
+        </div>` : ''}
+
         <div class="dash-section">
           <div class="dash-section-title">Recent Activity</div>
           ${d.history.length ? `
@@ -100,55 +123,6 @@ async function renderDashboard() {
           </div>
         </div>
 
-        ${['gamemaster','admin'].includes(d.user.role) ? `
-        <div class="gm-panel glass-card" style="margin-bottom:28px">
-          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-            <div style="font-size:36px">🎓</div>
-            <div>
-              <div style="font-size:18px;font-weight:700;color:#7c3aed">Game Master — Verified Educator</div>
-              <div style="font-size:13px;color:var(--text-muted)">All educator perks are active on your account</div>
-            </div>
-            <div style="margin-left:auto;background:linear-gradient(135deg,#7c3aed,#10b981);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700">✓ ACTIVE</div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px">
-            <div class="gm-perk">🚫 Ads permanently removed</div>
-            <div class="gm-perk">📛 Verified Educator badge</div>
-            <div class="gm-perk">📄 Export quiz data to PDF/CSV</div>
-            <div class="gm-perk">⚡ Unlimited bot test sessions</div>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-primary btn-sm" onclick="exportQuizData('pdf')">📄 Export Quiz Data (PDF)</button>
-            <button class="btn btn-secondary btn-sm" onclick="exportQuizData('csv')">📊 Export Quiz Data (CSV)</button>
-          </div>
-        </div>` : `
-        <div class="gm-promo-panel glass-card" style="margin-bottom:28px">
-          <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
-            <div style="font-size:32px">🔑</div>
-            <div>
-              <div style="font-size:17px;font-weight:700">Educator Promo Code</div>
-              <div style="font-size:13px;color:var(--text-muted)">Enter your school promo code to unlock Game Master status</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input type="text" id="promoCodeInput" placeholder="e.g. TEACHER2026" class="tool-input" style="flex:1;min-width:200px;max-width:320px;font-size:15px;letter-spacing:0.06em;font-family:monospace;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" />
-            <button class="btn btn-primary" onclick="redeemPromoCode()">🔓 Activate</button>
-          </div>
-          <div id="promoStatus" style="margin-top:10px;font-size:13px"></div>
-          <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">Game Master perks: remove all ads · Verified Educator badge · export quiz data to PDF/CSV · unlimited bot test sessions</div>
-        </div>`}
-
-        <div class="dash-section glass-card" style="margin-bottom:28px">
-          <div class="dash-section-title" style="margin-bottom:16px">⚙️ Account Settings</div>
-          <div>
-            <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Change Password</label>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <input type="password" id="newPassInput" placeholder="New password (min 6 chars)" class="tool-input" style="flex:1;min-width:200px" />
-              <button class="btn btn-secondary btn-sm" onclick="changePassword()">Update Password</button>
-            </div>
-            <div id="passStatus" style="margin-top:8px;font-size:12px"></div>
-          </div>
-        </div>
-
         <div class="action-bar">
           <button class="btn btn-primary" onclick="navigate('home')">Explore Tools</button>
           <button class="btn btn-ghost" onclick="confirmLogout()">Sign out</button>
@@ -159,62 +133,6 @@ async function renderDashboard() {
     document.getElementById('app').innerHTML = `<p class="text-muted text-center" style="padding:40px">Failed to load dashboard. <button class="btn btn-ghost btn-sm" onclick="renderDashboard()">Retry</button> <button class="btn btn-ghost btn-sm" onclick="navigate('home')">Go home</button></p>`;
   }
 }
-
-async function redeemPromoCode() {
-  const input = document.getElementById('promoCodeInput');
-  const status = document.getElementById('promoStatus');
-  const code = input?.value?.trim();
-  if (!code) { if(status) status.innerHTML = '<span style="color:var(--red)">Please enter a code first.</span>'; return; }
-  try {
-    const r = await apiFetch('/api/auth/redeem-promo', 'POST', { code });
-    if (r.success) {
-      if (status) status.innerHTML = `<span style="color:#10b981;font-weight:600">${escHtml(r.message)}</span>`;
-      // Reload after 1.5s to refresh the dashboard with new role
-      setTimeout(() => renderDashboard(), 1500);
-    } else {
-      if (status) status.innerHTML = `<span style="color:var(--red)">${escHtml(r.error || 'Invalid code')}</span>`;
-    }
-  } catch(e) {
-    if (status) status.innerHTML = `<span style="color:var(--red)">${escHtml(e.message)}</span>`;
-  }
-}
-
-async function exportQuizData(format) {
-  try {
-    const resp = await fetch(`/api/quiz/export?format=${format}`, { credentials: 'include' });
-    if (!resp.ok) { toast('Export failed — no quiz data found.', 'error'); return; }
-    const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `quiz-data-${new Date().toISOString().split('T')[0]}.${format}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast(`Quiz data exported as ${format.toUpperCase()}!`, 'success');
-  } catch(e) {
-    toast('Export failed: ' + e.message, 'error');
-  }
-}
-
-async function changePassword() {
-  const input = document.getElementById('newPassInput');
-  const status = document.getElementById('passStatus');
-  const pass = input?.value?.trim();
-  if (!pass || pass.length < 6) {
-    if(status) status.innerHTML = '<span style="color:var(--red)">Password must be at least 6 characters.</span>';
-    return;
-  }
-  try {
-    await apiFetch('/api/auth/change-password', 'POST', { newPassword: pass });
-    if(status) status.innerHTML = '<span style="color:#10b981">✅ Password updated successfully!</span>';
-    if(input) input.value = '';
-  } catch(e) {
-    if(status) status.innerHTML = `<span style="color:var(--red)">${escHtml(e.message)}</span>`;
-  }
-}
-
 
 async function submitBugReport() {
   const tool = document.getElementById('bugTool')?.value || '';

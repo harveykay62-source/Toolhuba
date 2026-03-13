@@ -3,7 +3,14 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db/database');
-const { isEducatorEmail } = require('../game/engine');
+
+// ── Educator email domain detection ──────────────────────────────────────────
+const EDU_SUFFIXES = ['.edu','.sch','.ac.uk','.ac.nz','.ac.za','.ac.jp','.ac.kr','.edu.au','.edu.sg','.edu.my','.school','.k12'];
+function isEducatorEmail(email) {
+  if (!email) return false;
+  const lower = email.toLowerCase();
+  return EDU_SUFFIXES.some(s => lower.endsWith(s));
+}
 
 router.post('/register', async (req, res) => {
   try {
@@ -70,12 +77,13 @@ router.post('/login', async (req, res) => {
 
     await db.run('UPDATE users SET last_login=NOW() WHERE id=?', [user.id]);
 
+    const isVerified = isEducatorEmail(user.email);
     req.session.userId = user.id;
     req.session.email = user.email;
     req.session.name = user.name;
     req.session.role = role;
     req.session.avatarColor = user.avatar_color;
-    req.session.isVerifiedEducator = isEducatorEmail(user.email);
+    req.session.isVerifiedEducator = isVerified || role === 'educator';
 
     const redirect = role === 'admin' ? '/admin' : '/dashboard';
     res.json({ success: true, redirect });
@@ -92,7 +100,8 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', (req, res) => {
   if (req.session.userId) {
-    res.json({ loggedIn: true, name: req.session.name, email: req.session.email, role: req.session.role, avatarColor: req.session.avatarColor });
+    res.json({ loggedIn: true, name: req.session.name, email: req.session.email, role: req.session.role,
+      avatarColor: req.session.avatarColor, isVerifiedEducator: req.session.isVerifiedEducator || false });
   } else {
     res.json({ loggedIn: false });
   }
@@ -111,44 +120,87 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
-// ── Promo Code / Game Master Activation ──────────────────────────────────────
-// Valid codes map to their role upgrade
-const PROMO_CODES = {
-  'TEACHER2026':  'gamemaster',
-  'EDUCATOR2026': 'gamemaster',
-  'TOOLHUBPRO':   'gamemaster',
-};
+// ── Google Login (simulated OAuth — in production use passport-google-oauth20) ──
+router.post('/google-login', async (req, res) => {
+  try {
+    const { email, name, googleId } = req.body;
+    if (!email || !name) return res.status(400).json({ error: 'Google login data missing' });
 
-router.post('/redeem-promo', async (req, res) => {
-  if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
-  const { code } = req.body;
-  if (!code) return res.status(400).json({ error: 'No code provided' });
+    let user = await db.get('SELECT * FROM users WHERE email=?', [email.toLowerCase()]);
 
-  const normalized = String(code).trim().toUpperCase();
-  const targetRole = PROMO_CODES[normalized];
+    if (!user) {
+      // Auto-register
+      const userId = uuidv4();
+      const colors = ['#6366f1','#f43f5e','#10b981','#f59e0b','#3b82f6','#8b5cf6'];
+      const avatarColor = colors[Math.floor(Math.random() * colors.length)];
+      const isVerified = isEducatorEmail(email);
+      const role = isVerified ? 'educator' : 'free';
+      const hash = await bcrypt.hash(uuidv4(), 10); // random pw for google users
 
-  if (!targetRole) {
-    return res.status(400).json({ error: 'Invalid or expired promo code.' });
+      const result = await db.run(
+        `INSERT INTO users (uuid,email,password,name,avatar_color,role) VALUES (?,?,?,?,?,?)`,
+        [userId, email.toLowerCase(), hash, name, avatarColor, role]
+      );
+      user = { id: result.lastInsertRowid, email: email.toLowerCase(), name, role, avatar_color: avatarColor };
+    }
+
+    const isVerified = isEducatorEmail(user.email) || user.role === 'educator';
+    req.session.userId = user.id;
+    req.session.email = user.email;
+    req.session.name = user.name;
+    req.session.role = user.role;
+    req.session.avatarColor = user.avatar_color;
+    req.session.isVerifiedEducator = isVerified;
+
+    res.json({ success: true, redirect: user.role === 'admin' ? '/admin' : '/dashboard' });
+  } catch (err) {
+    console.error('Google login error:', err);
+    res.status(500).json({ error: 'Google login failed.' });
   }
+});
 
-  // Prevent re-downgrade if already gamemaster or admin
-  if (['gamemaster', 'admin'].includes(req.session.role)) {
-    return res.json({ success: true, role: req.session.role, alreadyActive: true,
-      message: '✅ Game Master status already active on your account!' });
+// ── Admin: Assign role ───────────────────────────────────────────────────────
+router.post('/admin/assign-role', async (req, res) => {
+  if (!req.session.userId || req.session.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
   }
+  const { userId, newRole } = req.body;
+  if (!userId || !newRole) return res.status(400).json({ error: 'Missing userId or newRole' });
+  if (!['free','premium','educator','admin'].includes(newRole)) return res.status(400).json({ error: 'Invalid role' });
 
   try {
-    await db.run('UPDATE users SET role=? WHERE id=?', [targetRole, req.session.userId]);
-    req.session.role = targetRole;
-    res.json({
-      success: true,
-      role: targetRole,
-      message: '🎉 Game Master unlocked! Ads removed, Verified Educator badge granted.',
-      perks: ['No ads', 'Verified Educator badge', 'Export quiz data to PDF/CSV', 'Unlimited test sessions'],
-    });
+    await db.run('UPDATE users SET role=? WHERE id=?', [newRole, userId]);
+    res.json({ success: true, message: `Role updated to ${newRole}` });
   } catch(err) {
-    console.error('Promo redeem error:', err);
-    res.status(500).json({ error: 'Failed to apply promo code.' });
+    console.error('Assign role error:', err);
+    res.status(500).json({ error: 'Failed to update role' });
+  }
+});
+
+// ── Admin: List users ────────────────────────────────────────────────────────
+router.get('/admin/users', async (req, res) => {
+  if (!req.session.userId || req.session.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const users = await db.all('SELECT id, name, email, role, avatar_color, is_active, created_at, last_login FROM users ORDER BY created_at DESC LIMIT 200');
+    res.json({ users });
+  } catch(err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// ── Admin: Toggle user active ────────────────────────────────────────────────
+router.post('/admin/toggle-user', async (req, res) => {
+  if (!req.session.userId || req.session.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { userId, active } = req.body;
+  try {
+    await db.run('UPDATE users SET is_active=? WHERE id=?', [active ? 1 : 0, userId]);
+    res.json({ success: true });
+  } catch(err) {
+    res.status(500).json({ error: 'Failed to toggle user' });
   }
 });
 

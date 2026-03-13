@@ -882,73 +882,110 @@ img { max-width:100%; }
   .tool-card:hover { transform: none; }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   REFINEMENTS — Less generic, more personality
-   ═══════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   NEW ADDITIONS — Google Login, Auth Divider, Educator Badge, Bug Fixes
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Subtle background texture ──────────────────────────────────────── */
-body::before {
-  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background-image: radial-gradient(circle at 1px 1px, var(--border) 0.5px, transparent 0);
-  background-size: 32px 32px; opacity: 0.3;
+/* ── Google Login Button ─────────────────────────────────────────────────── */
+.btn-google-login {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 11px 20px; border-radius: 8px; border: 1px solid var(--border-strong);
+  background: var(--bg); color: var(--text); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all .15s; font-family: inherit; margin-bottom: 12px;
+}
+.btn-google-login:hover { border-color: var(--accent); background: var(--bg-hover); }
+.btn-google-login svg { flex-shrink: 0; }
+
+/* ── Auth Divider ────────────────────────────────────────────────────────── */
+.auth-divider {
+  display: flex; align-items: center; gap: 14px; margin: 4px 0 14px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.auth-divider span {
+  font-size: 12px; color: var(--text-light); white-space: nowrap;
 }
 
-/* ── Better hero gradient ───────────────────────────────────────────── */
-.hero {
-  background: linear-gradient(175deg, var(--bg) 0%, var(--bg-muted) 60%, var(--bg-2) 100%);
-  position: relative;
+/* ── Educator Badge Pulse ────────────────────────────────────────────────── */
+.tag[style*="059669"] {
+  animation: edu-shine 4s ease-in-out infinite;
 }
-.hero::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-}
-
-/* ── Card hover depth ───────────────────────────────────────────────── */
-.tool-card { transition: border-color .2s, box-shadow .2s, transform .2s cubic-bezier(.2,.8,.2,1); }
-.tool-card:hover { transform: translateY(-3px) scale(1.005); box-shadow: 0 12px 28px rgba(0,0,0,.08); }
-[data-theme="dark"] .tool-card:hover { box-shadow: 0 12px 28px rgba(0,0,0,.3); }
-
-/* ── Better button feel ─────────────────────────────────────────────── */
-.btn-primary, .btn-signup { transition: all .15s cubic-bezier(.2,.8,.2,1); }
-.btn-primary:hover, .btn-signup:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(80,70,228,.3); }
-.btn-primary:active, .btn-signup:active { transform: translateY(0); }
-
-/* ── Tool page input focus ring ─────────────────────────────────────── */
-.tool-textarea:focus, .tool-input:focus { box-shadow: 0 0 0 3px rgba(80,70,228,.12); }
-
-/* ── Why section cards ──────────────────────────────────────────────── */
-.home-why-card { transition: transform .2s, box-shadow .2s; }
-.home-why-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
-
-/* ── Header nav live button pulse ───────────────────────────────────── */
-#navLive {
-  animation: live-pulse 3s ease-in-out infinite;
-  font-size: 13px !important;
-}
-@keyframes live-pulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(124,58,237,0); }
-}
-
-/* ── Educator badge ─────────────────────────────────────────────────── */
-.tag[style*="059669"] { animation: edu-shine 4s ease-in-out infinite; }
 @keyframes edu-shine {
   0%,100% { box-shadow: 0 0 0 0 rgba(5,150,105,0); }
   50% { box-shadow: 0 0 8px rgba(5,150,105,0.3); }
 }
 
-/* ── Admin pill ─────────────────────────────────────────────────────── */
-.btn-admin-pill { background: #f59e0b; color: #000; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; transition: opacity .15s; }
-.btn-admin-pill:hover { opacity: 0.85; }
-
-/* ── Smoother scrollbar ─────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
-
-/* ── Mobile: Hero CTA row stack ─────────────────────────────────────── */
+/* ── Fix: Modal on mobile should not overflow ────────────────────────────── */
 @media (max-width: 480px) {
-  .hero-cta-row { flex-direction: column; gap: 10px; align-items: stretch; padding: 0 12px; }
-  .hero-cta-row .btn { width: 100%; justify-content: center; }
+  .modal { max-width: 100% !important; margin: 0 8px; padding: 20px 16px; }
+  .modal h2 { font-size: 18px; }
+}
+
+/* ── Fix: Prevent horizontal scroll on tool pages ────────────────────────── */
+.tool-page { overflow-x: hidden; }
+.output-box { overflow-x: auto; }
+
+/* ── Fix: Admin user management table ────────────────────────────────────── */
+.admin-users-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-users-table th { padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid var(--border); background: var(--bg-muted); }
+.admin-users-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.admin-users-table tr:hover td { background: var(--bg-hover); }
+.admin-users-table .role-select { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; font-family: inherit; cursor: pointer; }
+.admin-users-table .role-select:focus { outline: none; border-color: var(--accent); }
+
+/* ── Fix: Quiz card click area ───────────────────────────────────────────── */
+.quiz-card { cursor: pointer; }
+.quiz-card * { pointer-events: none; }
+.quiz-card button, .quiz-card a { pointer-events: all; }
+
+/* ── Fix: Better toast z-index ───────────────────────────────────────────── */
+.toast-container { z-index: 9999; }
+
+/* ── Fix: Header search button text color in dark mode ───────────────────── */
+[data-theme="dark"] .header-search-btn { color: var(--text-muted); }
+
+/* ── Fix: Tool textarea monospace for code tools ─────────────────────────── */
+.tool-textarea.monospace { font-family: 'SF Mono', 'Consolas', 'Monaco', monospace; font-size: 13px; }
+
+/* ── Improvement: Smoother page transitions ──────────────────────────────── */
+.main-content { animation: fadeInPage .25s ease; }
+@keyframes fadeInPage { from { opacity: 0.9; } to { opacity: 1; } }
+
+/* ── SEO: Visible skip link for accessibility ────────────────────────────── */
+.skip-link { position: absolute; top: -40px; left: 0; background: var(--accent); color: #fff; padding: 8px 16px; z-index: 1000; border-radius: 0 0 8px 0; transition: top .2s; }
+.skip-link:focus { top: 0; }
+
+/* ── Dashboard role badges ───────────────────────────────────────────────── */
+.dash-role-badge.educator {
+  background: rgba(16,185,129,.12); color: #10b981;
+  border: 1px solid rgba(16,185,129,.25);
+  padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+}
+.dash-role-badge.admin {
+  background: rgba(99,102,241,.12); color: #6366f1;
+  border: 1px solid rgba(99,102,241,.25);
+  padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+}
+
+/* ── Fix: Output box long content ────────────────────────────────────────── */
+.output-box { word-break: break-word; overflow-wrap: break-word; }
+
+/* ── Fix: Quiz card hover on mobile ──────────────────────────────────────── */
+@media (hover: none) { .tool-card:hover, .home-cat-card:hover, .home-why-card:hover { transform: none; box-shadow: none; } }
+
+/* ── Fix: Header z-index over modals ─────────────────────────────────────── */
+.modal-overlay { z-index: 500; }
+.search-overlay { z-index: 400; }
+
+/* ── Fix: Button disabled state ──────────────────────────────────────────── */
+.btn:disabled, .btn[disabled] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* ── Fix: Timer display tabular nums ─────────────────────────────────────── */
+.timer-display { font-variant-numeric: tabular-nums; }
+
+/* ── Fix: Category filter scroll on mobile ───────────────────────────────── */
+@media (max-width: 600px) {
+  .cat-tabs { -webkit-overflow-scrolling: touch; }
+  .trending-strip { -webkit-overflow-scrolling: touch; }
 }

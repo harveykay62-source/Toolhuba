@@ -41,17 +41,6 @@ const WILDCARDS = {
   streak_evolution:   { name:'Streak Evolution',    icon:'💥', color:'#8b5cf6', desc:'3-answer streak = intensifying visual effects & particle bursts.',    category:'mechanic' },
   heatmap_questions:  { name:'Heatmap Questions',   icon:'🖼️', color:'#10b981', desc:'Questions with an image that players study before answering.',        category:'mechanic' },
   memeify:            { name:'Meme-ify Mode',       icon:'🎭', color:'#6366f1', desc:'Sound effect panel (airhorn, wow, bruh) during play for fun!',        category:'mechanic' },
-  // ── NEW: 10 Additional Wildcards ──────────────────────────────────────────
-  double_jeopardy:    { name:'Double Jeopardy',      icon:'💥', color:'#dc2626', desc:'Get it wrong and LOSE points — but correct earns 3×!',              category:'mechanic' },
-  ai_hint:            { name:'AI Hint',              icon:'🤖', color:'#06b6d4', desc:'An AI clue reveals one wrong answer before you choose.',             category:'shift' },
-  time_freeze:        { name:'Time Freeze',          icon:'❄️', color:'#3b82f6', desc:'Timer freezes for 8 seconds — answer without the pressure!',         category:'shift' },
-  points_swap:        { name:'Points Swap',          icon:'🔀', color:'#f43f5e', desc:'Your score and the leader\'s score are swapped!',                    category:'mechanic' },
-  sudden_death:       { name:'Sudden Death',         icon:'💀', color:'#1f2937', desc:'Get this question wrong and your score resets to zero!',             category:'mechanic' },
-  ghost_mode:         { name:'Ghost Mode',           icon:'👻', color:'#6b7280', desc:'Your score is hidden from the leaderboard for 3 questions!',         category:'shift' },
-  multiplier_madness: { name:'Multiplier Madness',   icon:'🌪️', color:'#7c3aed', desc:'Next correct answer scores 5× points!',                            category:'mechanic' },
-  elimination:        { name:'Sudden Elimination',   icon:'⚡', color:'#ef4444', desc:'Bottom player loses half their points this round!',                  category:'mechanic' },
-  question_flip:      { name:'Question Flip',        icon:'🔃', color:'#8b5cf6', desc:'The question is read backwards — decode it to win!',                category:'shift' },
-  bonus_blitz:        { name:'Bonus Blitz',          icon:'🎇', color:'#f59e0b', desc:'5 rapid-fire bonus questions in 15 seconds — every correct = +50!', category:'shift' },
 };
 
 // ── Navigation ─────────────────────────────────────────────────────────────────
@@ -125,21 +114,8 @@ async function renderQuizHub(filter={}) {
     </div>
   </div>` : ''}
 
-  <!-- Live Multiplayer Section (merged from /live) -->
-  <div class="qhub-multiplayer-section">
-    <div class="qhub-mp-title">⚡ Live Multiplayer — Play with Your Class</div>
-    <div class="qhub-mp-desc">Host real-time quiz battles with AI Kingdom, Data Heist, and Evolution Race. Blook avatars, teacher dashboard, SEN mode, and zero student data stored. Teachers can test solo with AI Bots.</div>
-    <div class="qhub-mp-btns">
-      <button class="mp-hero-btn primary" onclick="navigateMultiplayer('host-setup')" style="font-size:15px;padding:13px 26px">
-        🏫 Host a Game
-      </button>
-      <button class="mp-hero-btn secondary" onclick="navigateMultiplayer('join')" style="font-size:15px;padding:13px 26px">
-        🎮 Join with Code
-      </button>
-    </div>
-  </div>
-
-  <!-- Browse Section -->\n  <div class="qhub-section" id="quizBrowse">
+  <!-- Browse Section -->
+  <div class="qhub-section" id="quizBrowse">
     <div class="qhub-section-hdr">
       <h2>🎮 All Quizzes</h2>
       <div class="qhub-browse-controls">
