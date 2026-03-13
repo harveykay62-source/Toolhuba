@@ -29,7 +29,7 @@ const checkUsageLimit = async (req, res, next) => {
       return next();
     }
 
-    if (role === 'premium' || role === 'admin') return next();
+    if (role === 'premium' || role === 'admin' || role === 'educator') return next();
 
     const today = new Date().toISOString().split('T')[0];
     const dailyLimit = parseInt(await db.getSetting('free_daily_limit') || '10');

@@ -34,21 +34,33 @@ function handleRoute() {
   }
   if (path === '/dashboard') { renderDashboard(); return; }
   if (path === '/admin') { window.location.href = '/admin'; return; }
-  if (path.startsWith('/quizzes') || path === '/quiz') { renderQuizHub(); return; }
+  if (path.startsWith('/live')) {
+    const code = path.replace('/live/','').replace('/live','');
+    if (code && code.length === 6) { renderJoinScreen(code); }
+    else { renderMultiplayerHub(); }
+    return;
+  }
+  if (path === '/teacher-quizzes') { renderTeacherQuizzes(); return; }
   if (path.startsWith('/quiz/')) { const id = path.replace('/quiz/',''); renderQuizPlay(id); return; }
+  if (path.startsWith('/quizzes') || path === '/quiz') { renderQuizHub(); return; }
   renderHome();
 }
 
 function navigate(page, id='') {
+  // Clean up any running timers/intervals before navigating
+  if (window._pomInterval) { clearInterval(window._pomInterval); window._pomInterval = null; }
+  if (window._typingInterval) { clearInterval(window._typingInterval); window._typingInterval = null; }
   if (page === 'home')        { history.pushState({},'','/');             renderHome(); }
-  else if (page === 'tool')   { history.pushState({},'',`/tool/${id}`);  const t=APP.tools.find(t=>t.id===id); if(t) renderToolPage(t); }
+  else if (page === 'tool')   { history.pushState({},'',`/tool/${id}`);  const t=APP.tools.find(t=>t.id===id); if(t) renderToolPage(t); else { toast('Tool not found or disabled.','warn'); navigate('home'); return; } }
   else if (page === 'dashboard') { history.pushState({},'','/dashboard'); renderDashboard(); }
   else if (page === 'admin')  { window.location.href = '/admin'; return; }
+  else if (page === 'live')   { history.pushState({},'','/live');         renderMultiplayerHub(); }
   else if (page === 'quizzes'){ history.pushState({},'','/quizzes');      destroyQuizThree(); renderQuizHub(); }
   else if (page === 'category') { history.pushState({},'',`/category/${id}`); renderHome(id); }
   window.scrollTo({top:0,behavior:'smooth'});
   document.getElementById('navTools')?.classList.toggle('active', page==='home'||page==='tool'||page==='category');
   document.getElementById('navQuizzes')?.classList.toggle('active', page==='quizzes');
+  document.getElementById('navLive')?.classList.toggle('active', page==='live');
 }
 
 window.addEventListener('popstate', handleRoute);
@@ -56,11 +68,17 @@ window.addEventListener('popstate', handleRoute);
 // ── Header ────────────────────────────────────────────────────────────────────
 function setupHeader() {
   const ua = document.getElementById('userArea');
-  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin';
+  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator';
+  const isEducator = APP.session.isVerifiedEducator || APP.session.role === 'educator';
 
   const banner = document.getElementById('premiumBanner');
-  if (!isPremium && !localStorage.getItem('premiumBannerClosed')) {
+  if (!isPremium && !isEducator && !localStorage.getItem('premiumBannerClosed')) {
     banner.classList.remove('hidden');
+  }
+
+  // Educators get ad-free experience
+  if (isEducator) {
+    document.querySelectorAll('.ad-bar, [id*="adBar"]').forEach(el => el.style.display = 'none');
   }
 
   if (APP.session.loggedIn) {
@@ -68,8 +86,9 @@ function setupHeader() {
     ua.innerHTML = `
       <div class="user-area">
         ${APP.session.role==='admin' ? `<a class="btn-admin-pill" href="/admin">🛡️ Admin</a>` : ''}
+        ${isEducator ? `<span class="tag" style="font-size:11px;background:#059669;color:#fff;padding:3px 8px;border-radius:6px">🎓 Educator</span>` : ''}
         <button class="btn-ghost btn-sm" onclick="navigate('dashboard')">Dashboard</button>
-        ${isPremium ? `<span class="tag tag-success" style="font-size:11px">👑 Premium</span>` : `<button class="btn-signup btn-sm" onclick="showPremiumModal()">Upgrade</button>`}
+        ${isPremium && !isEducator ? `<span class="tag tag-success" style="font-size:11px">👑 Premium</span>` : !isPremium ? `<button class="btn-signup btn-sm" onclick="showPremiumModal()">Upgrade</button>` : ''}
         <button class="avatar-btn" style="background:${APP.session.avatarColor||'#6366f1'}" onclick="confirmLogout()">${initials}</button>
       </div>`;
   } else {
@@ -100,8 +119,9 @@ function applyTheme(theme) {
 
 // ── Ads ───────────────────────────────────────────────────────────────────────
 function setupAds() {
-  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin';
-  if (isPremium || !APP.settings.adsEnabled) return;
+  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator';
+  const isEducator = APP.session.isVerifiedEducator;
+  if (isPremium || isEducator || !APP.settings.adsEnabled) return;
 
   const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
   const slot   = APP.settings.adsenseBanner  || '';
@@ -126,8 +146,8 @@ function setupAds() {
 }
 
 function getToolPageAd() {
-  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin';
-  if (isPremium || !APP.settings.adsEnabled) return '';
+  const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator';
+  if (isPremium || APP.session.isVerifiedEducator || !APP.settings.adsEnabled) return '';
   const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
   const slot   = APP.settings.adsenseBanner  || '';
   setTimeout(() => {
@@ -168,7 +188,7 @@ function renderSearchResults(q, container) {
     ? APP.tools.filter(t =>
         t.name.toLowerCase().includes(q.toLowerCase()) ||
         t.description.toLowerCase().includes(q.toLowerCase()) ||
-        (t.tags||[]).some(tag => tag.includes(q.toLowerCase())))
+        (t.tags||[]).some(tag => tag.toLowerCase().includes(q.toLowerCase())))
     : APP.tools;
   if (!filtered.length) {
     container.innerHTML = `<div class="search-empty">No tools found for "${q}"</div>`;
@@ -211,10 +231,10 @@ function renderHome(initialCat) {
     <div class="hero">
       <div class="hero-badge">✦ ${toolCount} Free Tools — No Sign-up Required</div>
       <h1 class="hero-title">Every tool you need,<br>completely free.</h1>
-      <p class="hero-sub">AI Humanizer, AI Detector, Paraphraser, Image Tools, Calculators, Code Formatters and more — all in one place, all free, forever.</p>
+      <p class="hero-sub">Text humanizer, AI detector, paraphraser, image tools, calculators, code formatters and dozens more. One place, zero cost.</p>
       <div class="hero-cta-row">
         <button class="btn btn-primary btn-lg" onclick="document.getElementById('categoryFilter').scrollIntoView({behavior:'smooth'})">Browse All ${toolCount} Tools</button>
-        <button class="btn btn-secondary btn-lg" onclick="openSearch()">🔍 Search Tools</button>
+        <button class="btn btn-secondary btn-lg" onclick="navigate('live')">⚡ Live Multiplayer</button>
       </div>
         <div class="hero-stats">
         <div class="hero-stat"><div class="hero-stat-num">${toolCount}</div><div class="hero-stat-label">Free Tools</div></div>
@@ -226,10 +246,10 @@ function renderHome(initialCat) {
 
     <div class="home-features-bar">
       <div class="home-features-inner">
-        <div class="home-feature"><span>⚡</span> Instant results — no loading screens</div>
-        <div class="home-feature"><span>🔒</span> Your text never leaves your browser for rule-based tools</div>
-        <div class="home-feature"><span>📱</span> Works on desktop, tablet, and mobile</div>
-        <div class="home-feature"><span>🆓</span> 100% free — no credit card required</div>
+        <div class="home-feature"><span>⚡</span> Results in milliseconds, not seconds</div>
+        <div class="home-feature"><span>🔒</span> Rule-based tools run entirely in your browser</div>
+        <div class="home-feature"><span>📱</span> Works on any device, any screen size</div>
+        <div class="home-feature"><span>🆓</span> Properly free — no credit card, no tricks</div>
       </div>
     </div>
 
@@ -251,29 +271,41 @@ function renderHome(initialCat) {
       <div id="toolsContainer"></div>
     </div>
 
+    <!-- Live Games Banner -->
+    <div style="max-width:1200px;margin:32px auto;padding:0 20px">
+      <div style="background:linear-gradient(135deg,#7c3aed 0%,#ec4899 50%,#f59e0b 100%);border-radius:20px;padding:40px 32px;color:#fff;display:flex;align-items:center;gap:32px;flex-wrap:wrap;cursor:pointer;transition:transform 0.2s" onclick="navigate('live')" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div style="font-size:56px">⚡</div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:24px;font-weight:800;margin-bottom:4px">ToolHub Live — Multiplayer Quiz Games</div>
+          <div style="opacity:0.9;font-size:15px">Host real-time games for your class. Three game modes, Blook avatars, teacher dashboard, and zero student data stored.</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.2);padding:12px 24px;border-radius:12px;font-weight:700;white-space:nowrap;backdrop-filter:blur(4px)">Play Now →</div>
+      </div>
+    </div>
+
     <div class="home-why-section">
       <div class="container">
-        <div class="section-title" style="text-align:center;margin-bottom:24px">Why ToolHub AI?</div>
+        <div class="section-title" style="text-align:center;margin-bottom:24px">Why people use ToolHub</div>
         <div class="home-why-grid">
           <div class="home-why-card">
             <div class="home-why-icon">🤖</div>
-            <div class="home-why-title">AI-Powered Text Tools</div>
-            <div class="home-why-text">Our AI Humanizer uses 50+ linguistic rules to make AI text sound natural. Our AI Detector spots AI writing using 15 statistical signals.</div>
+            <div class="home-why-title">Text Tools That Actually Work</div>
+            <div class="home-why-text">The humanizer applies 50+ linguistic transformations. The detector scores writing across 15 statistical dimensions. These aren't wrappers around ChatGPT.</div>
           </div>
           <div class="home-why-card">
             <div class="home-why-icon">🔐</div>
-            <div class="home-why-title">Privacy First</div>
-            <div class="home-why-text">Rule-based tools (converters, formatters, calculators) run entirely in your browser. Your data stays with you.</div>
+            <div class="home-why-title">Your Data Stays Local</div>
+            <div class="home-why-text">Converters, formatters, and calculators run in your browser. Nothing is uploaded. Server-side tools process and discard — we don't keep your text.</div>
           </div>
           <div class="home-why-card">
             <div class="home-why-icon">⚡</div>
-            <div class="home-why-title">Genuinely Fast</div>
-            <div class="home-why-text">No round-trips to expensive AI APIs for most tools. Results in milliseconds. Our server-side tools are lightweight and quick.</div>
+            <div class="home-why-title">No Loading Spinners</div>
+            <div class="home-why-text">Most tools return results in under 100ms. No queuing behind API rate limits. Rule-based tools are instant; server tools are lightweight.</div>
           </div>
           <div class="home-why-card">
-            <div class="home-why-icon">🧩</div>
-            <div class="home-why-title">Modular Architecture</div>
-            <div class="home-why-text">Every tool is independently maintained in its own module. Rock-solid stability — one tool updating never breaks another.</div>
+            <div class="home-why-icon">🎓</div>
+            <div class="home-why-title">Built for Classrooms</div>
+            <div class="home-why-text">Live multiplayer quiz games, teacher dashboards, accessibility mode, and GDPR-compliant student sessions. Educators with .edu emails get ad-free access.</div>
           </div>
         </div>
       </div>
@@ -284,6 +316,7 @@ function renderHome(initialCat) {
         <div class="footer-logo">⚡ ToolHub AI</div>
         <div class="footer-links">
           <a href="/" onclick="event.preventDefault();navigate('home')">Home</a>
+          <a href="/live" onclick="event.preventDefault();navigate('live')">Live Games</a>
           <a href="/category/text" onclick="event.preventDefault();navigate('category','text')">Text Tools</a>
           <a href="/category/media" onclick="event.preventDefault();navigate('category','media')">Media Tools</a>
           <a href="/category/utility" onclick="event.preventDefault();navigate('category','utility')">Utility Tools</a>
@@ -291,10 +324,6 @@ function renderHome(initialCat) {
           <a href="/tool/ai-detector" onclick="event.preventDefault();navigate('tool','ai-detector')">AI Detector</a>
           <a href="/tool/ai-humanizer" onclick="event.preventDefault();navigate('tool','ai-humanizer')">AI Humanizer</a>
           <a href="/tool/paraphraser" onclick="event.preventDefault();navigate('tool','paraphraser')">Paraphraser</a>
-          <a href="/tool/grammar-fixer" onclick="event.preventDefault();navigate('tool','grammar-fixer')">Grammar Fixer</a>
-          <a href="/tool/qr-generator" onclick="event.preventDefault();navigate('tool','qr-generator')">QR Generator</a>
-          <a href="/tool/json-formatter" onclick="event.preventDefault();navigate('tool','json-formatter')">JSON Formatter</a>
-          <a href="/tool/password-generator" onclick="event.preventDefault();navigate('tool','password-generator')">Password Generator</a>
         </div>
         <div class="footer-copy">© ${new Date().getFullYear()} ToolHub AI — ${toolCount} free online tools. No account required.</div>
       </div>

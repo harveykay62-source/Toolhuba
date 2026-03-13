@@ -52,7 +52,12 @@ function renderToolPage(tool) {
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 async function runTool(toolId, body, outputId, transform) {
   const btn = document.querySelector('#toolContent .btn-primary');
-  if (btn) { btn.disabled = true; btn._orig = btn._orig || btn.innerHTML; btn.textContent = '⏳ Processing…'; }
+  if (btn) {
+    if (btn.disabled) return null; // prevent double-click corruption
+    btn.disabled = true;
+    if (!btn.dataset.orig) btn.dataset.orig = btn.innerHTML;
+    btn.textContent = '⏳ Processing…';
+  }
   try {
     const d = await apiFetch(`/api/tools/${toolId}`, 'POST', body);
     const out = document.getElementById(outputId);
@@ -60,11 +65,11 @@ async function runTool(toolId, body, outputId, transform) {
     toast('Done!', 'success');
     return d;
   } catch(e) { toast(e.message || 'Error', 'error'); return null; }
-  finally { if (btn) { btn.disabled = false; btn.innerHTML = btn._orig || btn.innerHTML; } }
+  finally { if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.orig || btn.innerHTML; } }
 }
 
-function copyBtn(id) { return `<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('${id}').innerText)">${ICONS.copy} Copy</button>`; }
-function dlBtn(id, fname) { return `<button class="btn btn-secondary btn-sm" onclick="downloadText(document.getElementById('${id}').innerText,'${fname}')">${ICONS.download} Download</button>`; }
+function copyBtn(id) { return `<button class="btn btn-secondary btn-sm" onclick="copyText((document.getElementById('${id}').innerText||document.getElementById('${id}').textContent||'').trim())">${ICONS.copy} Copy</button>`; }
+function dlBtn(id, fname) { return `<button class="btn btn-secondary btn-sm" onclick="downloadText((document.getElementById('${id}').innerText||document.getElementById('${id}').textContent||'').trim(),'${fname}')">${ICONS.download} Download</button>`; }
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -165,7 +170,7 @@ async function doAIDetect() {
           <strong>ℹ️ How it works:</strong> This tool analyses 15 linguistic patterns common in AI-generated text — including sentence length uniformity, AI boilerplate phrases, formal vocabulary density, passive voice ratio, contraction absence, and more. Results are probabilistic, not definitive.
         </div>
         <div class="output-actions">${copyBtn('aidResultText')}</div>
-        <div id="aidResultText" style="display:none">${d.verdict} — AI Score: ${pct}%, Human Score: ${humanPct}%</div>
+        <div id="aidResultText" style="position:absolute;opacity:0;pointer-events:none;font-size:0">${d.verdict} — AI Score: ${pct}%, Human Score: ${humanPct}%</div>
       </div>`;
     toast('Analysis complete!', 'success');
   } catch(e) { toast(e.message || 'Analysis failed', 'error'); }
@@ -208,17 +213,17 @@ function renderParaphraser(tool) {
 async function doParaphraser() {
   const text=document.getElementById('paraIn').value.trim();
   if (!text) { toast('Please enter text.','warn'); return; }
-  const btn=document.querySelector('#toolContent .btn-primary'); btn.disabled=true; btn._orig=btn.innerHTML; btn.textContent='⏳ Rewriting…';
+  const btn=document.querySelector('#toolContent .btn-primary'); btn.disabled=true; if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML; btn.textContent='⏳ Rewriting…';
   try {
     const d=await apiFetch('/api/tools/paraphraser','POST',{text,mode:document.getElementById('paraMode').value,count:parseInt(document.getElementById('paraCount').value)});
     const variants=d.variants||d.results||[d.result||text];
     document.getElementById('paraOut').innerHTML=variants.map((v,i)=>`
       <div style="margin-top:12px"><div class="output-label">Variant ${i+1}</div>
       <div class="output-box">${v}</div>
-      <div class="output-actions"><button class="btn btn-secondary btn-sm" onclick="copyText(this.closest('div').previousElementSibling.innerText)">${ICONS.copy} Copy</button></div></div>`).join('');
+      <div class="output-actions"><button class="btn btn-secondary btn-sm" onclick="copyText(this.closest('div').previousElementSibling.textContent||this.closest('div').previousElementSibling.innerText)">${ICONS.copy} Copy</button></div></div>`).join('');
     toast('Done!','success');
   } catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderSummarizer(tool) {
@@ -311,7 +316,7 @@ function renderToneAnalyzer(tool) {
 async function doTone() {
   const text=document.getElementById('toneIn').value.trim();
   if(!text){toast('Please enter text.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Analyzing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Analyzing…';
   try{
     const d=await apiFetch('/api/tools/tone-analyzer','POST',{text});
     document.getElementById('toneOut').innerHTML=`<div class="stat-grid" style="margin-top:16px">
@@ -322,7 +327,7 @@ async function doTone() {
     </div>${d.breakdown?`<div class="info-box" style="margin-top:12px">${d.breakdown}</div>`:''}`;
     toast('Done!','success');
   }catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderSentenceExpander(tool) {
@@ -405,7 +410,7 @@ function renderClicheDetector(tool) {
 async function doCliche() {
   const text=document.getElementById('clicheIn').value.trim();
   if(!text){toast('Please enter text.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Scanning…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Scanning…';
   try{
     const d=await apiFetch('/api/tools/cliche-detector','POST',{text,autoReplace:document.getElementById('clicheReplace').checked});
     const cl=d.cliches||d.found||[];
@@ -414,7 +419,7 @@ async function doCliche() {
       :`<div class="output-box" style="margin-top:12px"><span style="color:var(--success)">✓ No clichés found! Your writing looks fresh.</span></div>`;
     toast(`${cl.length} clichés found`,'info');
   }catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderMarkdownPreviewer(tool) {
@@ -462,10 +467,10 @@ function renderMD2HTML(tool) {
 async function doMD2HTML() {
   const text=document.getElementById('md2In').value.trim();
   if(!text){toast('Please enter Markdown.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Converting…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Converting…';
   try{const d=await apiFetch('/api/tools/markdown-to-html','POST',{text});document.getElementById('md2Out').textContent=d.html||'';toast('Converted!','success');}
   catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderEmojiPicker(tool) {
@@ -518,7 +523,7 @@ function renderWordFrequency(tool) {
 async function doWordFreq() {
   const text=document.getElementById('wfIn').value.trim();
   if(!text){toast('Please enter text.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Analyzing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Analyzing…';
   try{
     const d=await apiFetch('/api/tools/word-frequency','POST',{text,stopWords:document.getElementById('wfStop').checked,limit:parseInt(document.getElementById('wfLimit').value)});
     document.getElementById('wfOut').innerHTML=`<div class="stat-grid" style="margin:14px 0">
@@ -527,7 +532,7 @@ async function doWordFreq() {
     </div>`+(d.words||[]).map(w=>`<div class="freq-row"><div class="freq-word">${w.word}</div><div class="freq-bar-wrap"><div class="freq-bar" style="width:${w.bar}%"></div></div><div class="freq-count">${w.count}</div></div>`).join('');
     toast('Done!','success');
   }catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderTextDiff(tool) {
@@ -543,7 +548,7 @@ function renderTextDiff(tool) {
 }
 async function doDiff() {
   const t1=document.getElementById('diff1').value,t2=document.getElementById('diff2').value;
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Comparing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Comparing…';
   try{
     const d=await apiFetch('/api/tools/text-diff','POST',{text1:t1,text2:t2});
     const html=(d.diff||[]).map(l=>{const s=l.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');return l.type==='add'?`<div class="diff-add">+ ${s}</div>`:l.type==='remove'?`<div class="diff-remove">- ${s}</div>`:`<div class="diff-equal">  ${s}</div>`;}).join('');
@@ -554,7 +559,7 @@ async function doDiff() {
     </div><div class="code-block" style="max-height:400px;overflow-y:auto">${html}</div>`;
     toast('Comparison done!','success');
   }catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderReadabilityChecker(tool) {
@@ -569,7 +574,7 @@ function renderReadabilityChecker(tool) {
 async function doReadability() {
   const text=document.getElementById('readIn').value.trim();
   if(!text){toast('Please enter text.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Analyzing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Analyzing…';
   try{
     const d=await apiFetch('/api/tools/readability-checker','POST',{text});
     document.getElementById('readOut').innerHTML=`<div class="stat-grid" style="margin-top:16px">
@@ -582,7 +587,7 @@ async function doReadability() {
     </div>`;
     toast('Done!','success');
   }catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderTTS(tool) {
@@ -629,10 +634,10 @@ function renderHashtagGenerator(tool) {
 async function doHashtag() {
   const text=document.getElementById('hashIn').value.trim();
   if(!text){toast('Please enter a topic.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const d=await apiFetch('/api/tools/hashtag-generator','POST',{text,platform:document.getElementById('hashPlat').value,count:parseInt(document.getElementById('hashCount').value)});const tags=d.hashtags||d.tags||[];document.getElementById('hashOut').textContent=tags.join(' ');toast(`${tags.length} hashtags!`,'success');}
   catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderEmailSubjectGen(tool) {
@@ -653,11 +658,11 @@ function renderEmailSubjectGen(tool) {
 async function doEmailSubject() {
   const text=document.getElementById('esIn').value.trim();
   if(!text){toast('Please enter email content.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const d=await apiFetch('/api/tools/email-subject-generator','POST',{text,tone:document.getElementById('esTone').value,count:parseInt(document.getElementById('esCount').value)});const subjects=d.subjects||d.lines||[];
   document.getElementById('esOut').innerHTML=subjects.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><div class="output-box" style="flex:1;padding:10px">${i+1}. ${s}</div><button class="btn-icon-sm" onclick="copyText('${s.replace(/'/g,"\\'")}')">${ICONS.copy}</button></div>`).join('');toast(`${subjects.length} subjects!`,'success');}
   catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderPlagiarismHL(tool) {
@@ -672,11 +677,11 @@ function renderPlagiarismHL(tool) {
 async function doPlag() {
   const text=document.getElementById('plagIn').value.trim();
   if(!text){toast('Please enter text.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Scanning…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Scanning…';
   try{const d=await apiFetch('/api/tools/plagiarism-highlighter','POST',{text});
   document.getElementById('plagOut').innerHTML=`<div class="stat-grid" style="margin:12px 0"><div class="stat-card"><div class="stat-value">${d.duplicates||0}</div><div class="stat-label">Duplicates</div></div><div class="stat-card"><div class="stat-value">${d.score||0}%</div><div class="stat-label">Similarity Score</div></div></div><div class="output-label">Result</div><div class="output-box">${d.highlighted||text}</div>`;
   toast('Done!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderSentenceRewriter(tool) {
@@ -691,11 +696,11 @@ function renderSentenceRewriter(tool) {
 async function doSRW() {
   const text=document.getElementById('srIn').value.trim();
   if(!text){toast('Please enter a sentence.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Rewriting…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Rewriting…';
   try{const d=await apiFetch('/api/tools/sentence-rewriter','POST',{text});const vs=d.variants||d.rewrites||[];
-  document.getElementById('srOut').innerHTML=vs.map((v,i)=>`<div style="margin-top:10px"><div class="output-label">${v.style||`Version ${i+1}`}</div><div style="display:flex;gap:8px;align-items:center"><div class="output-box" style="flex:1">${v.text||v}</div><button class="btn-icon-sm" onclick="copyText(this.previousElementSibling.innerText)">${ICONS.copy}</button></div></div>`).join('');
+  document.getElementById('srOut').innerHTML=vs.map((v,i)=>`<div style="margin-top:10px"><div class="output-label">${v.style||`Version ${i+1}`}</div><div style="display:flex;gap:8px;align-items:center"><div class="output-box" style="flex:1">${v.text||v}</div><button class="btn-icon-sm" onclick="copyText(this.previousElementSibling.textContent||this.previousElementSibling.innerText)">${ICONS.copy}</button></div></div>`).join('');
   toast('Rewritten!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderActiveVoice(tool) {
@@ -753,12 +758,12 @@ function renderPasswordGenerator(tool) {
   });
 }
 async function doPwd() {
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const d=await apiFetch('/api/tools/password-generator','POST',{length:parseInt(document.getElementById('pwdLen').value),count:parseInt(document.getElementById('pwdCount').value),uppercase:document.getElementById('pwdU').checked,lowercase:document.getElementById('pwdL').checked,numbers:document.getElementById('pwdN').checked,symbols:document.getElementById('pwdS').checked,noAmbiguous:document.getElementById('pwdA').checked});
   const ps=d.passwords||[d.password||''];
   document.getElementById('pwdOut').innerHTML=ps.map(p=>`<div style="display:flex;gap:8px;align-items:center;margin-top:8px"><div class="code-block" style="flex:1;padding:10px;font-size:14px">${p}</div><button class="btn-icon-sm" onclick="copyText('${p}','Password copied')">${ICONS.copy}</button></div>`).join('');
   toast('Generated!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderImageConverter(tool) {
@@ -777,7 +782,7 @@ function renderImageConverter(tool) {
 async function doImgConv() {
   const file=document.getElementById('icFile').files[0];
   if(!file){toast('Please select an image.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Converting…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Converting…';
   try{const fd=new FormData();fd.append('image',file);fd.append('format',document.getElementById('icFmt').value);
   const res=await apiFetch('/api/tools/image-converter','POST',fd);
   const blob=res instanceof Response?await res.blob():null;
@@ -785,7 +790,7 @@ async function doImgConv() {
   document.getElementById('icOut').innerHTML=`<div style="margin-top:12px"><img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid var(--border)"><br><a href="${url}" download="converted.${fmt}" class="btn btn-secondary btn-sm" style="margin-top:8px;display:inline-flex">${ICONS.download} Download</a></div>`;
   toast('Converted!','success');}
   }catch(e){toast(e.message||'Conversion failed','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderImageResizer(tool) {
@@ -805,12 +810,12 @@ function renderImageResizer(tool) {
 async function doImgResize() {
   const file=document.getElementById('irFile').files[0];
   if(!file){toast('Please select an image.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Resizing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Resizing…';
   try{const fd=new FormData();fd.append('image',file);fd.append('width',document.getElementById('irW').value||0);fd.append('height',document.getElementById('irH').value||0);fd.append('quality',document.getElementById('irQ').value||85);
   const res=await apiFetch('/api/tools/image-resizer','POST',fd);const blob=res instanceof Response?await res.blob():null;
   if(blob){const url=URL.createObjectURL(blob);document.getElementById('irOut').innerHTML=`<div style="margin-top:12px"><img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid var(--border)"><br><a href="${url}" download="resized.jpg" class="btn btn-secondary btn-sm" style="margin-top:8px;display:inline-flex">${ICONS.download} Download</a></div>`;toast('Resized!','success');}
   }catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderYTThumb(tool) {
@@ -825,11 +830,11 @@ function renderYTThumb(tool) {
 async function doYT() {
   const url=document.getElementById('ytUrl').value.trim();
   if(!url){toast('Please enter a YouTube URL.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Fetching…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Fetching…';
   try{const d=await apiFetch('/api/tools/yt-thumbnail','POST',{url});
   document.getElementById('ytOut').innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px">${Object.entries(d.thumbnails).map(([q,src])=>`<div style="text-align:center"><div class="output-label">${q.toUpperCase()}</div><img src="${src}" style="width:100%;border-radius:8px;border:1px solid var(--border)" onerror="this.style.opacity='.3'"><a href="${src}" download target="_blank" class="btn btn-secondary btn-sm" style="margin-top:6px;display:inline-flex">${ICONS.download} Download</a></div>`).join('')}</div>`;
   toast('Done!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderQRGen(tool) {
@@ -849,11 +854,11 @@ function renderQRGen(tool) {
 async function doQR() {
   const text=document.getElementById('qrText').value.trim();
   if(!text){toast('Please enter text or URL.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const d=await apiFetch('/api/tools/qr-generator','POST',{text,size:parseInt(document.getElementById('qrSize').value),color:document.getElementById('qrColor').value,bgcolor:document.getElementById('qrBg').value});
   document.getElementById('qrOut').innerHTML=`<img src="${d.result}" style="width:${d.size}px;max-width:100%;border:1px solid var(--border);border-radius:8px"><button class="btn btn-secondary btn-sm" onclick="downloadDataURL('${d.result}','qrcode.png')">${ICONS.download} Download PNG</button>`;
   toast('QR code ready!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderColorPalette(tool) {
@@ -870,11 +875,11 @@ function renderColorPalette(tool) {
   });
 }
 async function doPalette() {
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const d=await apiFetch('/api/tools/color-palette','POST',{color:document.getElementById('palC').value,scheme:document.getElementById('palS').value,count:parseInt(document.getElementById('palN').value)});
   document.getElementById('palOut').innerHTML=`<div class="palette-strip">${(d.palette||[]).map(c=>`<div class="palette-color" onclick="copyText('${c.hex}','Color copied')" title="Click to copy"><div class="palette-color-swatch" style="background:${c.hex}"></div><div class="palette-color-info"><div class="palette-color-hex">${c.hex}</div><div style="font-size:11px;color:var(--text-muted)">${c.rgb}</div></div></div>`).join('')}</div><div class="info-box" style="margin-top:10px">Click any color swatch to copy its HEX value.</div>`;
   toast('Palette ready!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderBase64(tool) {
@@ -935,7 +940,7 @@ async function doOCR() {
   const prog = document.getElementById('ocrProgress');
   const bar = document.getElementById('ocrProgressBar');
   const status = document.getElementById('ocrStatus');
-  if (btn) { btn.disabled = true; btn._orig = btn.innerHTML; btn.textContent = '⏳ Processing…'; }
+  if (btn) { btn.disabled = true; if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML; btn.textContent = '⏳ Processing…'; }
   if (prog) prog.style.display = 'block';
   try {
     // Load Tesseract.js from CDN if not already loaded
@@ -961,7 +966,7 @@ async function doOCR() {
   } catch(e) {
     toast('OCR failed: ' + (e.message || 'Unknown error'), 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = btn._orig || btn.innerHTML; }
+    if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.origHtml||btn.innerHTML; }
     if (prog) prog.style.display = 'none';
   }
 }
@@ -992,12 +997,12 @@ function renderFaviconGen(tool) {
 async function doFavicon() {
   const file=document.getElementById('favFile').files[0];
   if(!file){toast('Please select an image.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const fd=new FormData();fd.append('image',file);const d=await apiFetch('/api/tools/favicon-generator','POST',fd);const favs=d.favicons||[];
   document.getElementById('favOut').innerHTML=favs.length?`<div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:16px">${favs.map(f=>`<div style="text-align:center"><img src="${f.data}" style="width:${f.size}px;height:${f.size}px;border:1px solid var(--border);border-radius:4px"><div style="font-size:11px;margin-top:4px">${f.size}×${f.size}</div><a href="${f.data}" download="favicon-${f.size}.png" class="btn btn-secondary btn-sm" style="margin-top:4px;display:inline-flex">${ICONS.download}</a></div>`).join('')}</div>`:
   `<div class="info-box">Favicon generation requires Jimp. Make sure it is installed: npm install jimp</div>`;
   toast('Done!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderGIFMaker(tool) {
@@ -1037,7 +1042,7 @@ async function doGIF() {
   const prog = document.getElementById('gifProgress');
   const bar = document.getElementById('gifBar');
   const statusEl = document.getElementById('gifStatus');
-  if (btn) { btn.disabled = true; btn._orig = btn.innerHTML; btn.textContent = '⏳ Creating GIF…'; }
+  if (btn) { btn.disabled = true; if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML; btn.textContent = '⏳ Creating GIF…'; }
   if (prog) prog.style.display = 'block';
 
   try {
@@ -1099,7 +1104,7 @@ async function doGIF() {
   } catch(e) {
     toast('GIF error: ' + (e.message || 'Unknown error. Try fewer/smaller images.'), 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = btn._orig || btn.innerHTML; }
+    if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.origHtml||btn.innerHTML; }
     setTimeout(() => { if (prog) prog.style.display = 'none'; }, 2000);
   }
 }
@@ -1124,12 +1129,12 @@ function applySSP(){const v=document.getElementById('ssPreset').value;if(v!=='cu
 async function doSSResize() {
   const file=document.getElementById('ssFile').files[0];
   if(!file){toast('Please select an image.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Resizing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Resizing…';
   try{const fd=new FormData();fd.append('image',file);fd.append('width',document.getElementById('ssW').value||0);fd.append('height',document.getElementById('ssH').value||0);
   const res=await apiFetch('/api/tools/screenshot-resizer','POST',fd);const blob=res instanceof Response?await res.blob():null;
   if(blob){const url=URL.createObjectURL(blob);document.getElementById('ssOut').innerHTML=`<img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);margin-top:12px"><br><a href="${url}" download="resized.png" class="btn btn-secondary btn-sm" style="margin-top:8px;display:inline-flex">${ICONS.download} Download</a>`;toast('Resized!','success');}
   }catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderGradientGen(tool) {
@@ -1176,11 +1181,11 @@ function renderTimestamp(tool) {
 async function doTS() {
   const v=document.getElementById('tsIn').value.trim();
   if(!v){toast('Please enter a value.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Converting…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Converting…';
   try{const d=await apiFetch('/api/tools/timestamp-converter','POST',{value:v,mode:document.getElementById('tsMode').value});
   const r=d.result||{};document.getElementById('tsOut').innerHTML=`<div class="stat-grid" style="margin-top:14px">${Object.entries(r).map(([k,val])=>`<div class="stat-card"><div style="font-size:13px;font-weight:600;word-break:break-all">${val}</div><div class="stat-label">${k}</div></div>`).join('')}</div>`;
   toast('Converted!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderJSON(tool) {
@@ -1223,11 +1228,11 @@ function renderNameGen(tool) {
   });
 }
 async function doNames() {
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const d=await apiFetch('/api/tools/name-generator','POST',{gender:document.getElementById('ngGender').value,type:document.getElementById('ngType').value,count:parseInt(document.getElementById('ngCount').value)});
   document.getElementById('ngOut').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">${(d.names||[]).map(n=>`<div style="display:flex;align-items:center;gap:6px;background:var(--bg-muted);border:1px solid var(--border);border-radius:8px;padding:8px 14px"><span style="font-size:14px;font-weight:600">${n}</span><button class="btn-icon-sm" onclick="copyText('${n}')" style="border:none">${ICONS.copy}</button></div>`).join('')}</div>`;
   toast('Generated!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderUnitConverter(tool) {
@@ -1252,11 +1257,11 @@ function updateUCUnits(){const cat=document.getElementById('ucCat').value,units=
 async function doUnitConv() {
   const v=document.getElementById('ucVal').value.trim();
   if(!v){toast('Please enter a value.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Converting…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Converting…';
   try{const d=await apiFetch('/api/tools/unit-converter','POST',{value:v,from:document.getElementById('ucFrom').value,to:document.getElementById('ucTo').value,category:document.getElementById('ucCat').value});
   document.getElementById('ucOut').innerHTML=`<div class="result-highlight" style="margin-top:14px"><div style="font-size:13px;color:var(--text-muted)">${v} ${d.from} =</div><div class="result-value" style="font-size:28px;font-weight:700;color:var(--accent)">${d.result} ${d.to}</div></div>`;
   toast('Converted!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderCalculator(tool) {
@@ -1320,11 +1325,11 @@ function renderIPLookup(tool) {
 }
 async function doIP() {
   const ip=document.getElementById('ipIn').value.trim();
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Looking up…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Looking up…';
   try{const d=await apiFetch('/api/tools/ip-lookup','POST',{ip});
   document.getElementById('ipOut').innerHTML=`<div class="stat-grid" style="margin-top:14px">${Object.entries(d).filter(([k])=>k!=='status').map(([k,v])=>`<div class="stat-card"><div style="font-size:13px;font-weight:600">${String(v||'—')}</div><div class="stat-label">${k}</div></div>`).join('')}</div>`;
   toast('Done!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderHashGen(tool) {
@@ -1346,11 +1351,11 @@ async function doHash() {
   const text=document.getElementById('hashIn2').value.trim();
   if(!text){toast('Please enter text.','warn');return;}
   const algos=['md5','sha1','sha256','sha512'].filter(a=>document.getElementById('h'+a.toUpperCase().replace('-',''))?.checked);
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Hashing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Hashing…';
   try{const d=await apiFetch('/api/tools/hash-generator','POST',{text,algorithms:algos});
   document.getElementById('hashOut2').innerHTML=Object.entries(d.hashes||{}).map(([algo,h])=>`<div style="margin-top:10px"><div class="output-label">${algo.toUpperCase()}</div><div style="display:flex;gap:8px;align-items:center"><div class="code-block" style="flex:1;padding:10px;font-size:12px;overflow-x:auto">${h}</div><button class="btn-icon-sm" onclick="copyText('${h}','Hash copied')">${ICONS.copy}</button></div></div>`).join('');
   toast('Hashes generated!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderRegexTester(tool) {
@@ -1371,13 +1376,13 @@ function renderRegexTester(tool) {
 async function doRegex() {
   const pat=document.getElementById('rxPat').value;
   if(!pat){toast('Please enter a pattern.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Testing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Testing…';
   try{const d=await apiFetch('/api/tools/regex-tester','POST',{pattern:pat,flags:document.getElementById('rxFlags').value,text:document.getElementById('rxText').value});
   const ms=d.matches||[];
   document.getElementById('rxOut').innerHTML=`<div class="stat-grid" style="margin:12px 0"><div class="stat-card"><div class="stat-value">${ms.length}</div><div class="stat-label">Matches</div></div></div>`
   +(ms.length?ms.map((m,i)=>`<div class="output-box" style="margin-top:8px;font-family:monospace;font-size:13px"><strong>Match ${i+1}</strong>: "${m.match}" at index ${m.index}${m.groups?.filter(Boolean).length?` | Groups: ${m.groups.filter(Boolean).join(', ')}`:''}</div>`).join(''):`<div class="info-box">No matches found.</div>`);
   toast(`${ms.length} match${ms.length!==1?'es':''}!`,'success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderCSSMin(tool){renderMinifier('CSS','css-minifier',tool);}
@@ -1392,18 +1397,18 @@ function renderMinifier(type, toolId, tool) {
       <div class="output-label">Minified Output</div>
       <div class="code-block" id="minOut" style="min-height:80px;white-space:pre-wrap;overflow-x:auto">Result will appear here…</div>
       <div id="minStats" style="margin-top:8px"></div>
-      <div class="output-actions"><button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('minOut').innerText,'Minified copied')">${ICONS.copy} Copy</button></div>`;
+      <div class="output-actions"><button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('minOut').textContent,'Minified copied')">${ICONS.copy} Copy</button></div>`;
   });
 }
 async function doMinify(toolId, type) {
   const text=document.getElementById('minIn').value.trim();
   if(!text){toast(`Please enter ${type}.`,'warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Minifying…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Minifying…';
   try{const d=await apiFetch(`/api/tools/${toolId}`,'POST',{text});document.getElementById('minOut').textContent=d.result||'';
   const orig=text.length,mini=(d.result||'').length,saved=Math.round((1-mini/orig)*100);
   document.getElementById('minStats').innerHTML=`<div class="info-box">Original: ${orig} chars → Minified: ${mini} chars (${saved}% smaller)</div>`;
   toast(`Saved ${saved}%!`,'success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderColorContrast(tool) {
@@ -1411,20 +1416,25 @@ function renderColorContrast(tool) {
     document.getElementById('toolContent').innerHTML = `
       <div class="tool-row" style="margin-bottom:14px">
         <div class="tool-col"><label class="tool-label">Foreground Color</label>
-          <input type="color" class="tool-input" id="ccFg" value="#000000" style="height:50px;padding:4px" oninput="doCC()"></div>
+          <input type="color" class="tool-input" id="ccFg" value="#000000" style="height:50px;padding:4px" oninput="doCCDebounced()"></div>
         <div class="tool-col"><label class="tool-label">Background Color</label>
-          <input type="color" class="tool-input" id="ccBg" value="#ffffff" style="height:50px;padding:4px" oninput="doCC()"></div>
+          <input type="color" class="tool-input" id="ccBg" value="#ffffff" style="height:50px;padding:4px" oninput="doCCDebounced()"></div>
       </div>
       <div id="ccPreview" style="border-radius:8px;border:1px solid var(--border);padding:24px;margin-bottom:14px;text-align:center;font-size:18px;font-weight:600;background:#ffffff;color:#000000">Sample Text Preview</div>
       <div id="ccOut"></div>`;
     doCC();
   });
 }
+let _ccDebounce;
+function doCCDebounced() { clearTimeout(_ccDebounce); _ccDebounce = setTimeout(doCC, 300); }
 async function doCC() {
   const fg=document.getElementById('ccFg').value,bg=document.getElementById('ccBg').value;
   document.getElementById('ccPreview').style.color=fg;document.getElementById('ccPreview').style.background=bg;
   try{const d=await apiFetch('/api/tools/color-contrast','POST',{fg,bg});
-  document.getElementById('ccOut').innerHTML=`<div class="stat-grid"><div class="stat-card"><div class="stat-value">${d.ratio}</div><div class="stat-label">Contrast Ratio</div></div><div class="stat-card"><div class="stat-value" style="color:${d.aa?'var(--success)':'var(--error)'}">${d.aa?'✓ Pass':'✗ Fail'}</div><div class="stat-label">WCAG AA</div></div><div class="stat-card"><div class="stat-value" style="color:${d.aaa?'var(--success)':'var(--error)'}">${d.aaa?'✓ Pass':'✗ Fail'}</div><div class="stat-label">WCAG AAA</div></div></div>`;
+  const aaPass = d.aa_normal !== undefined ? d.aa_normal : d.aa;
+  const aaaPass = d.aaa_normal !== undefined ? d.aaa_normal : d.aaa;
+  const gradeColor = d.grade==='AAA'?'var(--success)':d.grade==='AA'?'#22c55e':d.grade==='AA Large'?'var(--warn)':'var(--danger)';
+  document.getElementById('ccOut').innerHTML=`<div class="stat-grid"><div class="stat-card"><div class="stat-value">${d.ratio}:1</div><div class="stat-label">Contrast Ratio</div></div><div class="stat-card"><div class="stat-value" style="color:${aaPass?'var(--success)':'var(--danger)'}">${aaPass?'✓ Pass':'✗ Fail'}</div><div class="stat-label">WCAG AA (4.5:1)</div></div><div class="stat-card"><div class="stat-value" style="color:${aaaPass?'var(--success)':'var(--danger)'}">${aaaPass?'✓ Pass':'✗ Fail'}</div><div class="stat-label">WCAG AAA (7:1)</div></div><div class="stat-card"><div class="stat-value" style="color:${gradeColor}">${d.grade||'—'}</div><div class="stat-label">Grade</div></div></div><div class="info-box" style="margin-top:10px">AA requires 4.5:1 for normal text, 3:1 for large text. AAA requires 7:1 for normal text.</div>`;
   }catch(e){}
 }
 
@@ -1442,11 +1452,11 @@ function renderCurrencyConverter(tool) {
   });
 }
 async function doCurrency() {
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Converting…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Converting…';
   try{const d=await apiFetch('/api/tools/currency-converter','POST',{amount:parseFloat(document.getElementById('curAmt').value),from:document.getElementById('curFrom').value,to:document.getElementById('curTo').value});
   document.getElementById('curOut').innerHTML=`<div class="result-highlight" style="margin-top:14px"><div style="font-size:13px;color:var(--text-muted)">${d.amount} ${d.from} =</div><div class="result-value" style="font-size:28px;font-weight:700;color:var(--accent)">${d.result} ${d.to}</div>${d.rate?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px">Rate: 1 ${d.from} = ${d.rate} ${d.to}</div>`:''}</div>`;
   toast('Converted!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderAgeCalc(tool) {
@@ -1461,11 +1471,11 @@ function renderAgeCalc(tool) {
 async function doAge() {
   const d2=document.getElementById('ageDate').value;
   if(!d2){toast('Please select a date.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Calculating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Calculating…';
   try{const d=await apiFetch('/api/tools/age-calculator','POST',{birthdate:d2});
   document.getElementById('ageOut').innerHTML=`<div class="stat-grid" style="margin-top:14px">${Object.entries(d).filter(([k])=>k!=='birthdate').map(([k,v])=>`<div class="stat-card"><div class="stat-value" style="font-size:20px">${v}</div><div class="stat-label">${k}</div></div>`).join('')}</div>`;
   toast('Calculated!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderPctCalc(tool) {
@@ -1490,11 +1500,11 @@ function renderPctCalc(tool) {
 async function doPct() {
   const a=document.getElementById('pctA').value,b=document.getElementById('pctB').value;
   if(!a||!b){toast('Please fill in both values.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Calculating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Calculating…';
   try{const d=await apiFetch('/api/tools/percentage-calculator','POST',{a:parseFloat(a),b:parseFloat(b),mode:document.getElementById('pctMode').value});
   document.getElementById('pctOut').innerHTML=`<div class="result-highlight" style="margin-top:14px"><div class="result-value" style="font-size:32px;font-weight:700;color:var(--accent)">${d.result}</div><div style="font-size:13px;color:var(--text-muted);margin-top:4px">${d.explanation||''}</div></div>`;
   toast('Done!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 function updatePctMode(){const m=document.getElementById('pctMode').value;const labs={of:['Percentage (%)','Of Value'],is:['Value X','Total Y'],change:['From Value','To Value'],add:['Percentage (%)','Base Value'],sub:['Percentage (%)','Base Value']};const[l1,l2]=labs[m]||['Value A','Value B'];document.getElementById('pctL1').textContent=l1;document.getElementById('pctL2').textContent=l2;}
 
@@ -1503,7 +1513,7 @@ function renderBMI(tool) {
     document.getElementById('toolContent').innerHTML = `
       <div class="tool-row" style="margin-bottom:14px">
         <div class="tool-col"><label class="tool-label">System</label>
-          <select class="tool-select" id="bmiSys"><option value="metric">Metric (kg/cm)</option><option value="imperial">Imperial (lbs/in)</option></select></div>
+          <select class="tool-select" id="bmiSys" onchange="updateBMILabels()"><option value="metric">Metric (kg/cm)</option><option value="imperial">Imperial (lbs/in)</option></select></div>
       </div>
       <div class="tool-row" style="margin-bottom:14px">
         <div class="tool-col"><label class="tool-label" id="bmiWL">Weight (kg)</label><input type="number" class="tool-input" id="bmiW" placeholder="e.g. 70"></div>
@@ -1513,15 +1523,30 @@ function renderBMI(tool) {
       <div id="bmiOut"></div>`;
   });
 }
+function updateBMILabels() {
+  const sys = document.getElementById('bmiSys')?.value;
+  const wl = document.getElementById('bmiWL');
+  const hl = document.getElementById('bmiHL');
+  const wIn = document.getElementById('bmiW');
+  const hIn = document.getElementById('bmiH');
+  if (!wl || !hl) return;
+  if (sys === 'imperial') {
+    wl.textContent = 'Weight (lbs)'; hl.textContent = 'Height (inches)';
+    wIn.placeholder = 'e.g. 154'; hIn.placeholder = 'e.g. 69';
+  } else {
+    wl.textContent = 'Weight (kg)'; hl.textContent = 'Height (cm)';
+    wIn.placeholder = 'e.g. 70'; hIn.placeholder = 'e.g. 175';
+  }
+}
 async function doBMI() {
   const w=document.getElementById('bmiW').value,h=document.getElementById('bmiH').value,sys=document.getElementById('bmiSys').value;
   if(!w||!h){toast('Please enter weight and height.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Calculating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Calculating…';
   try{const d=await apiFetch('/api/tools/bmi-calculator','POST',{weight:parseFloat(w),height:parseFloat(h),system:sys});
   const color=d.category==='Normal weight'?'var(--success)':d.category==='Underweight'?'var(--accent)':'var(--warn)';
   document.getElementById('bmiOut').innerHTML=`<div class="stat-grid" style="margin-top:14px"><div class="stat-card"><div class="stat-value" style="color:${color}">${d.bmi}</div><div class="stat-label">BMI</div></div><div class="stat-card"><div class="stat-value" style="font-size:14px;color:${color}">${d.category}</div><div class="stat-label">Category</div></div></div><div class="info-box" style="margin-top:12px">Healthy range: 18.5 – 24.9 BMI</div>`;
   toast('Calculated!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderTimezone(tool) {
@@ -1541,11 +1566,11 @@ function renderTimezone(tool) {
 async function doTZ() {
   const t=document.getElementById('tzTime').value;
   if(!t){toast('Please select a date and time.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Converting…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Converting…';
   try{const d=await apiFetch('/api/tools/timezone-converter','POST',{datetime:t,from:document.getElementById('tzFrom').value,to:document.getElementById('tzTo').value});
   document.getElementById('tzOut').innerHTML=`<div class="result-highlight" style="margin-top:14px"><div style="font-size:13px;color:var(--text-muted)">${d.from} time:</div><div class="result-value" style="font-size:20px;font-weight:700;color:var(--accent)">${d.convertedTime||d.result}</div>${d.offset?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px">UTC offset: ${d.offset}</div>`:''}</div>`;
   toast('Converted!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderUUID(tool) {
@@ -1562,11 +1587,11 @@ function renderUUID(tool) {
   });
 }
 async function doUUID() {
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const d=await apiFetch('/api/tools/uuid-generator','POST',{type:document.getElementById('uuidType').value,count:parseInt(document.getElementById('uuidCount').value)});
   document.getElementById('uuidOut').innerHTML=`<div style="margin-top:12px">`+(d.ids||[]).map(id=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><div class="code-block" style="flex:1;padding:8px 12px;font-size:13px">${id}</div><button class="btn-icon-sm" onclick="copyText('${id}')">${ICONS.copy}</button></div>`).join('')+`</div>`;
   toast(`${(d.ids||[]).length} IDs generated!`,'success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderNum2Words(tool) {
@@ -1600,12 +1625,12 @@ async function doRP() {
   if(m==='list'){const items=(document.getElementById('rpList')?.value||'').split('\n').filter(x=>x.trim());if(!items.length){toast('Please add items.','warn');return;}body.items=items;}
   else if(m==='dice'){body.sides=parseInt(document.getElementById('rpDice')?.value||6);body.count=parseInt(document.getElementById('rpDiceN')?.value||1);}
   else if(m==='number'){body.min=parseInt(document.getElementById('rpMin')?.value||1);body.max=parseInt(document.getElementById('rpMax')?.value||100);body.count=parseInt(document.getElementById('rpNumN')?.value||1);}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Randomizing…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Randomizing…';
   try{const d=await apiFetch('/api/tools/random-picker','POST',body);
   const r=d.result||d.results||d.picked||'';
   document.getElementById('rpOut').innerHTML=`<div class="result-highlight" style="margin-top:14px;text-align:center"><div class="result-value" style="font-size:36px;font-weight:800;color:var(--accent)">${Array.isArray(r)?r.join(', '):r}</div></div>`;
   toast('Randomized!','success');}catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderSlugGen(tool) {
@@ -1659,10 +1684,10 @@ function renderCSV2JSON(tool) {
 async function doCSV2JSON() {
   const text=document.getElementById('csvIn').value.trim();
   if(!text){toast('Please enter CSV data.','warn');return;}
-  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Converting…';
+  const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;if(!btn.dataset.origHtml)btn.dataset.origHtml=btn.innerHTML;btn.textContent='⏳ Converting…';
   try{const d=await apiFetch('/api/tools/csv-to-json','POST',{text,delimiter:document.getElementById('csvDel').value,hasHeader:document.getElementById('csvHeader').checked});document.getElementById('csvOut').textContent=d.result||'';toast(`Converted ${d.rows} rows, ${d.columns} columns!`,'success');}
   catch(e){toast(e.message||'Error','error');}
-  finally{btn.disabled=false;btn.innerHTML=btn._orig;}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.origHtml||btn.innerHTML;delete btn.dataset.origHtml;}
 }
 
 function renderPomodoro(tool) {

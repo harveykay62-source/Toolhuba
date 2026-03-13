@@ -881,3 +881,74 @@ img { max-width:100%; }
   .cat-btn, .trending-chip, .btn-run { min-height: 40px; }
   .tool-card:hover { transform: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   REFINEMENTS — Less generic, more personality
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Subtle background texture ──────────────────────────────────────── */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, var(--border) 0.5px, transparent 0);
+  background-size: 32px 32px; opacity: 0.3;
+}
+
+/* ── Better hero gradient ───────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(175deg, var(--bg) 0%, var(--bg-muted) 60%, var(--bg-2) 100%);
+  position: relative;
+}
+.hero::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+/* ── Card hover depth ───────────────────────────────────────────────── */
+.tool-card { transition: border-color .2s, box-shadow .2s, transform .2s cubic-bezier(.2,.8,.2,1); }
+.tool-card:hover { transform: translateY(-3px) scale(1.005); box-shadow: 0 12px 28px rgba(0,0,0,.08); }
+[data-theme="dark"] .tool-card:hover { box-shadow: 0 12px 28px rgba(0,0,0,.3); }
+
+/* ── Better button feel ─────────────────────────────────────────────── */
+.btn-primary, .btn-signup { transition: all .15s cubic-bezier(.2,.8,.2,1); }
+.btn-primary:hover, .btn-signup:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(80,70,228,.3); }
+.btn-primary:active, .btn-signup:active { transform: translateY(0); }
+
+/* ── Tool page input focus ring ─────────────────────────────────────── */
+.tool-textarea:focus, .tool-input:focus { box-shadow: 0 0 0 3px rgba(80,70,228,.12); }
+
+/* ── Why section cards ──────────────────────────────────────────────── */
+.home-why-card { transition: transform .2s, box-shadow .2s; }
+.home-why-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+
+/* ── Header nav live button pulse ───────────────────────────────────── */
+#navLive {
+  animation: live-pulse 3s ease-in-out infinite;
+  font-size: 13px !important;
+}
+@keyframes live-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(124,58,237,0); }
+}
+
+/* ── Educator badge ─────────────────────────────────────────────────── */
+.tag[style*="059669"] { animation: edu-shine 4s ease-in-out infinite; }
+@keyframes edu-shine {
+  0%,100% { box-shadow: 0 0 0 0 rgba(5,150,105,0); }
+  50% { box-shadow: 0 0 8px rgba(5,150,105,0.3); }
+}
+
+/* ── Admin pill ─────────────────────────────────────────────────────── */
+.btn-admin-pill { background: #f59e0b; color: #000; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; transition: opacity .15s; }
+.btn-admin-pill:hover { opacity: 0.85; }
+
+/* ── Smoother scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+
+/* ── Mobile: Hero CTA row stack ─────────────────────────────────────── */
+@media (max-width: 480px) {
+  .hero-cta-row { flex-direction: column; gap: 10px; align-items: stretch; padding: 0 12px; }
+  .hero-cta-row .btn { width: 100%; justify-content: center; }
+}

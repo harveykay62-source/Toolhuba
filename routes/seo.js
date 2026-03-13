@@ -16,10 +16,15 @@ const SITE_URL  = process.env.SITE_URL || 'https://toolhuba.onrender.com';
 // Cache the template per dir — reset on process restart
 const _tplCache = new Map();
 function getTemplate(dir) {
-  if (!_tplCache.has(dir)) {
-    _tplCache.set(dir, fs.readFileSync(path.join(dir, 'public', 'index.html'), 'utf8'));
+  // In production, cache the template for performance
+  // In development, always read fresh so changes are reflected immediately
+  if (process.env.NODE_ENV === 'production') {
+    if (!_tplCache.has(dir)) {
+      _tplCache.set(dir, fs.readFileSync(path.join(dir, 'public', 'index.html'), 'utf8'));
+    }
+    return _tplCache.get(dir);
   }
-  return _tplCache.get(dir);
+  return fs.readFileSync(path.join(dir, 'public', 'index.html'), 'utf8');
 }
 
 // ── Tag-stripping helpers ─────────────────────────────────────────────────────
@@ -91,7 +96,11 @@ function buildPage(dir, opts) {
     `<meta name="twitter:title" content="${safeTitle}">`,
     `<meta name="twitter:description" content="${safeDesc}">`,
     `<meta name="twitter:image" content="${esc(SITE_URL)}/og-image.png">`,
-    jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>` : '',
+    jsonLd
+      ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd])
+          .map(ld => `<script type="application/ld+json">${JSON.stringify(ld)}<\/script>`)
+          .join('\n')
+      : '',
   ].filter(Boolean).join('\n');
 
   let html = getTemplate(dir);
@@ -158,19 +167,51 @@ function tool(dir, toolObj) {
     keywords: kws,
     canonical: toolUrl,
     ogType: 'website',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      'name': toolObj.name,
-      'description': toolObj.description,
-      'url': toolUrl,
-      'applicationCategory': 'UtilitiesApplication',
-      'operatingSystem': 'Web',
-      'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'USD' },
-      'featureList': toolObj.tags,
-      'provider': { '@type': 'Organization', 'name': SITE_NAME, 'url': SITE_URL },
-      'isPartOf': { '@type': 'WebSite', 'name': SITE_NAME, 'url': SITE_URL }
-    }
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        'name': toolObj.name,
+        'description': toolObj.description,
+        'url': toolUrl,
+        'applicationCategory': 'UtilitiesApplication',
+        'operatingSystem': 'Web',
+        'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'USD' },
+        'featureList': toolObj.tags,
+        'provider': { '@type': 'Organization', 'name': SITE_NAME, 'url': SITE_URL },
+        'isPartOf': { '@type': 'WebSite', 'name': SITE_NAME, 'url': SITE_URL }
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        'itemListElement': [
+          { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE_URL + '/' },
+          { '@type': 'ListItem', 'position': 2, 'name': catName + 's', 'item': `${SITE_URL}/category/${toolObj.category}` },
+          { '@type': 'ListItem', 'position': 3, 'name': toolObj.name, 'item': toolUrl }
+        ]
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        'mainEntity': [
+          {
+            '@type': 'Question',
+            'name': `What is ${toolObj.name}?`,
+            'acceptedAnswer': { '@type': 'Answer', 'text': toolObj.description }
+          },
+          {
+            '@type': 'Question',
+            'name': `Is ${toolObj.name} free?`,
+            'acceptedAnswer': { '@type': 'Answer', 'text': `Yes, ${toolObj.name} on ${SITE_NAME} is completely free. No account or download required.` }
+          },
+          {
+            '@type': 'Question',
+            'name': `How do I use ${toolObj.name}?`,
+            'acceptedAnswer': { '@type': 'Answer', 'text': `Simply visit ${toolUrl}, enter your input, and click the button to get instant results. No sign-up needed.` }
+          }
+        ]
+      }
+    ]
   });
 }
 
@@ -339,14 +380,24 @@ function categoryPage(dir, cat) {
     keywords: data.kws,
     canonical: `${SITE_URL}/category/${cat}`,
     ogType: 'website',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'CollectionPage',
-      'name': data.title,
-      'description': data.description,
-      'url': `${SITE_URL}/category/${cat}`,
-      'isPartOf': { '@type': 'WebSite', 'name': SITE_NAME, 'url': SITE_URL }
-    }
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        'name': data.title,
+        'description': data.description,
+        'url': `${SITE_URL}/category/${cat}`,
+        'isPartOf': { '@type': 'WebSite', 'name': SITE_NAME, 'url': SITE_URL }
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        'itemListElement': [
+          { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE_URL + '/' },
+          { '@type': 'ListItem', 'position': 2, 'name': data.title.split('—')[0].trim(), 'item': `${SITE_URL}/category/${cat}` }
+        ]
+      }
+    ]
   });
 }
 

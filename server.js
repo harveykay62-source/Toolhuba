@@ -61,6 +61,7 @@ app.use('/api/tools',           require('./routes/tools-extra'));
 app.use('/api',                 require('./routes/dashboard'));
 app.use('/api/quiz',            require('./routes/quiz'));
 app.use('/api/admin/analytics', analytics.router);
+app.use('/api/multiplayer',     require('./routes/multiplayer'));
 
 // ── /api/init ────────────────────────────────────────────────────────────────
 app.get('/api/init', async (req, res) => {
@@ -72,10 +73,13 @@ app.get('/api/init', async (req, res) => {
       db.getSetting('adsense_client'), db.getSetting('adsense_slot_banner'),
       db.getSetting('maintenance_mode'),
     ]);
+    const { isEducatorEmail } = require('./game/engine');
+    const isVerified = isEducatorEmail(req.session?.email);
     res.json({
       session: { loggedIn: !!req.session.userId, name: req.session.name || '',
-        role: req.session.role || 'guest', avatarColor: req.session.avatarColor || '#10b981' },
-      settings: { siteName: siteName || 'ToolHub AI', adsEnabled: adsEnabled === 'true',
+        role: req.session.role || 'guest', avatarColor: req.session.avatarColor || '#10b981',
+        isVerifiedEducator: isVerified, email: req.session.email || '' },
+      settings: { siteName: siteName || 'ToolHub AI', adsEnabled: isVerified ? false : adsEnabled === 'true',
         adsenseClient: adsenseClient || '', adsenseBanner: adsenseBanner || '',
         maintenance: maintenance === 'true' },
       tools: getAllTools(), categories: CATEGORIES, trending: getTrending(),
@@ -115,6 +119,13 @@ app.get('/dashboard', (req, res) => HTML(res, SEO.dashboard(__dirname)));
 
 // ── Quiz Hub  /quizzes ────────────────────────────────────────────────────────
 app.get('/quizzes', (req, res) => HTML(res, SEO.quizzes(__dirname)));
+
+// ── Multiplayer Live  /live ──────────────────────────────────────────────────
+app.get('/live', (req, res) => HTML(res, SEO.home(__dirname)));
+app.get('/live/:code', (req, res) => HTML(res, SEO.home(__dirname)));
+
+// ── Teacher Quizzes  /teacher-quizzes ────────────────────────────────────────
+app.get('/teacher-quizzes', (req, res) => HTML(res, SEO.home(__dirname)));
 
 // ── Quiz Builder  /quizzes/build ──────────────────────────────────────────────
 app.get('/quizzes/build', (req, res) => HTML(res, SEO.quizBuild(__dirname)));
@@ -157,45 +168,61 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// ── Dynamic Sitemap ───────────────────────────────────────────────────────────
+// ── Dynamic Sitemap Index ─────────────────────────────────────────────────────
 app.get('/sitemap.xml', async (req, res) => {
+  const now = new Date().toISOString().split('T')[0];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    ['/sitemap-static.xml', '/sitemap-tools.xml', '/sitemap-quizzes.xml', '/sitemap-categories.xml'].map(u =>
+      `  <sitemap>\n    <loc>${SEO.SITE_URL}${u}</loc>\n    <lastmod>${now}</lastmod>\n  </sitemap>`
+    ).join('\n') + `\n</sitemapindex>`;
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.send(xml);
+});
+
+// Static pages sitemap
+app.get('/sitemap-static.xml', (req, res) => {
+  const now = new Date().toISOString().split('T')[0];
+  const pages = [
+    { url: '/',                priority: '1.0', freq: 'daily'   },
+    { url: '/register',        priority: '0.7', freq: 'monthly' },
+    { url: '/quizzes',         priority: '0.8', freq: 'daily'   },
+    { url: '/quizzes/build',   priority: '0.6', freq: 'weekly'  },
+  ];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    pages.map(p => `  <url>\n    <loc>${SEO.SITE_URL}${p.url}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.freq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`).join('\n') + `\n</urlset>`;
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.send(xml);
+});
+
+// Tools sitemap
+app.get('/sitemap-tools.xml', (req, res) => {
   const { getAllTools } = require('./db/tools');
+  const now = new Date().toISOString().split('T')[0];
+  const tools = getAllTools().filter(t => t.enabled);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    tools.map(t => `  <url>\n    <loc>${SEO.SITE_URL}/tool/${t.id}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${t.trending ? '0.9' : '0.8'}</priority>\n  </url>`).join('\n') + `\n</urlset>`;
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.send(xml);
+});
+
+// Categories sitemap
+app.get('/sitemap-categories.xml', (req, res) => {
+  const now = new Date().toISOString().split('T')[0];
+  const cats = ['text', 'media', 'utility'];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    cats.map(c => `  <url>\n    <loc>${SEO.SITE_URL}/category/${c}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>`).join('\n') + `\n</urlset>`;
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.send(xml);
+});
+
+// Quizzes sitemap
+app.get('/sitemap-quizzes.xml', async (req, res) => {
   const { getQuizList } = require('./db/quiz-db');
   const now = new Date().toISOString().split('T')[0];
-
-  const tools = getAllTools().filter(t => t.enabled);
-
   let quizRows = [];
-  try { quizRows = await getQuizList({ status: 'approved', limit: 200 }); } catch {}
-
-  const staticPages = [
-    { url: '/',                  priority: '1.0', freq: 'daily'   },
-    { url: '/register',          priority: '0.7', freq: 'monthly' },
-    { url: '/quizzes',           priority: '0.8', freq: 'daily'   },
-    { url: '/quizzes/build',     priority: '0.6', freq: 'weekly'  },
-    { url: '/category/text',     priority: '0.9', freq: 'weekly'  },
-    { url: '/category/media',    priority: '0.9', freq: 'weekly'  },
-    { url: '/category/utility',  priority: '0.9', freq: 'weekly'  },
-  ];
-
-  const toolPages = tools.map(t => ({
-    url: `/tool/${t.id}`,
-    priority: t.trending ? '0.9' : '0.8',
-    freq: 'weekly',
-  }));
-
-  const quizPages = quizRows.map(q => ({
-    url: `/quiz/${q.id}`,
-    priority: '0.7',
-    freq: 'weekly',
-  }));
-
-  const all = [...staticPages, ...toolPages, ...quizPages];
+  try { quizRows = await getQuizList({ status: 'approved', limit: 500 }); } catch {}
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    all.map(p =>
-      `  <url>\n    <loc>${SEO.SITE_URL}${p.url}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.freq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`
-    ).join('\n') + `\n</urlset>`;
-
+    quizRows.map(q => `  <url>\n    <loc>${SEO.SITE_URL}/quiz/${q.id}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`).join('\n') + `\n</urlset>`;
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.send(xml);
 });
@@ -210,7 +237,11 @@ app.get('/robots.txt', (req, res) => {
     `Disallow: /dashboard\n` +
     `Disallow: /api/\n` +
     `Disallow: /login\n\n` +
-    `Sitemap: ${SEO.SITE_URL}/sitemap.xml`
+    `Sitemap: ${SEO.SITE_URL}/sitemap.xml\n` +
+    `Sitemap: ${SEO.SITE_URL}/sitemap-tools.xml\n` +
+    `Sitemap: ${SEO.SITE_URL}/sitemap-categories.xml\n` +
+    `Sitemap: ${SEO.SITE_URL}/sitemap-static.xml\n` +
+    `Sitemap: ${SEO.SITE_URL}/sitemap-quizzes.xml`
   );
 });
 
@@ -221,10 +252,18 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
+const http = require('http');
+const { initSocketIO } = require('./game/engine');
+
 function startServer(port) {
-  const server = app.listen(port, '0.0.0.0');
+  const server = http.createServer(app);
+  const io = initSocketIO(server);
+  app.set('io', io);
+
+  server.listen(port, '0.0.0.0');
   server.on('listening', () => {
     console.log(`\n✅ ToolHub AI → http://localhost:${port}`);
+    console.log(`   Multiplayer → http://localhost:${port}/live`);
     console.log(`   Admin → http://localhost:${port}/admin  (admin@toolhub.ai / Admin@123)\n`);
   });
   server.on('error', err => {

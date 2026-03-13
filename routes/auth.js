@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db/database');
+const { isEducatorEmail } = require('../game/engine');
 
 router.post('/register', async (req, res) => {
   try {
@@ -19,9 +20,13 @@ router.post('/register', async (req, res) => {
     const colors = ['#6366f1','#f43f5e','#10b981','#f59e0b','#3b82f6','#8b5cf6'];
     const avatarColor = colors[Math.floor(Math.random() * colors.length)];
 
+    // Auto-detect educator email
+    const isVerified = isEducatorEmail(email);
+    const role = isVerified ? 'educator' : 'free';
+
     const result = await db.run(
-      `INSERT INTO users (uuid,email,password,name,avatar_color) VALUES (?,?,?,?,?)`,
-      [userId, email.toLowerCase(), hashedPassword, name, avatarColor]
+      `INSERT INTO users (uuid,email,password,name,avatar_color,role) VALUES (?,?,?,?,?,?)`,
+      [userId, email.toLowerCase(), hashedPassword, name, avatarColor, role]
     );
 
     const today = new Date().toISOString().split('T')[0];
@@ -33,10 +38,11 @@ router.post('/register', async (req, res) => {
     req.session.userId = result.lastInsertRowid;
     req.session.email = email.toLowerCase();
     req.session.name = name;
-    req.session.role = 'free';
+    req.session.role = role;
     req.session.avatarColor = avatarColor;
+    req.session.isVerifiedEducator = isVerified;
 
-    res.json({ success: true, message: 'Account created!', redirect: '/dashboard' });
+    res.json({ success: true, message: isVerified ? 'Educator account created!' : 'Account created!', redirect: '/dashboard' });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Registration failed. Please try again.' });
@@ -62,13 +68,14 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    await db.run(`UPDATE users SET last_login=NOW() WHERE id=?`, [user.id]);
+    await db.run(`UPDATE users SET last_login=NOW() WHERE id=$1`, [user.id]);
 
     req.session.userId = user.id;
     req.session.email = user.email;
     req.session.name = user.name;
     req.session.role = role;
     req.session.avatarColor = user.avatar_color;
+    req.session.isVerifiedEducator = isEducatorEmail(user.email);
 
     const redirect = role === 'admin' ? '/admin' : '/dashboard';
     res.json({ success: true, redirect });

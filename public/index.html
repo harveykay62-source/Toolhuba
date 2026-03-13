@@ -12,8 +12,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/css/quiz.css">
+<link rel="stylesheet" href="/css/multiplayer.css">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6454181337553477" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+<script src="/socket.io/socket.io.js" defer></script>
 </head>
 <body>
 <div id="premiumBanner" class="premium-banner hidden">
@@ -43,6 +45,7 @@
     <nav class="header-nav">
       <a class="header-nav-btn" href="/" onclick="event.preventDefault();navigate('home')" id="navTools">🔧 Tools</a>
       <a class="header-nav-btn header-nav-quiz" href="/quizzes" onclick="event.preventDefault();navigate('quizzes')" id="navQuizzes">🎮 Quizzes</a>
+      <a class="header-nav-btn" href="/live" onclick="event.preventDefault();navigate('live')" id="navLive" style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border-radius:8px;padding:6px 12px">⚡ Live</a>
     </nav>
     <div class="header-actions">
       <button class="mobile-nav-btn" id="mobileMenuBtn" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
@@ -59,6 +62,7 @@
 <div class="mobile-nav-drawer" id="mobileNavDrawer">
   <a class="mobile-nav-link" href="/" onclick="event.preventDefault();navigate('home');closeMobileNav()">🔧 Tools</a>
   <a class="mobile-nav-link" href="/quizzes" onclick="event.preventDefault();navigate('quizzes');closeMobileNav()">🎮 Quizzes</a>
+  <a class="mobile-nav-link" href="/live" onclick="event.preventDefault();navigate('live');closeMobileNav()" style="color:#7c3aed;font-weight:700">⚡ Live Games</a>
   <div class="mobile-nav-divider"></div>
   <a class="mobile-nav-link" id="mobileNavDash" href="/dashboard" onclick="event.preventDefault();navigate('dashboard');closeMobileNav()" style="display:none">📊 Dashboard</a>
   <a class="mobile-nav-link" id="mobileNavAdmin" href="/admin" onclick="closeMobileNav()" style="display:none">🛡️ Admin Panel</a>
@@ -137,5 +141,6 @@
 <script src="/js/tools.js"></script>
 <script src="/js/quiz.js"></script>
 <script src="/js/quiz-engine.js"></script>
+<script src="/js/multiplayer.js"></script>
 </body>
 </html>
