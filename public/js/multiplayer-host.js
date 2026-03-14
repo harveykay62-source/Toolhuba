@@ -4,40 +4,112 @@
 const HostGame = (() => {
   let socket, mode, selectedQuizId, roomCode, questionTimerId, currentTimeout;
 
+  const MODE_META = {
+    kahoot:  { label: 'Classic',    icon: '🏫', color: '#6366f1', desc: 'Standard live quiz with countdown timer, streaks, and a real-time leaderboard. Great for classrooms.' },
+    blooket: { label: 'Gold Quest', icon: '⚔️', color: '#f59e0b', desc: 'Answer questions to open mystery chests. Steal gold, hit multipliers, and outsmart your rivals.' }
+  };
+
   async function init(gameMode) {
     mode = gameMode;
     const app = document.getElementById('hostApp');
 
     // Check auth
-    const init = await fetch('/api/init').then(r => r.json());
-    if (!init.session.loggedIn) {
-      window.location.href = '/login?redirect=/host-game&mode=' + mode;
+    const initData = await fetch('/api/init').then(r => r.json());
+    if (!initData.session.loggedIn) {
+      window.location.href = '/login?redirect=/host-game';
       return;
     }
 
-    renderQuizSelect(app, init.session);
+    // If no mode specified, show mode selection first
+    if (!mode) {
+      renderModeSelect(app, initData.session);
+    } else {
+      renderQuizSelect(app, initData.session);
+    }
   }
 
-  async function renderQuizSelect(app, session) {
-    const modeLabel = mode === 'kahoot' ? '🏫 Kahoot' : '🎲 Blooket';
-    const modeClass = mode === 'kahoot' ? 'mode-kahoot' : 'mode-blooket';
+  function renderModeSelect(app, session) {
+    app.innerHTML = `
+    <div class="host-wrap slide-up">
+      <div style="max-width:700px;margin:0 auto;padding:40px 20px">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:36px">
+          <a href="/multiplayer" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#94a3b8;padding:8px 16px;border-radius:10px;text-decoration:none;font-size:.88rem;transition:all .2s;font-weight:500">← Back</a>
+          <h1 style="color:#fff;font-size:1.5rem;font-weight:800;flex:1;letter-spacing:-.02em">Setup a Game</h1>
+        </div>
+
+        <p style="color:#64748b;font-size:.95rem;margin-bottom:32px;line-height:1.6">Choose a game mode to get started.</p>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+          <div class="mode-select-card" onclick="HostGame.pickMode('kahoot')" style="
+            background:rgba(99,102,241,.06);border:1.5px solid rgba(99,102,241,.15);border-radius:18px;
+            padding:28px 24px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden
+          " onmouseenter="this.style.borderColor='rgba(99,102,241,.4)';this.style.transform='translateY(-3px)';this.style.boxShadow='0 16px 48px rgba(99,102,241,.12)'"
+             onmouseleave="this.style.borderColor='rgba(99,102,241,.15)';this.style.transform='';this.style.boxShadow=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+              <div style="width:48px;height:48px;border-radius:14px;background:rgba(99,102,241,.15);display:flex;align-items:center;justify-content:center;font-size:1.5rem">🏫</div>
+              <div>
+                <div style="font-size:1.15rem;font-weight:700;color:#fff">Classic</div>
+                <div style="font-size:.78rem;color:#6366f1;font-weight:600;margin-top:2px">Standard Quiz</div>
+              </div>
+            </div>
+            <div style="color:#94a3b8;font-size:.88rem;line-height:1.6">Live questions with countdown timer, streak bonuses, and a real-time leaderboard.</div>
+            <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+              <span style="background:rgba(99,102,241,.1);color:#818cf8;padding:3px 10px;border-radius:8px;font-size:.75rem;font-weight:600">⏱ Timed</span>
+              <span style="background:rgba(99,102,241,.1);color:#818cf8;padding:3px 10px;border-radius:8px;font-size:.75rem;font-weight:600">🔥 Streaks</span>
+              <span style="background:rgba(99,102,241,.1);color:#818cf8;padding:3px 10px;border-radius:8px;font-size:.75rem;font-weight:600">🏆 Leaderboard</span>
+            </div>
+          </div>
+
+          <div class="mode-select-card" onclick="HostGame.pickMode('blooket')" style="
+            background:rgba(245,158,11,.06);border:1.5px solid rgba(245,158,11,.15);border-radius:18px;
+            padding:28px 24px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden
+          " onmouseenter="this.style.borderColor='rgba(245,158,11,.4)';this.style.transform='translateY(-3px)';this.style.boxShadow='0 16px 48px rgba(245,158,11,.12)'"
+             onmouseleave="this.style.borderColor='rgba(245,158,11,.15)';this.style.transform='';this.style.boxShadow=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+              <div style="width:48px;height:48px;border-radius:14px;background:rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;font-size:1.5rem">⚔️</div>
+              <div>
+                <div style="font-size:1.15rem;font-weight:700;color:#fff">Gold Quest</div>
+                <div style="font-size:.78rem;color:#f59e0b;font-weight:600;margin-top:2px">Strategy Mode</div>
+              </div>
+            </div>
+            <div style="color:#94a3b8;font-size:.88rem;line-height:1.6">Answer questions to open mystery chests. Steal gold, hit multipliers, and outsmart rivals.</div>
+            <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+              <span style="background:rgba(245,158,11,.1);color:#fbbf24;padding:3px 10px;border-radius:8px;font-size:.75rem;font-weight:600">📦 Chests</span>
+              <span style="background:rgba(245,158,11,.1);color:#fbbf24;padding:3px 10px;border-radius:8px;font-size:.75rem;font-weight:600">🦊 Steal</span>
+              <span style="background:rgba(245,158,11,.1);color:#fbbf24;padding:3px 10px;border-radius:8px;font-size:.75rem;font-weight:600">🔄 Swap</span>
+              <span style="background:rgba(245,158,11,.1);color:#fbbf24;padding:3px 10px;border-radius:8px;font-size:.75rem;font-weight:600">❄️ Freeze</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function pickMode(m) {
+    mode = m;
+    // Update URL without reload
+    history.replaceState(null, '', '/host-game?mode=' + mode);
+    renderQuizSelect(document.getElementById('hostApp'));
+  }
+
+  async function renderQuizSelect(app) {
+    const meta = MODE_META[mode] || MODE_META.blooket;
 
     app.innerHTML = `
     <div class="host-wrap slide-up">
-      <div style="max-width:800px;margin:0 auto">
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px">
-          <button onclick="history.back()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 16px;border-radius:10px;cursor:pointer">← Back</button>
-          <h1 style="color:#fff;font-size:1.4rem;font-weight:700;flex:1">Host a Game</h1>
-          <span class="lobby-mode-badge ${modeClass}">${modeLabel}</span>
+      <div style="max-width:800px;margin:0 auto;padding:40px 20px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px;flex-wrap:wrap">
+          <button onclick="HostGame.backToMode()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#94a3b8;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:.88rem;font-weight:500;transition:all .2s;font-family:'Inter',sans-serif">← Back</button>
+          <h1 style="color:#fff;font-size:1.4rem;font-weight:800;flex:1;letter-spacing:-.02em">Select a Quiz</h1>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:.82rem;font-weight:700;background:${meta.color}22;color:${meta.color};border:1px solid ${meta.color}33">${meta.icon} ${meta.label}</span>
         </div>
         <div class="quiz-select-wrap">
-          <h2>Select a Quiz</h2>
           <div id="quizGrid" class="quiz-select-grid">
             <div style="color:#64748b;grid-column:1/-1;text-align:center;padding:40px">Loading quizzes…</div>
           </div>
-          <div style="margin-top:24px;text-align:right">
+          <div style="margin-top:28px;display:flex;justify-content:flex-end;gap:12px">
             <button id="btnCreate" onclick="HostGame.createGame()" disabled
-              style="background:#6366f1;color:#fff;border:none;border-radius:14px;padding:14px 32px;font-size:1rem;font-weight:700;cursor:pointer;opacity:.4;transition:opacity .2s">
+              style="background:linear-gradient(135deg,${meta.color},${meta.color}dd);color:#fff;border:none;border-radius:14px;padding:14px 32px;font-size:1rem;font-weight:700;cursor:pointer;opacity:.4;transition:all .2s;font-family:'Inter',sans-serif">
               Create Game Room →
             </button>
           </div>
@@ -46,6 +118,12 @@ const HostGame = (() => {
     </div>`;
 
     await loadQuizzes();
+  }
+
+  function backToMode() {
+    mode = null;
+    history.replaceState(null, '', '/host-game');
+    renderModeSelect(document.getElementById('hostApp'));
   }
 
   async function loadQuizzes() {
@@ -91,7 +169,6 @@ const HostGame = (() => {
         return;
       }
       roomCode = res.code;
-      // Store socket id for game room
       sessionStorage.setItem('th_room', JSON.stringify({ code: roomCode, isHost: true, mode, quizTitle: res.quizTitle, questionCount: res.questionCount }));
       renderLobby(res);
     });
@@ -108,20 +185,15 @@ const HostGame = (() => {
     });
 
     socket.on('game:starting', ({ countdown }) => renderCountdown(countdown));
-
     socket.on('game:question', (q) => renderHostQuestion(q));
-
     socket.on('game:questionEnd', ({ correctIndex, leaderboard }) => {
       showHostCorrect(correctIndex, leaderboard);
     });
-
     socket.on('room:leaderboardUpdate', ({ leaderboard }) => updateSideLeaderboard(leaderboard));
-
     socket.on('game:ended', ({ leaderboard }) => {
       sessionStorage.setItem('th_final_lb', JSON.stringify(leaderboard));
       window.location.href = '/leaderboard?code=' + roomCode;
     });
-
     socket.on('disconnect', () => {
       showToast('Connection lost. Reconnecting…', 'error');
     });
@@ -129,8 +201,7 @@ const HostGame = (() => {
 
   function renderLobby({ code, quizTitle, questionCount }) {
     const app = document.getElementById('hostApp');
-    const modeLabel = mode === 'kahoot' ? '🏫 Kahoot-Style' : '🎲 Blooket-Style';
-    const modeClass = mode === 'kahoot' ? 'mode-kahoot' : 'mode-blooket';
+    const meta = MODE_META[mode] || MODE_META.blooket;
     app.innerHTML = `
     <div class="host-wrap">
       <div class="host-layout">
@@ -141,7 +212,7 @@ const HostGame = (() => {
               <div class="lobby-code">${code}</div>
               <div class="lobby-share">Join at: <strong>${location.hostname}/join-game</strong></div>
             </div>
-            <span class="lobby-mode-badge ${modeClass}">${modeLabel}</span>
+            <span class="lobby-mode-badge" style="background:${meta.color}">${meta.icon} ${meta.label}</span>
             <div class="lobby-quiz-info">📚 <strong>${esc(quizTitle)}</strong> · ${questionCount} questions</div>
             <div class="player-count" id="playerCount">0 players joined</div>
             <div class="players-grid" id="playersGrid"></div>
@@ -158,7 +229,7 @@ const HostGame = (() => {
           </div>
           <div style="margin-top:16px;background:rgba(255,255,255,.04);border-radius:12px;padding:16px">
             <div style="color:#94a3b8;font-size:.8rem;margin-bottom:8px">Host Controls</div>
-            <button onclick="HostGame.skipQuestion()" style="width:100%;background:rgba(255,255,255,.08);border:none;color:#fff;padding:10px;border-radius:10px;cursor:pointer;margin-bottom:8px">⏭ Skip Question</button>
+            <button onclick="HostGame.skipQuestion()" style="width:100%;background:rgba(255,255,255,.08);border:none;color:#fff;padding:10px;border-radius:10px;cursor:pointer;margin-bottom:8px;font-family:'Inter',sans-serif">⏭ Skip Question</button>
           </div>
         </div>
       </div>
@@ -194,7 +265,7 @@ const HostGame = (() => {
 
   function renderHostQuestion({ index, total, text, options, timeLimit, image, mode: qMode }) {
     const app = document.getElementById('hostApp');
-    const modeLabel = mode === 'blooket' ? '🎲 Blooket' : '🏫 Kahoot';
+    const meta = MODE_META[mode] || MODE_META.blooket;
     app.innerHTML = `
     <div class="host-wrap">
       <div class="host-layout">
@@ -216,8 +287,8 @@ const HostGame = (() => {
             </div>
           </div>
           <div style="margin-top:20px;display:flex;gap:12px">
-            <button onclick="HostGame.skipQuestion()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:10px 20px;border-radius:10px;cursor:pointer">⏭ Skip</button>
-            <button onclick="HostGame.endGame()" style="background:#ef4444;border:none;color:#fff;padding:10px 20px;border-radius:10px;cursor:pointer">■ End Game</button>
+            <button onclick="HostGame.skipQuestion()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);color:#fff;padding:10px 20px;border-radius:10px;cursor:pointer;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:500;transition:all .2s">⏭ Skip</button>
+            <button onclick="HostGame.endGame()" style="background:#ef4444;border:none;color:#fff;padding:10px 20px;border-radius:10px;cursor:pointer;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:600">■ End Game</button>
           </div>
         </div>
         <div class="host-sidebar">
@@ -287,7 +358,7 @@ const HostGame = (() => {
 
   function showToast(msg, type) {
     const t = document.createElement('div');
-    t.style.cssText = `position:fixed;top:20px;right:20px;background:${type==='error'?'#ef4444':'#10b981'};color:#fff;padding:12px 20px;border-radius:12px;font-weight:600;z-index:9999`;
+    t.style.cssText = `position:fixed;top:20px;right:20px;background:${type==='error'?'#ef4444':'#10b981'};color:#fff;padding:12px 20px;border-radius:12px;font-weight:600;z-index:9999;font-family:'Inter',sans-serif;font-size:.9rem;box-shadow:0 8px 24px rgba(0,0,0,.3)`;
     t.textContent = msg;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
@@ -295,5 +366,5 @@ const HostGame = (() => {
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  return { init, selectQuiz, createGame, startGame, skipQuestion, endGame };
+  return { init, pickMode, backToMode, selectQuiz, createGame, startGame, skipQuestion, endGame };
 })();

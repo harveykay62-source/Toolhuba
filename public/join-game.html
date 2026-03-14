@@ -9,18 +9,18 @@
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/css/multiplayer.css">
 <style>
-body{margin:0;background:#0f172a;font-family:'Inter',sans-serif}
-.pg-nav{background:#1e293b;padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.pg-nav a{color:#94a3b8;text-decoration:none;font-size:.9rem;padding:6px 14px;border-radius:8px;transition:background .15s}
-.pg-nav a:hover{background:rgba(255,255,255,.08);color:#fff}
-.pg-nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1rem;text-decoration:none;margin-right:auto}
-.pg-nav .logo span{font-size:1.2rem}
+body{margin:0;background:#090e1a;font-family:'Inter',sans-serif}
+.pg-nav{background:rgba(15,23,42,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:16px 28px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:100}
+.pg-nav a{color:#64748b;text-decoration:none;font-size:.88rem;padding:7px 14px;border-radius:10px;transition:all .2s;font-weight:500}
+.pg-nav a:hover{background:rgba(255,255,255,.06);color:#e2e8f0}
+.pg-nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;margin-right:auto}
+.pg-nav .logo span{font-size:1.25rem}
 </style>
 </head>
 <body>
 <nav class="pg-nav">
   <a href="/" class="logo"><span>⚡</span> ToolHub AI</a>
-  <a href="/multiplayer">← Back to Multiplayer</a>
+  <a href="/multiplayer">← Multiplayer</a>
 </nav>
 <div id="joinApp" class="join-wrap"></div>
 <script src="/socket.io/socket.io.js"></script>

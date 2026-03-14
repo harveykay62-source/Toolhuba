@@ -35,7 +35,7 @@ const PlayerGame = (() => {
       <div class="join-room-info">
         <strong>📚 ${esc(roomInfo.quizTitle)}</strong><br>
         Hosted by ${esc(roomInfo.hostName)} · ${roomInfo.playerCount} players<br>
-        <span class="lobby-mode-badge ${roomInfo.mode==='kahoot'?'mode-kahoot':'mode-blooket'}" style="display:inline-block;margin-top:8px;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:700">${roomInfo.mode==='kahoot'?'🏫 Kahoot':'🎲 Blooket'}</span>
+        <span class="lobby-mode-badge ${roomInfo.mode==='kahoot'?'mode-kahoot':'mode-blooket'}" style="display:inline-block;margin-top:8px;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:700">${roomInfo.mode==='kahoot'?'🏫 Classic':'⚔️ Gold Quest'}</span>
       </div>` : (roomCode ? `<div class="join-room-info" style="color:#f87171">Room "${roomCode}" not found. Check the code.</div>` : '')}
       <input class="join-name-input" id="nameInput" type="text" maxlength="24" placeholder="Your nickname">
       <button class="btn-join-submit" onclick="PlayerGame.doJoin()">Join Game →</button>
@@ -122,7 +122,7 @@ const PlayerGame = (() => {
 
   function renderWaiting(quizTitle, gameMode) {
     const modeClass = gameMode === 'kahoot' ? 'mode-kahoot' : 'mode-blooket';
-    const modeLabel = gameMode === 'kahoot' ? '🏫 Kahoot' : '🎲 Blooket';
+    const modeLabel = gameMode === 'kahoot' ? '🏫 Classic' : '⚔️ Gold Quest';
     document.getElementById('joinApp').innerHTML = `
     <div class="waiting-screen bounce-in">
       <span class="lobby-mode-badge ${modeClass}">${modeLabel}</span>
@@ -259,7 +259,7 @@ const PlayerGame = (() => {
   }
 
   function eventTitle(type) {
-    const titles = { steal:'Point Heist 🦊', double:'Double Up ⚡', bonus:'Lucky Drop 🎁', swap:'Score Swap 🔄', freeze:'Deep Freeze ❄️', nothing:'Nothing Happened' };
+    const titles = { steal:'Gold Heist 🦊', double:'Double Up ⚡', bonus:'Treasure Drop 🎁', swap:'Gold Swap 🔄', freeze:'Deep Freeze ❄️', nothing:'Empty Chest' };
     return titles[type] || 'Random Event';
   }
 

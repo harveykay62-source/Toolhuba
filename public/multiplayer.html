@@ -2,51 +2,126 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Multiplayer Quizzes — Kahoot & Blooket Style | ToolHub AI</title>
-<meta name="description" content="Play live multiplayer quizzes with friends or students. Kahoot-style for schools, Blooket-style with power-ups and events for everyone.">
+<title>Multiplayer Quizzes — Classic & Gold Quest | ToolHub AI</title>
+<meta name="description" content="Play live multiplayer quizzes with friends or students. Classic mode for schools, Gold Quest with chests and strategy for everyone.">
 <link rel="canonical" href="https://toolhuba.onrender.com/multiplayer">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/css/multiplayer.css">
 <style>
-.mp-nav{background:#1e293b;padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.mp-nav a{color:#94a3b8;text-decoration:none;font-size:.9rem;padding:6px 14px;border-radius:8px;transition:background .15s}
-.mp-nav a:hover{background:rgba(255,255,255,.08);color:#fff}
-.mp-nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1rem;text-decoration:none;margin-right:auto}
-.mp-nav .logo span{font-size:1.2rem}
-.mp-hero{text-align:center;padding:80px 20px 40px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);color:#fff;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.mp-hero h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;margin-bottom:16px;background:linear-gradient(135deg,#818cf8,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.mp-hero p{font-size:1.2rem;color:#94a3b8;max-width:600px;margin:0 auto 40px}
-.mp-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;max-width:900px;width:100%;margin:0 auto}
-.mp-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:36px 28px;cursor:pointer;transition:transform .2s,box-shadow .2s;text-align:left}
-.mp-card:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.mp-card.kahoot{border-color:#6366f1;background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.1))}
-.mp-card.blooket{border-color:#10b981;background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(245,158,11,.1))}
-.mp-card-icon{font-size:3rem;margin-bottom:16px}
-.mp-card-title{font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:8px}
-.mp-card-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:12px}
-.badge-school{background:#6366f1;color:#fff}.badge-all{background:#10b981;color:#fff}
-.mp-card-desc{color:#94a3b8;font-size:.95rem;line-height:1.6;margin-bottom:20px}
-.mp-card ul{color:#cbd5e1;font-size:.88rem;padding-left:18px;line-height:1.8}
-.mp-btn{display:inline-block;padding:12px 28px;border-radius:12px;font-weight:700;font-size:1rem;cursor:pointer;border:none;margin-top:16px;transition:opacity .2s}
-.mp-btn:hover{opacity:.85}
-.btn-kahoot{background:#6366f1;color:#fff}.btn-blooket{background:#10b981;color:#fff}
-.mp-join-section{text-align:center;padding:60px 20px;background:#0f172a}
-.mp-join-section h2{color:#fff;font-size:1.8rem;font-weight:700;margin-bottom:12px}
-.mp-join-section p{color:#94a3b8;margin-bottom:28px}
-.join-code-form{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.join-code-form input{padding:14px 20px;border-radius:12px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;font-size:1.2rem;letter-spacing:.1em;text-transform:uppercase;width:200px;text-align:center}
-.join-code-form input::placeholder{letter-spacing:0;text-transform:none}
-.join-code-form input:focus{outline:none;border-color:#6366f1}
-.mp-footer{background:#0f172a;border-top:1px solid rgba(255,255,255,.07);padding:28px 20px;text-align:center}
-.mp-footer a{color:#64748b;text-decoration:none;margin:0 10px;font-size:.85rem}
-.mp-footer a:hover{color:#818cf8}
-.mp-footer .copy{color:#334155;font-size:.78rem;margin-top:14px}
+*{box-sizing:border-box}
+body{margin:0;background:#090e1a;font-family:'Inter',sans-serif;overflow-x:hidden}
+
+.mp-nav{background:rgba(15,23,42,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:16px 28px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:100}
+.mp-nav a{color:#64748b;text-decoration:none;font-size:.88rem;padding:7px 14px;border-radius:10px;transition:all .2s;font-weight:500}
+.mp-nav a:hover{background:rgba(255,255,255,.06);color:#e2e8f0}
+.mp-nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;margin-right:auto}
+.mp-nav .logo span{font-size:1.25rem}
+
+.mp-hero{
+  text-align:center;padding:100px 24px 60px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,102,241,.12) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 50% at 20% 100%,rgba(16,185,129,.08) 0%,transparent 50%),
+             #090e1a;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative
+}
+.mp-hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='.6' fill='rgba(148,163,184,0.06)'/%3E%3C/svg%3E");
+  pointer-events:none
+}
+.mp-hero-icon{
+  width:80px;height:80px;border-radius:24px;
+  background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(16,185,129,.2));
+  border:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.5rem;margin-bottom:28px;
+  box-shadow:0 0 60px rgba(99,102,241,.15)
+}
+.mp-hero h1{
+  font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:900;margin-bottom:14px;
+  background:linear-gradient(135deg,#e2e8f0 0%,#94a3b8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:-.03em;line-height:1.1
+}
+.mp-hero .subtitle{
+  font-size:1.15rem;color:#64748b;max-width:480px;margin:0 auto 52px;line-height:1.7;font-weight:400
+}
+
+.mp-actions{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;position:relative;z-index:1}
+.mp-action-btn{
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  padding:36px 48px;border-radius:20px;cursor:pointer;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  text-decoration:none;border:1px solid rgba(255,255,255,.08);
+  min-width:240px;position:relative;overflow:hidden
+}
+.mp-action-btn::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;border-radius:20px
+}
+.mp-action-btn:hover{transform:translateY(-4px)}
+.mp-action-btn:hover::before{opacity:1}
+.mp-action-btn:active{transform:translateY(-2px)}
+.mp-action-btn.setup{background:rgba(99,102,241,.08)}
+.mp-action-btn.setup::before{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.12))}
+.mp-action-btn.setup:hover{border-color:rgba(99,102,241,.3);box-shadow:0 20px 60px rgba(99,102,241,.15),0 0 0 1px rgba(99,102,241,.15)}
+.mp-action-btn.join{background:rgba(16,185,129,.08)}
+.mp-action-btn.join::before{background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(52,211,153,.12))}
+.mp-action-btn.join:hover{border-color:rgba(16,185,129,.3);box-shadow:0 20px 60px rgba(16,185,129,.15),0 0 0 1px rgba(16,185,129,.15)}
+.mp-action-icon{
+  width:56px;height:56px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem;position:relative;z-index:1
+}
+.mp-action-btn.setup .mp-action-icon{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2)}
+.mp-action-btn.join .mp-action-icon{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.2)}
+.mp-action-label{font-size:1.15rem;font-weight:700;color:#fff;position:relative;z-index:1}
+.mp-action-desc{font-size:.85rem;color:#64748b;position:relative;z-index:1;font-weight:400}
+
+.mp-join-inline{margin-top:56px;position:relative;z-index:1;display:none;animation:slideUp .35s ease-out}
+.mp-join-inline.visible{display:block}
+.mp-join-card{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;padding:36px 32px;max-width:420px;margin:0 auto;
+  backdrop-filter:blur(8px)
+}
+.mp-join-card h3{color:#fff;font-size:1.2rem;font-weight:700;margin-bottom:6px}
+.mp-join-card p{color:#64748b;font-size:.9rem;margin-bottom:24px}
+.join-input-group{display:flex;gap:10px}
+.join-input-group input{
+  flex:1;padding:14px 18px;border-radius:12px;
+  border:1.5px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);color:#fff;font-size:1.2rem;
+  letter-spacing:.12em;text-transform:uppercase;text-align:center;
+  font-weight:600;transition:border-color .2s;font-family:'Inter',sans-serif
+}
+.join-input-group input::placeholder{letter-spacing:0;text-transform:none;font-weight:400;font-size:.95rem;color:#475569}
+.join-input-group input:focus{outline:none;border-color:#6366f1;background:rgba(99,102,241,.06)}
+.join-input-group button{
+  padding:14px 24px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;
+  font-weight:700;font-size:.95rem;cursor:pointer;transition:opacity .2s;white-space:nowrap
+}
+.join-input-group button:hover{opacity:.85}
+#joinError{color:#f87171;margin-top:10px;font-size:.85rem;text-align:center}
+
+.mp-footer{background:rgba(15,23,42,.6);border-top:1px solid rgba(255,255,255,.04);padding:24px 20px;text-align:center}
+.mp-footer a{color:#475569;text-decoration:none;margin:0 12px;font-size:.82rem;transition:color .15s}
+.mp-footer a:hover{color:#94a3b8}
+.mp-footer .copy{color:#1e293b;font-size:.75rem;margin-top:12px}
+
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@media(max-width:520px){
+  .mp-actions{flex-direction:column;align-items:center}
+  .mp-action-btn{min-width:280px;padding:28px 36px}
+  .mp-hero{padding:60px 16px 40px}
+}
 </style>
 </head>
-<body style="background:#0f172a;margin:0">
+<body>
 
 <nav class="mp-nav">
   <a href="/" class="logo"><span>⚡</span> ToolHub AI</a>
@@ -56,46 +131,34 @@
 </nav>
 
 <div class="mp-hero">
-  <h1>🎮 Multiplayer Quizzes</h1>
-  <p>Challenge friends or students in live quiz battles. Choose your game mode below.</p>
-  <div class="mp-cards">
-    <div class="mp-card kahoot" onclick="goHost('kahoot')">
-      <div class="mp-card-icon">🏫</div>
-      <div class="mp-card-title">Kahoot-Style</div>
-      <span class="mp-card-badge badge-school">🏫 Schools Only</span>
-      <div class="mp-card-desc">Classic live quiz experience designed for classrooms. Simple, focused, and perfect for learning.</div>
-      <ul>
-        <li>Live questions with countdown timer</li>
-        <li>Real-time leaderboard</li>
-        <li>Teacher host controls</li>
-        <li>Approved school domains only</li>
-      </ul>
-      <button class="mp-btn btn-kahoot">Host Kahoot Game →</button>
-    </div>
-    <div class="mp-card blooket" onclick="goHost('blooket')">
-      <div class="mp-card-icon">🎲</div>
-      <div class="mp-card-title">Blooket-Style</div>
-      <span class="mp-card-badge badge-all">🌍 Everyone</span>
-      <div class="mp-card-desc">Full game experience with wild cards, power-ups, and chaos events. The more competitive the better!</div>
-      <ul>
-        <li>Steal points from rivals 🦊</li>
-        <li>Double points bonuses ⚡</li>
-        <li>Freeze opponents ❄️</li>
-        <li>Animated leaderboard updates</li>
-      </ul>
-      <button class="mp-btn btn-blooket">Host Blooket Game →</button>
-    </div>
-  </div>
-</div>
+  <div class="mp-hero-icon">🎮</div>
+  <h1>Multiplayer</h1>
+  <p class="subtitle">Challenge friends or students in live quiz battles. Set up your own game or jump into one.</p>
 
-<div class="mp-join-section">
-  <h2>📋 Have a Game Code?</h2>
-  <p>Enter the 6-character code your host shared with you.</p>
-  <div class="join-code-form">
-    <input id="joinCodeInput" type="text" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
-    <button class="mp-btn btn-kahoot" onclick="doJoin()">Join Game →</button>
+  <div class="mp-actions">
+    <div class="mp-action-btn setup" onclick="goSetup()">
+      <div class="mp-action-icon">🚀</div>
+      <div class="mp-action-label">Setup a Game</div>
+      <div class="mp-action-desc">Choose mode, pick a quiz, invite players</div>
+    </div>
+    <div class="mp-action-btn join" onclick="showJoin()">
+      <div class="mp-action-icon">🎯</div>
+      <div class="mp-action-label">Join a Game</div>
+      <div class="mp-action-desc">Enter a code to jump into a live game</div>
+    </div>
   </div>
-  <div id="joinError" style="color:#f87171;margin-top:12px;font-size:.9rem"></div>
+
+  <div class="mp-join-inline" id="joinSection">
+    <div class="mp-join-card">
+      <h3>Enter Game Code</h3>
+      <p>Type the 6-character code your host shared with you.</p>
+      <div class="join-input-group">
+        <input id="joinCodeInput" type="text" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
+        <button onclick="doJoin()">Join →</button>
+      </div>
+      <div id="joinError"></div>
+    </div>
+  </div>
 </div>
 
 <footer class="mp-footer">
@@ -104,23 +167,24 @@
 </footer>
 
 <script>
-async function goHost(mode) {
+async function goSetup() {
   try {
     const init = await fetch('/api/init').then(r=>r.json());
     if (!init.session.loggedIn) {
-      window.location.href = '/login?redirect=/host-game&mode='+mode;
+      window.location.href = '/login?redirect=/host-game';
       return;
     }
-    if (mode === 'kahoot') {
-      const role = init.session.role;
-      if (!['teacher','student','educator','admin'].includes(role)) {
-        alert('Kahoot mode is only available to approved school accounts.\n\nContact your admin to get your school domain approved.');
-        return;
-      }
-    }
-    window.location.href = '/host-game?mode=' + mode;
+    window.location.href = '/host-game';
   } catch(e) {
     alert('Could not connect. Please try again.');
+  }
+}
+
+function showJoin() {
+  const sec = document.getElementById('joinSection');
+  sec.classList.toggle('visible');
+  if (sec.classList.contains('visible')) {
+    setTimeout(() => document.getElementById('joinCodeInput').focus(), 100);
   }
 }
 

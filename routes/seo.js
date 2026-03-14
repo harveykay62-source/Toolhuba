@@ -353,9 +353,9 @@ function categoryPage(dir, cat) {
 
 function multiplayer(dir) {
   return buildPage(dir, {
-    title: 'Multiplayer Quizzes — Kahoot & Blooket Style | ToolHub AI',
-    description: 'Play live multiplayer quizzes with friends or students. Kahoot-style for schools, Blooket-style with power-ups and events for everyone.',
-    keywords: 'multiplayer quiz, kahoot style, blooket style, live quiz game, school quiz, real-time quiz',
+    title: 'Multiplayer Quizzes — Classic & Gold Quest | ToolHub AI',
+    description: 'Play live multiplayer quizzes with friends or students. Classic mode for schools, Gold Quest with chests and strategy for everyone.',
+    keywords: 'multiplayer quiz, classic quiz, gold quest, live quiz game, school quiz, real-time quiz',
     canonical: SITE_URL + '/multiplayer',
     robots: 'index, follow',
   });
@@ -364,7 +364,7 @@ function multiplayer(dir) {
 function hostGame(dir) {
   return buildPage(dir, {
     title: 'Host a Game — ToolHub AI Multiplayer',
-    description: 'Create a live multiplayer quiz game. Choose Kahoot or Blooket mode, select a quiz and share the join code.',
+    description: 'Create a live multiplayer quiz game. Choose Classic or Gold Quest mode, select a quiz and share the join code.',
     keywords: 'host quiz game, create quiz game, multiplayer host',
     canonical: SITE_URL + '/host-game',
     robots: 'noindex',
