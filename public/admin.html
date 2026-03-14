@@ -263,6 +263,9 @@ input:checked+.toggle-slider::before{transform:translateX(18px)}
     <div class="nav-item" onclick="showSection('settings')" id="nav-settings">
       <span class="nav-icon">🛠️</span> Settings
     </div>
+    <div class="nav-item" onclick="showSection('env-config')" id="nav-env-config">
+      <span class="nav-icon">🔑</span> Environment
+    </div>
   </nav>
 
   <div class="sidebar-footer">
@@ -379,7 +382,8 @@ const SECTION_TITLES = {
   realtime:'Real-time Analytics', overview:'Overview', traffic:'Traffic',
   'tools-analytics':'Tool Usage', users:'Users', 'tool-mgmt':'Tool Management',
   bugs:'Bug Reports', settings:'Settings', quizzes:'Quiz Management',
-  teachers:'Teacher Accounts', 'school-domains':'School Domains', multiplayer:'Multiplayer Games'
+  teachers:'Teacher Accounts', 'school-domains':'School Domains', multiplayer:'Multiplayer Games',
+  'env-config':'Environment Variables'
 };
 
 function showSection(s) {
@@ -407,6 +411,7 @@ function renderSection(s) {
     case 'teachers':        el.innerHTML = renderTeachers(); setTimeout(loadTeachers, 50); break;
     case 'school-domains':  el.innerHTML = renderSchoolDomains(); setTimeout(loadSchoolDomains, 50); break;
     case 'multiplayer':     el.innerHTML = renderMultiplayerAdmin(); setTimeout(loadMultiplayerAdmin, 50); break;
+    case 'env-config':      el.innerHTML = '<div style="padding:20px;color:var(--text2)">Loading environment config…</div>'; loadEnvConfig(); break;
     default: el.innerHTML = '<div class="empty-state">Section coming soon.</div>';
   }
 }
@@ -826,6 +831,97 @@ async function changePassword() {
     toast('Password updated!', 'success');
     document.getElementById('newPw').value = '';
   } catch(e) { toast(e.message||'Failed', 'error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENVIRONMENT VARIABLES PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function loadEnvConfig() {
+  const el = document.getElementById('mainContent');
+  try {
+    const data = await api('/api/admin/env-config');
+    const env = data.env || {};
+    const keys = Object.keys(env);
+
+    const statusIcon = (v) => v.set
+      ? '<span style="color:var(--success);font-weight:700">✓ Set</span>'
+      : '<span style="color:var(--danger);font-weight:700">✗ Not set</span>';
+
+    const displayValue = (v) => {
+      if (v.value !== undefined && v.value !== '') return esc(String(v.value));
+      if (v.masked) return v.masked;
+      return '<span style="color:var(--text3)">—</span>';
+    };
+
+    el.innerHTML = `
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <span class="card-title">🔑 Environment Variables</span>
+        <span class="card-sub">All .env variables used by the server</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--text2);line-height:1.7">
+        <strong style="color:var(--warn)">⚠️ Note:</strong> Environment variables are set in your hosting provider (e.g. Render dashboard) — not editable here.
+        This panel shows which variables are configured and their status. Masked values are partially hidden for security.
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600;text-transform:uppercase">Variable</th>
+              <th style="text-align:left;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600;text-transform:uppercase">Status</th>
+              <th style="text-align:left;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600;text-transform:uppercase">Value / Masked</th>
+              <th style="text-align:left;padding:10px 12px;color:var(--text3);font-size:11px;font-weight:600;text-transform:uppercase">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${keys.map(k => {
+              const v = env[k];
+              return `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:11px 12px;font-family:monospace;font-size:12px;color:var(--accent);font-weight:600">${esc(k)}</td>
+                <td style="padding:11px 12px">${statusIcon(v)}</td>
+                <td style="padding:11px 12px;font-family:monospace;font-size:12px;color:var(--text2)">${displayValue(v)}</td>
+                <td style="padding:11px 12px;color:var(--text3);font-size:12px">${esc(v.desc || '')}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="stat-grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📋 Required Variables</span></div>
+        <div style="font-size:13px;color:var(--text2);line-height:2">
+          ${['DATABASE_URL','SESSION_SECRET','SITE_URL','ADMIN_EMAIL','ADMIN_PASSWORD'].map(k => {
+            const v = env[k];
+            return `<div style="display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:${v && v.set ? 'var(--success)' : 'var(--danger)'};flex-shrink:0"></span>
+              <span style="font-family:monospace;font-size:12px">${k}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">🔧 Optional Variables</span></div>
+        <div style="font-size:13px;color:var(--text2);line-height:2">
+          ${['GOOGLE_CLIENT_ID','REDIS_URL','IPINFO_TOKEN','PAYPAL_CLIENT_ID','ADSENSE_CLIENT_ID','ADSENSE_SLOT_BANNER','ADSENSE_SLOT_SIDEBAR'].map(k => {
+            const v = env[k];
+            return `<div style="display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:${v && v.set ? 'var(--success)' : 'var(--warn)'};flex-shrink:0"></span>
+              <span style="font-family:monospace;font-size:12px">${k}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><span class="card-title">🔒 GDPR / Privacy Compliance Settings</span></div>
+      ${settingField('cookie_consent_required','Require Cookie Consent','text', ADMIN_DATA.settings?.cookie_consent_required || 'true')}
+      ${settingField('data_retention_days','Data Retention Period (days)','number', ADMIN_DATA.settings?.data_retention_days || '365')}
+      ${settingField('gdpr_dpo_email','Data Protection Officer Email','text', ADMIN_DATA.settings?.gdpr_dpo_email || 'privacy@toolhub.ai')}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="card"><div style="padding:40px;text-align:center;color:var(--danger)">Failed to load environment config: ${esc(e.message)}</div></div>`;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

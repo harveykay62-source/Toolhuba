@@ -4,16 +4,28 @@
 let APP = { session:{}, settings:{}, tools:[], categories:{} };
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+// Detects standalone pages (multiplayer, privacy, etc.) and skips SPA rendering
+const STANDALONE_PAGES = ['/multiplayer','/host-game','/join-game','/game-room','/leaderboard','/privacy','/teacher'];
+const _isStandalonePage = STANDALONE_PAGES.some(p => window.location.pathname.startsWith(p));
+
 async function init() {
   try {
     const data = await apiFetch('/api/init');
     APP = { ...data, tools: (data.tools||[]).filter(t => t.enabled !== false) };
     applyTheme(localStorage.getItem('theme') || 'light');
-    setupHeader();
-    setupSearch();
+
+    // Only set up SPA elements if they exist on the page
+    if (document.getElementById('userArea')) setupHeader();
+    if (document.getElementById('searchInput')) setupSearch();
     setupAds();
-    handleRoute();
+
+    // Only do SPA routing on the main SPA shell (index.html)
+    if (!_isStandalonePage && document.getElementById('app')) {
+      handleRoute();
+    }
+
     setupKeyboardShortcuts();
+
     // Load Google Identity Services if configured
     if (APP.settings.googleClientId && !document.getElementById('gsi-script')) {
       const s = document.createElement('script');
@@ -23,13 +35,19 @@ async function init() {
       document.head.appendChild(s);
     }
   } catch(e) {
-    document.getElementById('app').innerHTML = `<div class="page-loading"><p style="color:var(--text-muted)">Failed to load. Please refresh.</p></div>`;
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.innerHTML = `<div class="page-loading"><p style="color:var(--text-muted)">Failed to load. Please refresh.</p></div>`;
   }
 }
 
 // ── Routing ───────────────────────────────────────────────────────────────────
 function handleRoute() {
   const path = window.location.pathname;
+  // Standalone pages — do a hard navigation (they are served as separate HTML files)
+  if (STANDALONE_PAGES.some(p => path.startsWith(p))) {
+    window.location.href = path + window.location.search;
+    return;
+  }
   if (path.startsWith('/tool/')) {
     const id = path.replace('/tool/','');
     const tool = APP.tools.find(t => t.id === id);
@@ -42,6 +60,8 @@ function handleRoute() {
   }
   if (path === '/dashboard') { renderDashboard(); return; }
   if (path === '/admin') { window.location.href = '/admin'; return; }
+  if (path === '/login') { renderHome(); setTimeout(() => showLogin(), 100); return; }
+  if (path === '/register') { renderHome(); setTimeout(() => showSignup(), 100); return; }
   if (path.startsWith('/quizzes') || path === '/quiz') { renderQuizHub(); return; }
   if (path.startsWith('/quiz/')) { const id = path.replace('/quiz/',''); renderQuizPlay(id); return; }
   renderHome();
@@ -125,6 +145,10 @@ function setupAds() {
   const isEducator = APP.session.isVerifiedEducator;
   if (isPremium || isStudent || isEducator || !APP.settings.adsEnabled) return;
 
+  // GDPR: only load ads if user has accepted non-essential cookies
+  const cookieConsent = localStorage.getItem('cookie_consent');
+  if (cookieConsent === 'essential') return; // user declined ad cookies
+
   const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
   const slot   = APP.settings.adsenseBanner  || '';
 
@@ -151,6 +175,9 @@ function getToolPageAd() {
   const isPremium = APP.session.role === 'premium' || APP.session.role === 'admin' || APP.session.role === 'educator' || APP.session.role === 'teacher';
   const isStudent  = APP.session.isStudent || APP.session.role === 'student';
   if (isPremium || isStudent || APP.session.isVerifiedEducator || !APP.settings.adsEnabled) return '';
+  // GDPR: only show ads if user accepted non-essential cookies
+  const cookieConsent = localStorage.getItem('cookie_consent');
+  if (cookieConsent === 'essential') return '';
   const client = APP.settings.adsenseClient || 'ca-pub-6454181337553477';
   const slot   = APP.settings.adsenseBanner  || '';
   setTimeout(() => {
@@ -311,6 +338,7 @@ function renderHome(initialCat) {
           <a href="/category/media" onclick="event.preventDefault();navigate('category','media')">Media Tools</a>
           <a href="/category/utility" onclick="event.preventDefault();navigate('category','utility')">Utility Tools</a>
           <a href="/quizzes" onclick="event.preventDefault();navigate('quizzes')">Quizzes</a>
+          <a href="/multiplayer">🎮 Multiplayer</a>
           <a href="/tool/ai-detector" onclick="event.preventDefault();navigate('tool','ai-detector')">AI Detector</a>
           <a href="/tool/ai-humanizer" onclick="event.preventDefault();navigate('tool','ai-humanizer')">AI Humanizer</a>
           <a href="/tool/paraphraser" onclick="event.preventDefault();navigate('tool','paraphraser')">Paraphraser</a>
@@ -318,6 +346,7 @@ function renderHome(initialCat) {
           <a href="/tool/qr-generator" onclick="event.preventDefault();navigate('tool','qr-generator')">QR Generator</a>
           <a href="/tool/json-formatter" onclick="event.preventDefault();navigate('tool','json-formatter')">JSON Formatter</a>
           <a href="/tool/password-generator" onclick="event.preventDefault();navigate('tool','password-generator')">Password Generator</a>
+          <a href="/privacy">🔒 Privacy Policy</a>
         </div>
         <div class="footer-copy">© ${new Date().getFullYear()} ToolHub AI — ${toolCount} free online tools. No account required.</div>
       </div>
@@ -524,7 +553,9 @@ function toast(msg, type='info', duration=3500) {
   el.className = `toast ${type}`;
   const icon = type==='success'?'✓':type==='error'?'✕':type==='warn'?'⚠':'ℹ';
   el.innerHTML = `<span>${icon}</span> ${msg}`;
-  document.getElementById('toastContainer').appendChild(el);
+  const container = document.getElementById('toastContainer');
+  if (container) container.appendChild(el);
+  else { el.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;padding:12px 20px;border-radius:10px;font-weight:600;color:#fff;background:'+({success:'#10b981',error:'#ef4444',warn:'#f59e0b',info:'#6366f1'}[type]||'#6366f1'); document.body.appendChild(el); }
   setTimeout(()=>el.remove(), duration);
 }
 

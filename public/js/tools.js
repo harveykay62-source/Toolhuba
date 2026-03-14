@@ -1705,10 +1705,10 @@ function pomToggle(){
       document.getElementById('pomTime').textContent=window._pomFmt(nextTime);
       document.getElementById('pomBtn').textContent='▶ Start';
       toast(nextPhase==='Focus'?'Break over! Time to focus 🍅':'Focus complete! Take a break ☕','success',4000);
-      if(Notification.permission==='granted')new Notification('ToolHub Pomodoro',{body:nextPhase==='Focus'?'Time to focus!':'Time for a break!'});
+      if(typeof Notification!=='undefined'&&Notification.permission==='granted')new Notification('ToolHub Pomodoro',{body:nextPhase==='Focus'?'Time to focus!':'Time for a break!'});
     }
   },1000);
-  if(Notification.permission==='default')Notification.requestPermission();
+  if(typeof Notification!=='undefined'&&Notification.permission==='default')Notification.requestPermission();
 }
 function pomReset(){clearInterval(window._pomInterval);window._pomInterval=null;window._pomLeft=parseInt(document.getElementById('pomFocus').value||25)*60;window._pomPhase='Focus';document.getElementById('pomTime').textContent=window._pomFmt(window._pomLeft);document.getElementById('pomPhase').textContent='🍅 Focus Session';document.getElementById('pomBtn').textContent='▶ Start';}
 

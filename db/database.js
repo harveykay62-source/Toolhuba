@@ -118,6 +118,8 @@ async function initDB() {
     ['adsense_slot_sidebar', process.env.ADSENSE_SLOT_SIDEBAR || '0987654321'],
     ['paypal_client_id', process.env.PAYPAL_CLIENT_ID || ''],
     ['maintenance_mode','false'],['disabled_tools',''],['revenue_earned','0'],
+    ['cookie_consent_required','true'],['data_retention_days','365'],
+    ['gdpr_dpo_email','privacy@toolhub.ai'],
   ];
   for (const [k, v] of defaults) {
     await pool.query(`INSERT INTO settings (key,value) VALUES ($1,$2) ON CONFLICT (key) DO NOTHING`, [k, v]);

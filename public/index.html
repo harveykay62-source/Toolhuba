@@ -148,8 +148,21 @@
   <div style="color:#334155;font-size:.78rem;margin-top:16px">© 2025 ToolHub AI — Free AI Tools &amp; Quizzes</div>
 </footer>
 
+<!-- Cookie Consent Banner (GDPR/ePrivacy compliance) -->
+<div id="cookieBanner" style="position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid rgba(99,102,241,.3);padding:16px 24px;z-index:10000;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;box-shadow:0 -4px 24px rgba(0,0,0,.4)">
+  <p style="color:#cbd5e1;font-size:.9rem;margin:0;max-width:600px">We use essential cookies to keep you logged in and optional cookies for advertising (Google AdSense). See our <a href="/privacy" style="color:#818cf8">Privacy Policy</a> for details.</p>
+  <button onclick="acceptCookies()" style="background:#6366f1;color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem">Accept All</button>
+  <button onclick="declineCookies()" style="background:rgba(255,255,255,.08);color:#94a3b8;border:none;padding:10px 24px;border-radius:10px;font-weight:600;cursor:pointer;font-size:.9rem">Essential Only</button>
+</div>
+<script>
+function acceptCookies(){localStorage.setItem('cookie_consent','all');document.getElementById('cookieBanner').style.display='none';}
+function declineCookies(){localStorage.setItem('cookie_consent','essential');document.getElementById('cookieBanner').style.display='none';}
+(function(){if(localStorage.getItem('cookie_consent'))document.getElementById('cookieBanner').style.display='none';})();
+</script>
+
 <script src="/js/app.js"></script>
 <script src="/js/tools.js"></script>
+<script src="/js/dashboard.js"></script>
 <script src="/js/quiz.js"></script>
 <script src="/js/quiz-engine.js"></script>
 </body>

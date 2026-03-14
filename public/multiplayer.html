@@ -1,11 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Multiplayer — ToolHub AI</title>
+<title>Multiplayer Quizzes — Kahoot & Blooket Style | ToolHub AI</title>
+<meta name="description" content="Play live multiplayer quizzes with friends or students. Kahoot-style for schools, Blooket-style with power-ups and events for everyone.">
+<link rel="canonical" href="https://toolhuba.onrender.com/multiplayer">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/css/multiplayer.css">
 <style>
+.mp-nav{background:#1e293b;padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.mp-nav a{color:#94a3b8;text-decoration:none;font-size:.9rem;padding:6px 14px;border-radius:8px;transition:background .15s}
+.mp-nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+.mp-nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1rem;text-decoration:none;margin-right:auto}
+.mp-nav .logo span{font-size:1.2rem}
 .mp-hero{text-align:center;padding:80px 20px 40px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);color:#fff;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .mp-hero h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;margin-bottom:16px;background:linear-gradient(135deg,#818cf8,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .mp-hero p{font-size:1.2rem;color:#94a3b8;max-width:600px;margin:0 auto 40px}
@@ -30,10 +40,20 @@
 .join-code-form input{padding:14px 20px;border-radius:12px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;font-size:1.2rem;letter-spacing:.1em;text-transform:uppercase;width:200px;text-align:center}
 .join-code-form input::placeholder{letter-spacing:0;text-transform:none}
 .join-code-form input:focus{outline:none;border-color:#6366f1}
+.mp-footer{background:#0f172a;border-top:1px solid rgba(255,255,255,.07);padding:28px 20px;text-align:center}
+.mp-footer a{color:#64748b;text-decoration:none;margin:0 10px;font-size:.85rem}
+.mp-footer a:hover{color:#818cf8}
+.mp-footer .copy{color:#334155;font-size:.78rem;margin-top:14px}
 </style>
 </head>
-<body class="dark-mode">
-<nav class="navbar" id="navbar"></nav>
+<body style="background:#0f172a;margin:0">
+
+<nav class="mp-nav">
+  <a href="/" class="logo"><span>⚡</span> ToolHub AI</a>
+  <a href="/">🔧 Tools</a>
+  <a href="/quizzes">🎓 Quizzes</a>
+  <a href="/privacy">🔒 Privacy</a>
+</nav>
 
 <div class="mp-hero">
   <h1>🎮 Multiplayer Quizzes</h1>
@@ -78,22 +98,30 @@
   <div id="joinError" style="color:#f87171;margin-top:12px;font-size:.9rem"></div>
 </div>
 
-<script src="/js/app.js"></script>
+<footer class="mp-footer">
+  <div><a href="/">🏠 Home</a><a href="/quizzes">🎓 Quizzes</a><a href="/privacy">🔒 Privacy</a></div>
+  <div class="copy">© 2025 ToolHub AI — Free AI Tools &amp; Quizzes</div>
+</footer>
+
 <script>
 async function goHost(mode) {
-  const init = await fetch('/api/init').then(r=>r.json());
-  if (!init.session.loggedIn) {
-    window.location.href = '/login?redirect=/host-game&mode='+mode;
-    return;
-  }
-  if (mode === 'kahoot') {
-    const role = init.session.role;
-    if (!['teacher','student','educator','admin'].includes(role)) {
-      alert('Kahoot mode is only available to approved school accounts.\n\nContact your admin to get your school domain approved.');
+  try {
+    const init = await fetch('/api/init').then(r=>r.json());
+    if (!init.session.loggedIn) {
+      window.location.href = '/login?redirect=/host-game&mode='+mode;
       return;
     }
+    if (mode === 'kahoot') {
+      const role = init.session.role;
+      if (!['teacher','student','educator','admin'].includes(role)) {
+        alert('Kahoot mode is only available to approved school accounts.\n\nContact your admin to get your school domain approved.');
+        return;
+      }
+    }
+    window.location.href = '/host-game?mode=' + mode;
+  } catch(e) {
+    alert('Could not connect. Please try again.');
   }
-  window.location.href = '/host-game?mode=' + mode;
 }
 
 async function doJoin() {

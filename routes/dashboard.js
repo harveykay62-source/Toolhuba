@@ -109,11 +109,46 @@ router.get('/admin/stats', requireAdmin, async (req, res) => {
 });
 
 router.post('/admin/settings', requireAdmin, async (req, res) => {
-  const allowed = ['ads_enabled','free_daily_limit','premium_price','site_name','adsense_client','adsense_slot_banner','adsense_slot_sidebar','paypal_client_id','maintenance_mode','revenue_earned'];
+  const allowed = [
+    'ads_enabled','free_daily_limit','premium_price','site_name',
+    'adsense_client','adsense_slot_banner','adsense_slot_sidebar',
+    'paypal_client_id','maintenance_mode','revenue_earned',
+    'google_client_id','site_url','session_secret','admin_email',
+    'redis_url','ipinfo_token','cookie_consent_required',
+    'data_retention_days','gdpr_dpo_email'
+  ];
   const { key, value } = req.body;
   if (!allowed.includes(key)) return res.status(400).json({ error: 'Invalid setting' });
   await db.setSetting(key, value);
   res.json({ success: true });
+});
+
+// ── Admin: environment variables status ──────────────────────────────────────
+router.get('/admin/env-config', requireAdmin, (req, res) => {
+  const mask = (val) => {
+    if (!val) return '';
+    if (val.length <= 8) return '••••••';
+    return val.slice(0, 4) + '••••' + val.slice(-4);
+  };
+  res.json({
+    env: {
+      DATABASE_URL:       { set: !!process.env.DATABASE_URL,       masked: mask(process.env.DATABASE_URL),       editable: false, desc: 'PostgreSQL connection string' },
+      SESSION_SECRET:     { set: !!process.env.SESSION_SECRET,     masked: mask(process.env.SESSION_SECRET),     editable: false, desc: 'Express session secret key' },
+      GOOGLE_CLIENT_ID:   { set: !!process.env.GOOGLE_CLIENT_ID,   masked: mask(process.env.GOOGLE_CLIENT_ID),   editable: false, desc: 'Google OAuth Client ID' },
+      SITE_URL:           { set: !!process.env.SITE_URL,           value: process.env.SITE_URL || '',            editable: false, desc: 'Public site URL for SEO/links' },
+      ADMIN_EMAIL:        { set: !!process.env.ADMIN_EMAIL,        value: process.env.ADMIN_EMAIL || '',         editable: false, desc: 'Admin account email' },
+      ADMIN_PASSWORD:     { set: !!process.env.ADMIN_PASSWORD,     masked: '••••••••',                           editable: false, desc: 'Admin account initial password' },
+      REDIS_URL:          { set: !!process.env.REDIS_URL,          masked: mask(process.env.REDIS_URL),          editable: false, desc: 'Redis URL for multiplayer rooms' },
+      IPINFO_TOKEN:       { set: !!process.env.IPINFO_TOKEN,       masked: mask(process.env.IPINFO_TOKEN),       editable: false, desc: 'IPInfo API token for geo lookup' },
+      NODE_ENV:           { set: !!process.env.NODE_ENV,           value: process.env.NODE_ENV || 'development', editable: false, desc: 'Node environment' },
+      PORT:               { set: !!process.env.PORT,               value: process.env.PORT || '3000',            editable: false, desc: 'Server port' },
+      DATA_DIR:           { set: !!process.env.DATA_DIR,           value: process.env.DATA_DIR || './data',      editable: false, desc: 'Data storage directory' },
+      ADSENSE_CLIENT_ID:  { set: !!process.env.ADSENSE_CLIENT_ID,  value: process.env.ADSENSE_CLIENT_ID || '',   editable: false, desc: 'Google AdSense client ID' },
+      ADSENSE_SLOT_BANNER:{ set: !!process.env.ADSENSE_SLOT_BANNER,value: process.env.ADSENSE_SLOT_BANNER || '', editable: false, desc: 'AdSense banner slot ID' },
+      ADSENSE_SLOT_SIDEBAR:{set: !!process.env.ADSENSE_SLOT_SIDEBAR,value:process.env.ADSENSE_SLOT_SIDEBAR || '',editable: false, desc: 'AdSense sidebar slot ID' },
+      PAYPAL_CLIENT_ID:   { set: !!process.env.PAYPAL_CLIENT_ID,   masked: mask(process.env.PAYPAL_CLIENT_ID),   editable: false, desc: 'PayPal client ID' },
+    }
+  });
 });
 
 router.post('/admin/users/:id/role', requireAdmin, async (req, res) => {

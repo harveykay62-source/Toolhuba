@@ -154,20 +154,20 @@ app.get('/category/:cat', (req, res, next) => {
   HTML(res, SEO.categoryPage(__dirname, cat));
 });
 
-// ── Multiplayer pages ─────────────────────────────────────────────────────────
-app.get('/multiplayer',  (req, res) => HTML(res, SEO.multiplayer(__dirname)));
-app.get('/host-game',    (req, res) => HTML(res, SEO.hostGame(__dirname)));
-app.get('/join-game',    (req, res) => HTML(res, SEO.joinGame(__dirname)));
-app.get('/game-room',    (req, res) => HTML(res, SEO.gameRoom(__dirname)));
-app.get('/leaderboard',  (req, res) => HTML(res, SEO.leaderboard(__dirname)));
-app.get('/privacy',      (req, res) => HTML(res, SEO.privacy(__dirname)));
+// ── Multiplayer pages (serve standalone HTML files directly) ──────────────────
+app.get('/multiplayer',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'multiplayer.html')));
+app.get('/host-game',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'host-game.html')));
+app.get('/join-game',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'join-game.html')));
+app.get('/game-room',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'game-room.html')));
+app.get('/leaderboard',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
+app.get('/privacy',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
 
 // ── Teacher dashboard ─────────────────────────────────────────────────────────
 app.get('/teacher', (req, res) => {
   if (!req.session || !['teacher','admin'].includes(req.session.role)) {
     return res.redirect('/login?redirect=/teacher');
   }
-  HTML(res, SEO.teacherDashboard(__dirname));
+  res.sendFile(path.join(__dirname, 'public', 'teacher.html'));
 });
 
 // ── Admin ─────────────────────────────────────────────────────────────────────

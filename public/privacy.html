@@ -1,43 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Privacy Policy — ToolHub AI</title>
 <meta name="description" content="ToolHub AI Privacy Policy — how we collect, use, and protect your data.">
 <link rel="canonical" href="https://toolhuba.onrender.com/privacy">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 <style>
+body{margin:0;background:#0f172a;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.priv-nav{background:#1e293b;padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.priv-nav a{color:#94a3b8;text-decoration:none;font-size:.9rem;padding:6px 14px;border-radius:8px;transition:background .15s}
+.priv-nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+.priv-nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1rem;text-decoration:none;margin-right:auto}
+.priv-nav .logo span{font-size:1.2rem}
 .privacy-hero{background:linear-gradient(135deg,#0f172a,#1e1b4b);padding:80px 20px 50px;text-align:center;color:#fff}
 .privacy-hero h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;margin-bottom:12px}
 .privacy-hero p{color:#94a3b8;max-width:560px;margin:0 auto}
-.privacy-body{max-width:800px;margin:0 auto;padding:60px 20px;color:#1e293b}
-.dark-mode .privacy-body{color:#e2e8f0}
-.privacy-body h2{font-size:1.3rem;font-weight:700;margin:40px 0 12px;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px}
-.dark-mode .privacy-body h2{color:#f1f5f9;border-color:rgba(255,255,255,.1)}
-.privacy-body h3{font-size:1.05rem;font-weight:700;margin:24px 0 8px;color:#334155}
-.dark-mode .privacy-body h3{color:#94a3b8}
-.privacy-body p,.privacy-body li{font-size:.95rem;line-height:1.8;color:#475569}
-.dark-mode .privacy-body p,.dark-mode .privacy-body li{color:#94a3b8}
+.privacy-body{max-width:800px;margin:0 auto;padding:60px 20px;color:#e2e8f0}
+.privacy-body h2{font-size:1.3rem;font-weight:700;margin:40px 0 12px;color:#f1f5f9;border-bottom:2px solid rgba(255,255,255,.1);padding-bottom:8px}
+.privacy-body h3{font-size:1.05rem;font-weight:700;margin:24px 0 8px;color:#94a3b8}
+.privacy-body p,.privacy-body li{font-size:.95rem;line-height:1.8;color:#94a3b8}
 .privacy-body ul{padding-left:20px;margin:12px 0}
 .privacy-body li{margin-bottom:6px}
 .privacy-body a{color:#6366f1}
-.highlight-box{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:20px 24px;margin:24px 0}
-.dark-mode .highlight-box{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.3)}
-.highlight-box p{color:#4338ca;margin:0}
-.dark-mode .highlight-box p{color:#a5b4fc}
-.last-updated{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 16px;margin-bottom:32px;font-size:.85rem;color:#065f46}
-.dark-mode .last-updated{color:#6ee7b7}
-.privacy-toc{background:rgba(0,0,0,.03);border-radius:12px;padding:20px 24px;margin-bottom:40px}
-.dark-mode .privacy-toc{background:rgba(255,255,255,.04)}
-.privacy-toc h3{margin:0 0 12px;font-size:1rem;color:#1e293b}
-.dark-mode .privacy-toc h3{color:#e2e8f0}
+.highlight-box{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:20px 24px;margin:24px 0}
+.highlight-box p{color:#a5b4fc;margin:0}
+.last-updated{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 16px;margin-bottom:32px;font-size:.85rem;color:#6ee7b7}
+.privacy-toc{background:rgba(255,255,255,.04);border-radius:12px;padding:20px 24px;margin-bottom:40px}
+.privacy-toc h3{margin:0 0 12px;font-size:1rem;color:#e2e8f0}
 .privacy-toc ol{padding-left:20px;margin:0}
 .privacy-toc li{margin-bottom:4px;font-size:.9rem}
+.priv-footer{background:#0f172a;border-top:1px solid rgba(255,255,255,.07);padding:28px 20px;text-align:center}
+.priv-footer a{color:#64748b;text-decoration:none;margin:0 10px;font-size:.85rem}
+.priv-footer a:hover{color:#818cf8}
+.priv-footer .copy{color:#334155;font-size:.78rem;margin-top:14px}
+/* Cookie Consent Banner */
+.cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid rgba(99,102,241,.3);padding:18px 24px;z-index:10000;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;box-shadow:0 -4px 24px rgba(0,0,0,.4)}
+.cookie-banner p{color:#cbd5e1;font-size:.9rem;margin:0;max-width:600px}
+.cookie-banner a{color:#818cf8}
+.cookie-banner .btn-accept{background:#6366f1;color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem}
+.cookie-banner .btn-accept:hover{background:#4f46e5}
+.cookie-banner .btn-decline{background:rgba(255,255,255,.08);color:#94a3b8;border:none;padding:10px 24px;border-radius:10px;font-weight:600;cursor:pointer;font-size:.9rem}
+.cookie-banner .btn-decline:hover{color:#fff;background:rgba(255,255,255,.15)}
+.cookie-banner.hidden{display:none}
 </style>
 </head>
 <body>
-<nav class="navbar" id="navbar"></nav>
+
+<nav class="priv-nav">
+  <a href="/" class="logo"><span>⚡</span> ToolHub AI</a>
+  <a href="/">🔧 Tools</a>
+  <a href="/quizzes">🎓 Quizzes</a>
+  <a href="/multiplayer">🎮 Multiplayer</a>
+</nav>
 
 <div class="privacy-hero">
   <h1>🔒 Privacy Policy</h1>
@@ -53,6 +72,7 @@
       <li><a href="#who-we-are">Who We Are</a></li>
       <li><a href="#data-collect">What Data We Collect</a></li>
       <li><a href="#how-we-use">How We Use Your Data</a></li>
+      <li><a href="#legal-basis">Legal Basis for Processing (GDPR)</a></li>
       <li><a href="#ads">Advertising</a></li>
       <li><a href="#students">Special Protections for Students</a></li>
       <li><a href="#sharing">Data Sharing</a></li>
@@ -61,6 +81,7 @@
       <li><a href="#retention">Data Retention</a></li>
       <li><a href="#rights">Your Rights</a></li>
       <li><a href="#children">Children's Privacy</a></li>
+      <li><a href="#international">International Data Transfers</a></li>
       <li><a href="#contact">Contact Us</a></li>
     </ol>
   </div>
@@ -112,10 +133,19 @@
     <li>Generate anonymous, aggregate analytics so we can understand feature usage.</li>
   </ul>
 
-  <h2 id="ads">4. Advertising</h2>
+  <h2 id="legal-basis">4. Legal Basis for Processing (GDPR)</h2>
+  <p>For users in the European Economic Area (EEA), UK, and other jurisdictions that require a legal basis for data processing, we rely on the following:</p>
+  <ul>
+    <li><strong>Consent:</strong> for non-essential cookies (e.g., Google AdSense advertising cookies). You may withdraw consent at any time via the cookie consent banner or by contacting us.</li>
+    <li><strong>Contract performance:</strong> to provide you with the ToolHub AI service you signed up for (account features, quizzes, multiplayer).</li>
+    <li><strong>Legitimate interest:</strong> for analytics, abuse prevention, rate-limiting, and service improvement — balanced against your privacy rights.</li>
+    <li><strong>Legal obligation:</strong> when we must retain or disclose data to comply with applicable laws.</li>
+  </ul>
+
+  <h2 id="ads">5. Advertising</h2>
   <p>We use <strong>Google AdSense</strong> to display advertisements on free accounts. AdSense may set cookies and use your browsing behaviour to show relevant ads. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a> for details.</p>
   <ul>
-    <li><strong>Free accounts</strong> see ads by default.</li>
+    <li><strong>Free accounts</strong> see ads by default (with consent where required by law).</li>
     <li><strong>Premium accounts</strong> are completely ad-free.</li>
     <li><strong>Student accounts</strong> (registered from an admin-approved school domain) are <em>always</em> ad-free, regardless of account tier. No behavioural advertising data is collected for student sessions.</li>
     <li><strong>Teacher accounts</strong> are ad-free.</li>
@@ -123,7 +153,7 @@
   </ul>
   <p>You can opt out of personalised Google ads at <a href="https://adssettings.google.com" target="_blank" rel="noopener">adssettings.google.com</a>.</p>
 
-  <h2 id="students">5. Special Protections for Students</h2>
+  <h2 id="students">6. Special Protections for Students</h2>
   <p>We take student privacy seriously and comply with COPPA, FERPA, and similar regulations where applicable.</p>
   <ul>
     <li>Student accounts are automatically assigned when you register with an admin-approved school email domain.</li>
@@ -134,7 +164,7 @@
     <li>We do not knowingly collect data from children under 13. If a student under 13 is registered, their school or parent/guardian should contact us for immediate deletion.</li>
   </ul>
 
-  <h2 id="sharing">6. Data Sharing</h2>
+  <h2 id="sharing">7. Data Sharing</h2>
   <p>We <strong>do not sell</strong> your personal data. We share data only in the following limited cases:</p>
   <ul>
     <li><strong>Service providers:</strong> Render (hosting), Neon/PostgreSQL (database), Redis (temporary game rooms). These providers process data only on our behalf and under confidentiality obligations.</li>
@@ -144,16 +174,17 @@
   </ul>
   <p>Multiplayer leaderboard scores are visible to all players in a game session. Player nicknames in multiplayer are public within a session but are not indexed or retained with your account profile.</p>
 
-  <h2 id="cookies">7. Cookies &amp; Storage</h2>
+  <h2 id="cookies">8. Cookies &amp; Storage</h2>
   <p>We use the following cookies and storage mechanisms:</p>
   <ul>
-    <li><strong>Session cookie (<code>toolhub.sid</code>):</strong> keeps you logged in. HttpOnly, Secure in production. Expires after 7 days of inactivity.</li>
+    <li><strong>Session cookie (<code>toolhub.sid</code>):</strong> <em>strictly necessary</em> — keeps you logged in. HttpOnly, Secure in production. Expires after 7 days of inactivity.</li>
     <li><strong>Theme preference:</strong> stored in <code>localStorage</code> only. Never sent to our servers.</li>
-    <li><strong>Google AdSense cookies:</strong> only present for free accounts. You can block these with any ad blocker or via browser cookie settings.</li>
+    <li><strong>Cookie consent preference:</strong> stored in <code>localStorage</code> to remember your choice.</li>
+    <li><strong>Google AdSense cookies:</strong> <em>require consent</em> — only loaded after you accept non-essential cookies. You can block these with any ad blocker or via browser cookie settings.</li>
   </ul>
   <p>We do not use fingerprinting, supercookies, or tracking pixels of our own. You can clear all ToolHub cookies by logging out.</p>
 
-  <h2 id="security">8. Security</h2>
+  <h2 id="security">9. Security</h2>
   <p>We take reasonable technical and organisational measures to protect your data:</p>
   <ul>
     <li>Passwords are hashed with <strong>bcrypt</strong> (cost factor 10) — we cannot recover your password.</li>
@@ -165,7 +196,7 @@
   </ul>
   <p>Despite these measures, no internet service is 100% secure. If you believe your account has been compromised, please contact us immediately.</p>
 
-  <h2 id="retention">9. Data Retention</h2>
+  <h2 id="retention">10. Data Retention</h2>
   <ul>
     <li><strong>Account data:</strong> retained while your account is active. Deleted within 30 days of an account deletion request.</li>
     <li><strong>Tool usage logs:</strong> retained for up to 12 months for analytics, then anonymised or deleted.</li>
@@ -174,24 +205,30 @@
     <li><strong>Bug reports:</strong> retained until resolved, then deleted.</li>
   </ul>
 
-  <h2 id="rights">10. Your Rights</h2>
-  <p>Depending on your jurisdiction (GDPR, CCPA, etc.) you may have the following rights:</p>
+  <h2 id="rights">11. Your Rights</h2>
+  <p>Depending on your jurisdiction (GDPR, CCPA, UK GDPR, etc.) you may have the following rights:</p>
   <ul>
     <li><strong>Access:</strong> request a copy of all data we hold about you.</li>
-    <li><strong>Rectification:</strong> correct inaccurate data (you can update your name/email in Dashboard → Settings).</li>
-    <li><strong>Deletion:</strong> request full deletion of your account and all associated data.</li>
+    <li><strong>Rectification:</strong> correct inaccurate data (you can update your name/email in Dashboard).</li>
+    <li><strong>Deletion ("Right to be Forgotten"):</strong> request full deletion of your account and all associated data.</li>
     <li><strong>Portability:</strong> request your data in a machine-readable format (JSON).</li>
+    <li><strong>Restrict processing:</strong> request we limit how we use your data.</li>
+    <li><strong>Object to processing:</strong> object to processing based on legitimate interests.</li>
+    <li><strong>Withdraw consent:</strong> withdraw consent for non-essential cookies or marketing at any time.</li>
     <li><strong>Opt-out of ads:</strong> upgrade to Premium, or use a browser ad blocker.</li>
-    <li><strong>Withdraw consent:</strong> delete your account at any time.</li>
+    <li><strong>Automated decision-making:</strong> we do not use automated decision-making or profiling that produces legal effects.</li>
   </ul>
-  <p>To exercise any of these rights, email <a href="mailto:privacy@toolhub.ai">privacy@toolhub.ai</a> with the subject line "Privacy Request". We will respond within 30 days.</p>
+  <p>To exercise any of these rights, email <a href="mailto:privacy@toolhub.ai">privacy@toolhub.ai</a> with the subject line "Privacy Request". We will respond within 30 days (or sooner where required by law).</p>
 
-  <h2 id="children">11. Children's Privacy</h2>
+  <h2 id="children">12. Children's Privacy</h2>
   <p>ToolHub AI is designed to be used in educational settings, including by minors when supervised by a teacher or school. We do not knowingly collect personal information from children under 13 without verifiable parental consent or school-verified access.</p>
-  <p>If you are a school using ToolHub AI, you are responsible for ensuring appropriate parental consents are in place as required by your local law (e.g., COPPA in the US, GDPR in the EU). Student accounts from approved school domains receive enhanced privacy protections as described in Section 5.</p>
+  <p>If you are a school using ToolHub AI, you are responsible for ensuring appropriate parental consents are in place as required by your local law (e.g., COPPA in the US, GDPR in the EU). Student accounts from approved school domains receive enhanced privacy protections as described in Section 6.</p>
   <p>If you believe a child under 13 has created an account without consent, contact us at <a href="mailto:privacy@toolhub.ai">privacy@toolhub.ai</a> for immediate deletion.</p>
 
-  <h2 id="contact">12. Contact Us</h2>
+  <h2 id="international">13. International Data Transfers</h2>
+  <p>Our servers are hosted on Render (based in the USA). If you are located outside the USA, your data will be transferred to and processed in the USA. We ensure appropriate safeguards are in place, including reliance on standard contractual clauses where required by GDPR.</p>
+
+  <h2 id="contact">14. Contact Us</h2>
   <p>For any privacy-related questions, requests, or concerns:</p>
   <ul>
     <li>📧 <a href="mailto:privacy@toolhub.ai">privacy@toolhub.ai</a></li>
@@ -204,6 +241,32 @@
   </div>
 </div>
 
-<script src="/js/app.js"></script>
+<footer class="priv-footer">
+  <div><a href="/">🏠 Home</a><a href="/quizzes">🎓 Quizzes</a><a href="/multiplayer">🎮 Multiplayer</a></div>
+  <div class="copy">© 2025 ToolHub AI — Free AI Tools &amp; Quizzes</div>
+</footer>
+
+<!-- Cookie Consent Banner -->
+<div class="cookie-banner" id="cookieBanner">
+  <p>We use essential cookies to keep you logged in and optional cookies for advertising (Google AdSense). See our <a href="#cookies">Cookie Policy</a> for details.</p>
+  <button class="btn-accept" onclick="acceptCookies()">Accept All</button>
+  <button class="btn-decline" onclick="declineCookies()">Essential Only</button>
+</div>
+
+<script>
+// Cookie consent
+function acceptCookies() {
+  localStorage.setItem('cookie_consent', 'all');
+  document.getElementById('cookieBanner').classList.add('hidden');
+}
+function declineCookies() {
+  localStorage.setItem('cookie_consent', 'essential');
+  document.getElementById('cookieBanner').classList.add('hidden');
+}
+(function() {
+  const consent = localStorage.getItem('cookie_consent');
+  if (consent) document.getElementById('cookieBanner').classList.add('hidden');
+})();
+</script>
 </body>
 </html>
