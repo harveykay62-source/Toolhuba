@@ -1,4 +1,4 @@
-// ─── Tool Definitions — 65 tools total ────────────────────────────────────────
+// ─── Tool Definitions — 66 tools total ────────────────────────────────────────
 const TOOLS = [
   // ══ TEXT TOOLS ══════════════════════════════════════════════════════════════
   { id:'ai-detector',          name:'AI Content Detector',        description:'Analyse any text with 15 statistical and linguistic signals to detect if it was written by an AI model or a human — no external API, fully private', category:'text',    icon:'🔍', trending:true,  premium:false, enabled:true, tags:['ai detector','chatgpt detect','ai check','originality','gptzero'] },

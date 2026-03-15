@@ -1,4 +1,4 @@
-/* ── ToolHub AI — tools.js — All 65 Tools ─────────────────────────────────── */
+/* ── ToolHub AI — tools.js — All 66 Tools ─────────────────────────────────── */
 'use strict';
 
 function buildToolPage(tool, contentFn) {

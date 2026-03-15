@@ -415,3 +415,190 @@
 .slide-up  { animation: slideUp .4s ease-out; }
 .fade-in   { animation: fadeIn .3s ease-out; }
 .bounce-in { animation: bounceIn .5s cubic-bezier(.175,.885,.32,1.275); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   GOLD QUEST — Player UI
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Top bar (gold + timer) */
+.gq-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  padding: 12px 18px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 16px;
+}
+.gq-gold-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gq-gold-icon { font-size: 1.3rem; }
+.gq-gold-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fbbf24;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px rgba(251,191,36,.2);
+}
+.gq-timer-display {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255,255,255,.04);
+  padding: 4px 14px;
+  border-radius: 10px;
+}
+.gq-q-counter {
+  text-align: center;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* Lockout screen */
+.gq-lockout {
+  text-align: center;
+  padding: 40px;
+}
+.gq-lockout-timer {
+  font-size: 4rem;
+  font-weight: 900;
+  color: #ef4444;
+  margin-top: 16px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 30px rgba(239,68,68,.3);
+  animation: lockPulse 1s ease-in-out infinite;
+}
+@keyframes lockPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.1); opacity: .7; }
+}
+
+/* Chest selection */
+.gq-chest-intro { text-align: center; }
+.gq-chests {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.gq-chest-btn {
+  background: rgba(245,158,11,.06);
+  border: 2px solid rgba(245,158,11,.15);
+  border-radius: 20px;
+  padding: 28px 24px;
+  cursor: pointer;
+  transition: all .3s cubic-bezier(.175,.885,.32,1.275);
+  min-width: 110px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+.gq-chest-btn:hover {
+  transform: translateY(-6px) scale(1.05);
+  border-color: rgba(245,158,11,.5);
+  box-shadow: 0 16px 40px rgba(245,158,11,.15);
+  background: rgba(245,158,11,.12);
+}
+.gq-chest-btn:active { transform: translateY(-2px) scale(.98); }
+.gq-chest-btn:disabled { pointer-events: none; }
+.gq-chest-btn.gq-chest-opening {
+  animation: chestOpen .6s ease-in-out forwards;
+  border-color: #fbbf24;
+}
+@keyframes chestOpen {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15) rotate(-5deg); }
+  60% { transform: scale(1.2) rotate(5deg); }
+  100% { transform: scale(1.3); opacity: .6; box-shadow: 0 0 60px rgba(251,191,36,.4); }
+}
+.gq-chest-box {
+  font-size: 3rem;
+  margin-bottom: 8px;
+  transition: transform .3s;
+}
+.gq-chest-btn:hover .gq-chest-box {
+  transform: translateY(-4px);
+  animation: chestWiggle .4s ease-in-out;
+}
+@keyframes chestWiggle {
+  0%,100% { transform: translateY(-4px) rotate(0); }
+  25% { transform: translateY(-4px) rotate(-8deg); }
+  75% { transform: translateY(-4px) rotate(8deg); }
+}
+.gq-chest-label {
+  font-size: .82rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   GOLD QUEST — Host UI
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.gq-host-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 20px;
+  flex-wrap: wrap;
+}
+.gq-host-mode {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gq-host-timer-wrap {
+  text-align: center;
+  flex: 1;
+  max-width: 300px;
+}
+.gq-host-timer {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+.gq-host-timer-bar {
+  height: 4px;
+  background: rgba(255,255,255,.06);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.gq-host-timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+.gq-host-lb-wrap .lb-row {
+  padding: 14px 18px;
+}
+.gq-host-lb-wrap .lb-score {
+  color: #fbbf24;
+  font-size: 1rem;
+}
+
+@media(max-width: 600px) {
+  .gq-chests { gap: 12px; }
+  .gq-chest-btn { min-width: 90px; padding: 20px 16px; }
+  .gq-chest-box { font-size: 2.2rem; }
+  .gq-host-header { flex-direction: column; text-align: center; }
+  .gq-host-timer-wrap { max-width: 100%; }
+  .gq-top-bar { flex-wrap: wrap; justify-content: center; }
+}
+

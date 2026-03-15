@@ -190,6 +190,28 @@ const HostGame = (() => {
       showHostCorrect(correctIndex, leaderboard);
     });
     socket.on('room:leaderboardUpdate', ({ leaderboard }) => updateSideLeaderboard(leaderboard));
+
+    // Gold Quest host events
+    socket.on('gq:gameStarted', (data) => {
+      gqTimeLimit = data.timeLimit;
+      gqTimeRemaining = data.timeLimit;
+      renderGQHostView(data);
+    });
+    socket.on('gq:timer', ({ remaining }) => {
+      gqTimeRemaining = remaining;
+      const el = document.getElementById('gqHostTimer');
+      if (el) {
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        if (remaining <= 30) el.style.color = '#ef4444';
+      }
+      const bar = document.getElementById('gqTimerBar');
+      if (bar && gqTimeLimit > 0) {
+        bar.style.width = (remaining / gqTimeLimit * 100) + '%';
+      }
+    });
+
     socket.on('game:ended', ({ leaderboard }) => {
       sessionStorage.setItem('th_final_lb', JSON.stringify(leaderboard));
       window.location.href = '/leaderboard?code=' + roomCode;
@@ -198,6 +220,8 @@ const HostGame = (() => {
       showToast('Connection lost. Reconnecting…', 'error');
     });
   }
+
+  let gqTimeLimit = 300, gqTimeRemaining = 300;
 
   function renderLobby({ code, quizTitle, questionCount }) {
     const app = document.getElementById('hostApp');
@@ -326,15 +350,57 @@ const HostGame = (() => {
     updateSideLeaderboard(leaderboard);
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // GOLD QUEST HOST VIEW
+  // ══════════════════════════════════════════════════════════════════════
+
+  function renderGQHostView({ timeLimit, goldGoal, questionCount }) {
+    const app = document.getElementById('hostApp');
+    const m = Math.floor(timeLimit / 60);
+    const s = timeLimit % 60;
+
+    app.innerHTML = `
+    <div class="host-wrap">
+      <div style="max-width:900px;margin:0 auto">
+        <div class="gq-host-header slide-up">
+          <div class="gq-host-mode">
+            <span style="font-size:1.6rem">⚔️</span>
+            <div>
+              <div style="font-size:1.3rem;font-weight:800;color:#fff;letter-spacing:-.02em">Gold Quest</div>
+              <div style="font-size:.82rem;color:#64748b;font-weight:500">${questionCount} questions · Room ${roomCode}</div>
+            </div>
+          </div>
+          <div class="gq-host-timer-wrap">
+            <div style="font-size:.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Time Remaining</div>
+            <div class="gq-host-timer" id="gqHostTimer">${m}:${s.toString().padStart(2, '0')}</div>
+            <div class="gq-host-timer-bar"><div class="gq-host-timer-fill" id="gqTimerBar" style="width:100%"></div></div>
+          </div>
+          <button onclick="HostGame.endGame()" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:10px 20px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s">■ End Game</button>
+        </div>
+
+        <div class="gq-host-lb-wrap fade-in" style="margin-top:24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <h2 style="font-size:1.1rem;font-weight:700;color:#94a3b8;margin:0">🏆 Live Gold Leaderboard</h2>
+            <div style="font-size:.8rem;color:#475569">Auto-updates in real time</div>
+          </div>
+          <div id="sideLeaderboard">
+            <div style="color:#475569;font-size:.88rem;text-align:center;padding:40px">Players are answering questions and opening chests…</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   function updateSideLeaderboard(leaderboard) {
     const el = document.getElementById('sideLeaderboard');
     if (!el) return;
     const medals = ['🥇','🥈','🥉'];
-    el.innerHTML = leaderboard.slice(0, 10).map((p, i) => `
+    const isGQ = mode === 'blooket';
+    el.innerHTML = leaderboard.slice(0, 15).map((p, i) => `
       <div class="lb-row ${i===0?'lb-first':i===1?'lb-second':i===2?'lb-third':''}">
         <div class="lb-rank">${medals[i] || (i + 1)}</div>
         <div class="lb-name">${esc(p.name)}</div>
-        <div class="lb-score">${p.score.toLocaleString()}</div>
+        <div class="lb-score">${isGQ ? '🪙 ' : ''}${p.score.toLocaleString()}</div>
       </div>`).join('');
   }
 
