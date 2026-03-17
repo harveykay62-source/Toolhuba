@@ -105,7 +105,7 @@ app.get('/api/init', async (req, res) => {
         adsenseClient: adsenseClient || '',
         adsenseBanner: adsenseBanner || '',
         maintenance: maintenance === 'true',
-        googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+        googleClientId: process.env.GOOGLE_CLIENT_ID || '394997878191-osk9fvaq9s6fm3sa5a613cbe1e5916b2.apps.googleusercontent.com',
       },
       tools: getAllTools(), categories: CATEGORIES, trending: getTrending(),
     });
