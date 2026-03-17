@@ -522,21 +522,28 @@ const GOOGLE_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" style="flex-
 function renderGoogleButton(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.innerHTML = `<button class="btn-google-login" onclick="triggerGoogleOneTap()">${GOOGLE_SVG} Continue with Google</button>`;
-}
-
-function triggerGoogleOneTap() {
-  if (!window.google || !window.google.accounts) {
-    showAuthError('Google Sign-In is still loading, please try again.');
-    return;
+  if (window.google && window.google.accounts) {
+    // Use Google's official renderButton — most reliable, handles its own UX flow
+    google.accounts.id.renderButton(container, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'continue_with',
+      shape: 'rectangular',
+      logo_alignment: 'left',
+      width: 300,
+    });
+  } else {
+    // GSI not loaded yet — show styled placeholder, retry when ready
+    container.innerHTML = `<button class="btn-google-login" onclick="renderGoogleButton('${containerId}')">${GOOGLE_SVG} Continue with Google</button>`;
+    const t = setInterval(() => {
+      if (window.google && window.google.accounts) { clearInterval(t); renderGoogleButton(containerId); }
+    }, 200);
+    setTimeout(() => clearInterval(t), 8000);
   }
-  google.accounts.id.prompt((notification) => {
-    if (notification.isSkippedMoment() || notification.isDismissedMoment()) {
-      showAuthError('Google Sign-In was dismissed. Please try again.');
-    }
-  });
 }
 
+function triggerGoogleOneTap() { renderGoogleButton('googleBtnLogin'); }
 async function doGoogleLogin() { triggerGoogleOneTap(); }
 
 async function confirmLogout() {
