@@ -152,7 +152,7 @@ router.get('/admin/all-games', requireAdmin, async (req, res) => {
   try {
     const { rows } = await db.pool.query(
       `SELECT id, room_code, game_mode, quiz_title, host_name, started_at, ended_at,
-              json_array_length(players_json::json) as player_count
+              COALESCE(json_array_length(players_json::json), 0) as player_count
        FROM multiplayer_results ORDER BY ended_at DESC LIMIT 100`
     );
     res.json({ games: rows });

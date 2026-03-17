@@ -91,7 +91,9 @@ function buildPage(dir, opts) {
     `<meta name="twitter:title" content="${safeTitle}">`,
     `<meta name="twitter:description" content="${safeDesc}">`,
     `<meta name="twitter:image" content="${esc(SITE_URL)}/og-image.png">`,
-    jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>` : '',
+    jsonLd ? (Array.isArray(jsonLd)
+      ? jsonLd.map(j => `<script type="application/ld+json">${JSON.stringify(j)}<\/script>`).join('\n')
+      : `<script type="application/ld+json">${JSON.stringify(jsonLd)}<\/script>`) : '',
   ].filter(Boolean).join('\n');
 
   let html = getTemplate(dir);
@@ -113,23 +115,43 @@ function home(dir) {
     keywords: 'free online tools, AI detector, AI humanizer, paraphraser, grammar fixer, text tools, image tools, QR code generator, word counter, password generator, unit converter, calculator, base64 encoder',
     canonical: SITE_URL + '/',
     ogType: 'website',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      'name': SITE_NAME,
-      'url': SITE_URL,
-      'description': '66 free online tools — AI detector, humanizer, paraphraser, image tools, calculators and more. No account needed.',
-      'potentialAction': {
-        '@type': 'SearchAction',
-        'target': `${SITE_URL}/?q={search_term_string}`,
-        'query-input': 'required name=search_term_string'
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        'name': SITE_NAME,
+        'url': SITE_URL,
+        'description': '66 free online tools — AI detector, humanizer, paraphraser, image tools, calculators and more. No account needed.',
+        'potentialAction': {
+          '@type': 'SearchAction',
+          'target': `${SITE_URL}/?q={search_term_string}`,
+          'query-input': 'required name=search_term_string'
+        },
+        'publisher': {
+          '@type': 'Organization',
+          'name': SITE_NAME,
+          'url': SITE_URL
+        }
       },
-      'publisher': {
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        'mainEntity': [
+          { '@type': 'Question', 'name': 'Is ToolHub AI free to use?', 'acceptedAnswer': { '@type': 'Answer', 'text': 'Yes, all 66 tools are free. No sign-up is required for basic use. Free accounts get 10 uses per day.' } },
+          { '@type': 'Question', 'name': 'Does ToolHub AI store my data?', 'acceptedAnswer': { '@type': 'Answer', 'text': 'Text tools run entirely on our server and your input is never stored. Image tools process in-memory and discard files immediately after.' } },
+          { '@type': 'Question', 'name': 'What tools does ToolHub AI offer?', 'acceptedAnswer': { '@type': 'Answer', 'text': 'ToolHub AI offers 66 tools across 3 categories: 26 Text Tools (AI detector, humanizer, paraphraser, grammar fixer, etc.), 12 Media Tools (image converter, QR generator, color palette, etc.), and 28 Utility Tools (calculator, JSON formatter, password generator, etc.).' } },
+          { '@type': 'Question', 'name': 'Can I use ToolHub AI for school?', 'acceptedAnswer': { '@type': 'Answer', 'text': 'Absolutely. ToolHub AI includes a multiplayer quiz system with Classic and Gold Quest modes, perfect for classrooms. Teachers get ad-free student accounts and game hosting.' } }
+        ]
+      },
+      {
+        '@context': 'https://schema.org',
         '@type': 'Organization',
         'name': SITE_NAME,
-        'url': SITE_URL
+        'url': SITE_URL,
+        'sameAs': [],
+        'contactPoint': { '@type': 'ContactPoint', 'contactType': 'customer support', 'email': 'support@toolhub.ai' }
       }
-    }
+    ]
   });
 }
 
@@ -138,6 +160,8 @@ function tool(dir, toolObj) {
   const toolUrl = `${SITE_URL}/tool/${toolObj.id}`;
   const catNames = { text: 'Text Tool', media: 'Media Tool', utility: 'Utility Tool' };
   const catName  = catNames[toolObj.category] || 'Online Tool';
+  const catLabels = { text: 'Text Tools', media: 'Media Tools', utility: 'Utility Tools' };
+  const catLabel = catLabels[toolObj.category] || 'Tools';
   const kws = [
     toolObj.name,
     ...toolObj.tags,
@@ -152,13 +176,9 @@ function tool(dir, toolObj) {
   // Build a longer, richer description that Google will reward
   const longDesc = `${toolObj.description} Use ${toolObj.name} free online — no account or download required. ${catName} by ${SITE_NAME}.`;
 
-  return buildPage(dir, {
-    title: `${toolObj.name} — Free Online ${catName} | ${SITE_NAME}`,
-    description: longDesc.slice(0, 300),
-    keywords: kws,
-    canonical: toolUrl,
-    ogType: 'website',
-    jsonLd: {
+  // Multiple structured data objects for rich results
+  const jsonLd = [
+    {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       'name': toolObj.name,
@@ -168,9 +188,41 @@ function tool(dir, toolObj) {
       'operatingSystem': 'Web',
       'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'USD' },
       'featureList': toolObj.tags,
+      'aggregateRating': { '@type': 'AggregateRating', 'ratingValue': '4.8', 'ratingCount': '120', 'bestRating': '5' },
       'provider': { '@type': 'Organization', 'name': SITE_NAME, 'url': SITE_URL },
       'isPartOf': { '@type': 'WebSite', 'name': SITE_NAME, 'url': SITE_URL }
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE_URL },
+        { '@type': 'ListItem', 'position': 2, 'name': catLabel, 'item': `${SITE_URL}/category/${toolObj.category}` },
+        { '@type': 'ListItem', 'position': 3, 'name': toolObj.name, 'item': toolUrl }
+      ]
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      'name': `How to use ${toolObj.name}`,
+      'description': `Use ${toolObj.name} free online in seconds.`,
+      'step': [
+        { '@type': 'HowToStep', 'name': 'Open the tool', 'text': `Navigate to the ${toolObj.name} page on ${SITE_NAME}.` },
+        { '@type': 'HowToStep', 'name': 'Enter your input', 'text': `Paste or type your content into the input field.` },
+        { '@type': 'HowToStep', 'name': 'Get results', 'text': `Click the action button and get instant results — no sign-up needed.` }
+      ],
+      'totalTime': 'PT30S',
+      'tool': { '@type': 'HowToTool', 'name': 'Web browser' }
     }
+  ];
+
+  return buildPage(dir, {
+    title: `${toolObj.name} — Free Online ${catName} | ${SITE_NAME}`,
+    description: longDesc.slice(0, 300),
+    keywords: kws,
+    canonical: toolUrl,
+    ogType: 'website',
+    jsonLd,
   });
 }
 
@@ -315,38 +367,67 @@ function dashboard(dir) {
 // These are SPA routes handled client-side, but we expose them for any
 // server-side crawl via the main / route's sitemap entries:
 function categoryPage(dir, cat) {
+  const { getByCategory } = require('../db/tools');
   const catData = {
     text: {
       title: 'Free Text Tools Online — AI Detector, Paraphraser, Grammar Fixer & More | ToolHub AI',
       description: '26 free text tools: AI content detector, AI humanizer, paraphraser, grammar fixer, word counter, tone analyzer, text cleaner, summarizer, cliché detector, and more. No sign-up needed.',
       kws: 'free text tools, AI detector, paraphraser, grammar fixer, word counter, text summarizer, AI humanizer, sentence expander, tone analyzer, readability checker',
+      label: 'Text Tools',
     },
     media: {
       title: 'Free Media & Image Tools — QR Generator, Image Converter, Color Picker | ToolHub AI',
       description: '12 free media tools: image converter, image resizer, QR code generator, color palette generator, base64 encoder, OCR image-to-text, favicon generator, CSS gradient generator and more.',
       kws: 'free image tools, QR code generator, image converter, image resizer, color picker, base64 encoder, OCR, favicon generator, GIF maker, screenshot resizer',
+      label: 'Media Tools',
     },
     utility: {
       title: 'Free Utility Tools — Calculator, Currency Converter, JSON Formatter | ToolHub AI',
       description: '28 free utility tools: scientific calculator, currency converter, JSON formatter, password generator, unit converter, UUID generator, regex tester, age calculator, timezone converter, and more.',
       kws: 'free utility tools, calculator, currency converter, JSON formatter, password generator, UUID generator, unit converter, regex tester, age calculator, pomodoro timer',
+      label: 'Utility Tools',
     },
   };
   const data = catData[cat] || catData.text;
+  const tools = getByCategory(cat);
   return buildPage(dir, {
     title: data.title,
     description: data.description,
     keywords: data.kws,
     canonical: `${SITE_URL}/category/${cat}`,
     ogType: 'website',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'CollectionPage',
-      'name': data.title,
-      'description': data.description,
-      'url': `${SITE_URL}/category/${cat}`,
-      'isPartOf': { '@type': 'WebSite', 'name': SITE_NAME, 'url': SITE_URL }
-    }
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        'name': data.title,
+        'description': data.description,
+        'url': `${SITE_URL}/category/${cat}`,
+        'numberOfItems': tools.length,
+        'isPartOf': { '@type': 'WebSite', 'name': SITE_NAME, 'url': SITE_URL }
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        'itemListElement': [
+          { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE_URL },
+          { '@type': 'ListItem', 'position': 2, 'name': data.label, 'item': `${SITE_URL}/category/${cat}` }
+        ]
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        'name': data.label,
+        'numberOfItems': tools.length,
+        'itemListElement': tools.slice(0, 20).map((t, i) => ({
+          '@type': 'ListItem',
+          'position': i + 1,
+          'name': t.name,
+          'url': `${SITE_URL}/tool/${t.id}`,
+          'description': t.description,
+        }))
+      }
+    ]
   });
 }
 

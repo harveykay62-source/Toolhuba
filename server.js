@@ -179,20 +179,27 @@ app.get('/admin', (req, res) => {
 });
 
 // ── Dynamic Sitemap ───────────────────────────────────────────────────────────
+let _sitemapCache = { xml: '', ts: 0 };
 app.get('/sitemap.xml', async (req, res) => {
+  // Cache for 1 hour
+  if (_sitemapCache.xml && Date.now() - _sitemapCache.ts < 3600000) {
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    return res.send(_sitemapCache.xml);
+  }
   const { getAllTools } = require('./db/tools');
   const { getQuizList } = require('./db/quiz-db');
   const now = new Date().toISOString().split('T')[0];
   const tools = getAllTools().filter(t => t.enabled);
   let quizRows = [];
-  try { quizRows = await getQuizList({ status: 'approved', limit: 200 }); } catch {}
+  try { quizRows = await getQuizList({ status: 'approved', limit: 500 }); } catch {}
 
   const pages = [
     { url: '/',                 priority: '1.0', freq: 'daily'   },
-    { url: '/register',         priority: '0.7', freq: 'monthly' },
+    { url: '/register',         priority: '0.6', freq: 'monthly' },
+    { url: '/privacy',          priority: '0.3', freq: 'yearly'  },
     { url: '/quizzes',          priority: '0.8', freq: 'daily'   },
     { url: '/quizzes/build',    priority: '0.6', freq: 'weekly'  },
-    { url: '/multiplayer',      priority: '0.8', freq: 'daily'   },
+    { url: '/multiplayer',      priority: '0.7', freq: 'weekly'  },
     { url: '/category/text',    priority: '0.9', freq: 'weekly'  },
     { url: '/category/media',   priority: '0.9', freq: 'weekly'  },
     { url: '/category/utility', priority: '0.9', freq: 'weekly'  },
@@ -205,14 +212,17 @@ app.get('/sitemap.xml', async (req, res) => {
       `  <url>\n    <loc>${SEO.SITE_URL}${p.url}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.freq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`
     ).join('\n') + `\n</urlset>`;
 
+  _sitemapCache = { xml, ts: Date.now() };
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
   res.send(xml);
 });
 
 app.get('/robots.txt', (req, res) => {
   res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(
-    `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /dashboard\nDisallow: /api/\nDisallow: /login\nDisallow: /teacher\n\nSitemap: ${SEO.SITE_URL}/sitemap.xml`
+    `User-agent: *\nAllow: /\nAllow: /tool/\nAllow: /quiz/\nAllow: /category/\nAllow: /multiplayer\nAllow: /privacy\n\nDisallow: /admin\nDisallow: /dashboard\nDisallow: /api/\nDisallow: /login\nDisallow: /teacher\nDisallow: /host-game\nDisallow: /join-game\nDisallow: /game-room\nDisallow: /leaderboard\nDisallow: /quizzes/profile\n\nSitemap: ${SEO.SITE_URL}/sitemap.xml`
   );
 });
 

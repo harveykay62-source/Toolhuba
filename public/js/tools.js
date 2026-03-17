@@ -655,7 +655,7 @@ async function doEmailSubject() {
   if(!text){toast('Please enter email content.','warn');return;}
   const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Generating…';
   try{const d=await apiFetch('/api/tools/email-subject-generator','POST',{text,tone:document.getElementById('esTone').value,count:parseInt(document.getElementById('esCount').value)});const subjects=d.subjects||d.lines||[];
-  document.getElementById('esOut').innerHTML=subjects.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><div class="output-box" style="flex:1;padding:10px">${i+1}. ${s}</div><button class="btn-icon-sm" onclick="copyText('${s.replace(/'/g,"\\'")}')">${ICONS.copy}</button></div>`).join('');toast(`${subjects.length} subjects!`,'success');}
+  document.getElementById('esOut').innerHTML=subjects.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><div class="output-box" style="flex:1;padding:10px">${i+1}. ${s.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><button class="btn-icon-sm" onclick="copyText(this.previousElementSibling.innerText.replace(/^\\d+\\.\\s/,''))">${ICONS.copy}</button></div>`).join('');toast(`${subjects.length} subjects!`,'success');}
   catch(e){toast(e.message||'Error','error');}
   finally{btn.disabled=false;btn.innerHTML=btn._orig;}
 }
@@ -1602,8 +1602,13 @@ async function doRP() {
   else if(m==='number'){body.min=parseInt(document.getElementById('rpMin')?.value||1);body.max=parseInt(document.getElementById('rpMax')?.value||100);body.count=parseInt(document.getElementById('rpNumN')?.value||1);}
   const btn=document.querySelector('#toolContent .btn-primary');btn.disabled=true;btn._orig=btn.innerHTML;btn.textContent='⏳ Randomizing…';
   try{const d=await apiFetch('/api/tools/random-picker','POST',body);
-  const r=d.result||d.results||d.picked||'';
-  document.getElementById('rpOut').innerHTML=`<div class="result-highlight" style="margin-top:14px;text-align:center"><div class="result-value" style="font-size:36px;font-weight:800;color:var(--accent)">${Array.isArray(r)?r.join(', '):r}</div></div>`;
+  let display='';
+  if(d.picked)display=Array.isArray(d.picked)?d.picked.join(', '):d.picked;
+  else if(d.rolls)display=d.rolls.join(', ')+(d.rolls.length>1?' (Total: '+d.total+')':'');
+  else if(d.flips)display=d.flips.join(', ')+' ('+d.heads+'H / '+d.tails+'T)';
+  else if(d.numbers)display=d.numbers.join(', ');
+  else display=d.result||JSON.stringify(d);
+  document.getElementById('rpOut').innerHTML=`<div class="result-highlight" style="margin-top:14px;text-align:center"><div class="result-value" style="font-size:36px;font-weight:800;color:var(--accent)">${display}</div></div>`;
   toast('Randomized!','success');}catch(e){toast(e.message||'Error','error');}
   finally{btn.disabled=false;btn.innerHTML=btn._orig;}
 }
@@ -1759,6 +1764,13 @@ function renderDashboard() {
   if (typeof renderDashboardContent === 'function') renderDashboardContent();
   else {
     apiFetch('/api/dashboard').then(d => {
+      const cats = d.charts?.categoryBreakdown || [];
+      const topTools = d.charts?.topTools || [];
+      const weekly = d.weeklyData || [];
+      const catColors = { text: '#6366f1', media: '#f43f5e', utility: '#10b981' };
+      const catIcons = { text: '📝', media: '🎬', utility: '⚙️' };
+      const toolColors = ['#6366f1','#f43f5e','#10b981','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+
       document.getElementById('app').innerHTML = `
         <div class="tool-page">
           <button class="tool-page-back" onclick="navigate('home')">${ICONS.back} Back</button>
@@ -1768,13 +1780,117 @@ function renderDashboard() {
             <div class="stat-card"><div class="stat-value">${d.stats?.todayUses||0}</div><div class="stat-label">Today</div></div>
             <div class="stat-card"><div class="stat-value">${d.stats?.dailyLimit||10}</div><div class="stat-label">Daily Limit</div></div>
             <div class="stat-card"><div class="stat-value">${d.user?.role==='premium'?'👑 Premium':'Free'}</div><div class="stat-label">Plan</div></div>
+            <div class="stat-card"><div class="stat-value" style="font-size:14px">${d.stats?.favoriteTool||'None'}</div><div class="stat-label">Most Used</div></div>
           </div>
           ${d.user?.role!=='premium'?`<div style="margin-top:20px"><button class="btn btn-primary btn-lg" onclick="showPremiumModal()">👑 Upgrade to Premium</button></div>`:''}
-          <div class="section-title" style="margin-top:24px">Recent Activity</div>
-          ${(d.history||[]).map(h=>`<div style="display:flex;gap:12px;align-items:center;padding:10px;border-bottom:1px solid var(--border)"><span style="font-size:18px">🔧</span><div><div style="font-size:14px;font-weight:600">${h.tool_name}</div><div style="font-size:12px;color:var(--text-muted)">${new Date(h.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="info-box">No activity yet. Start using tools!</div>'}
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:28px">
+            <div style="background:var(--bg-muted);border:1px solid var(--border);border-radius:14px;padding:20px">
+              <div style="font-size:15px;font-weight:700;margin-bottom:14px">Usage by Category</div>
+              <canvas id="catPie" width="220" height="220" style="display:block;margin:0 auto"></canvas>
+              <div id="catLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;justify-content:center"></div>
+            </div>
+            <div style="background:var(--bg-muted);border:1px solid var(--border);border-radius:14px;padding:20px">
+              <div style="font-size:15px;font-weight:700;margin-bottom:14px">Top Tools</div>
+              <canvas id="toolsPie" width="220" height="220" style="display:block;margin:0 auto"></canvas>
+              <div id="toolsLegend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:center"></div>
+            </div>
+          </div>
+
+          <div style="background:var(--bg-muted);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:20px">
+            <div style="font-size:15px;font-weight:700;margin-bottom:14px">7-Day Activity</div>
+            <canvas id="weeklyChart" width="600" height="180" style="width:100%;max-height:180px"></canvas>
+          </div>
+
+          <div style="margin-top:24px">
+            <div style="font-size:15px;font-weight:700;margin-bottom:12px">Recent Activity</div>
+            ${(d.history||[]).map(h=>{const ic=catIcons[h.category]||'🔧';return`<div style="display:flex;gap:12px;align-items:center;padding:10px;border-bottom:1px solid var(--border)"><span style="font-size:18px">${ic}</span><div style="flex:1"><div style="font-size:14px;font-weight:600">${h.tool_name}</div><div style="font-size:12px;color:var(--text-muted)">${new Date(h.created_at).toLocaleString()}</div></div><span style="font-size:11px;padding:2px 8px;border-radius:6px;background:${catColors[h.category]||'#666'}22;color:${catColors[h.category]||'#666'};font-weight:600">${h.category}</span></div>`;}).join('')||'<div class="info-box">No activity yet. Start using tools!</div>'}
+          </div>
         </div>`;
+
+      // Draw pie charts
+      setTimeout(() => {
+        if(cats.length) drawPie('catPie','catLegend',cats.map(c=>({label:c.category.charAt(0).toUpperCase()+c.category.slice(1),value:c.count,color:catColors[c.category]||'#666'})));
+        if(topTools.length) drawPie('toolsPie','toolsLegend',topTools.map((t,i)=>({label:t.name,value:t.count,color:toolColors[i%toolColors.length]})));
+        if(weekly.length) drawBar('weeklyChart',weekly);
+      }, 50);
     }).catch(() => {
       document.getElementById('app').innerHTML = `<div class="tool-page"><button class="tool-page-back" onclick="navigate('home')">${ICONS.back} Back</button><div class="info-box">Please <span class="modal-link" onclick="showLogin()">sign in</span> to view your dashboard.</div></div>`;
     });
   }
+}
+
+function drawPie(canvasId, legendId, data) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height, cx = W/2, cy = H/2, R = Math.min(cx,cy)-10;
+  const total = data.reduce((s,d) => s+d.value, 0);
+  if (!total) return;
+  let angle = -Math.PI/2;
+  data.forEach(d => {
+    const slice = (d.value/total)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,angle,angle+slice); ctx.closePath();
+    ctx.fillStyle = d.color; ctx.fill();
+    // Label
+    const mid = angle + slice/2;
+    const pct = Math.round(d.value/total*100);
+    if (pct >= 8) {
+      const lx = cx + Math.cos(mid) * R * 0.6, ly = cy + Math.sin(mid) * R * 0.6;
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Inter,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(pct + '%', lx, ly);
+    }
+    angle += slice;
+  });
+  // Inner hole (donut)
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.5,0,Math.PI*2); ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-muted').trim()||'#1e293b'; ctx.fill();
+  // Center total
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text').trim()||'#e2e8f0';
+  ctx.font = 'bold 20px Inter,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(total, cx, cy-6);
+  ctx.font = '11px Inter,sans-serif'; ctx.fillStyle = '#94a3b8';
+  ctx.fillText('total', cx, cy+12);
+  // Legend
+  const leg = document.getElementById(legendId);
+  if (leg) leg.innerHTML = data.map(d => `<div style="display:flex;align-items:center;gap:5px;font-size:12px"><div style="width:10px;height:10px;border-radius:50%;background:${d.color}"></div><span>${d.label} (${d.value})</span></div>`).join('');
+}
+
+function drawBar(canvasId, data) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !data.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { top: 10, bottom: 30, left: 10, right: 10 };
+  const cw = W - pad.left - pad.right, ch = H - pad.top - pad.bottom;
+  const max = Math.max(...data.map(d => parseInt(d.count)), 1);
+  const barW = Math.min(40, (cw / data.length) * 0.7);
+  const gap = cw / data.length;
+  // Grid lines
+  ctx.strokeStyle = 'rgba(148,163,184,0.15)'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+  }
+  data.forEach((d, i) => {
+    const val = parseInt(d.count);
+    const barH = (val / max) * ch;
+    const x = pad.left + gap * i + (gap - barW) / 2;
+    const y = pad.top + ch - barH;
+    // Bar with gradient
+    const grad = ctx.createLinearGradient(x, y, x, y + barH);
+    grad.addColorStop(0, '#6366f1'); grad.addColorStop(1, '#818cf8');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [4,4,0,0]);
+    ctx.fill();
+    // Value
+    if (val > 0) {
+      ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 11px Inter,sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(val, x + barW/2, y - 5);
+    }
+    // Date label
+    const dateStr = (d.date || '').slice(5); // MM-DD
+    ctx.fillStyle = '#64748b'; ctx.font = '10px Inter,sans-serif';
+    ctx.fillText(dateStr, x + barW/2, H - 8);
+  });
 }

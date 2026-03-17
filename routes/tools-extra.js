@@ -169,6 +169,7 @@ router.post('/color-contrast', (req, res) => {
     res.json({
       ratio: r,
       aa_normal: r >= 4.5, aa_large: r >= 3, aaa_normal: r >= 7, aaa_large: r >= 4.5,
+      aa: r >= 4.5, aaa: r >= 7,
       grade: r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? 'AA Large' : 'Fail',
       fgRgb, bgRgb
     });
@@ -280,17 +281,20 @@ router.post('/age-calculator', (req, res) => {
 
 // ─── BMI Calculator ────────────────────────────────────────────────────────────
 router.post('/bmi-calculator', (req, res) => {
-  const { weight, height, unit = 'metric' } = req.body;
+  const { weight, height, unit = 'metric', system } = req.body;
+  const mode = system || unit;
   if (!weight || !height) return res.status(400).json({ error: 'Please enter weight and height.' });
   let w = parseFloat(weight), h = parseFloat(height);
   if (isNaN(w) || isNaN(h) || w <= 0 || h <= 0) return res.status(400).json({ error: 'Please enter valid numbers.' });
   let bmi;
-  if (unit === 'imperial') {
+  if (mode === 'imperial') {
     const heightIn = parseFloat(req.body.height_in || 0);
     h = h * 12 + heightIn;
     bmi = (703 * w) / (h * h);
   } else {
-    bmi = w / (h * h);
+    // metric: weight in kg, height in cm → convert to meters
+    const hMeters = h > 3 ? h / 100 : h; // auto-detect cm vs m
+    bmi = w / (hMeters * hMeters);
   }
   bmi = Math.round(bmi * 10) / 10;
   const category = bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal weight' : bmi < 30 ? 'Overweight' : 'Obese';
@@ -305,7 +309,8 @@ router.post('/percentage-calculator', (req, res) => {
   const na = parseFloat(a), nb = parseFloat(b);
   if (isNaN(na) || isNaN(nb)) return res.status(400).json({ error: 'Please enter valid numbers.' });
   let result, label;
-  switch(mode) {
+  const m = mode === 'is' ? 'what' : mode === 'add' ? 'increase' : mode === 'sub' ? 'decrease' : mode;
+  switch(m) {
     case 'of':        result = (na / 100) * nb; label = `${na}% of ${nb}`; break;
     case 'what':      result = (na / nb) * 100; label = `${na} is what % of ${nb}`; break;
     case 'change':    result = ((nb - na) / Math.abs(na)) * 100; label = `% change from ${na} to ${nb}`; break;
@@ -314,21 +319,23 @@ router.post('/percentage-calculator', (req, res) => {
     default: return res.status(400).json({ error: 'Invalid mode. Use: of, what, change, increase, decrease.' });
   }
   track(req, 'percentage-calculator');
-  res.json({ result: Math.round(result * 10000) / 10000, label });
+  res.json({ result: Math.round(result * 10000) / 10000, label, explanation: label });
 });
 
 // ─── Timezone Converter ────────────────────────────────────────────────────────
 router.post('/timezone-converter', (req, res) => {
-  const { datetime, from_tz, to_tz } = req.body;
+  const { datetime, from_tz, to_tz, from, to } = req.body;
+  const fromTz = from_tz || from || 'UTC';
+  const toTz = to_tz || to || 'UTC';
   if (!datetime) return res.status(400).json({ error: 'Please enter a date and time.' });
   try {
     const dt = new Date(datetime);
     if (isNaN(dt.getTime())) return res.status(400).json({ error: 'Invalid date/time format.' });
     const fromFormatted = new Intl.DateTimeFormat('en-US', {
-      timeZone: from_tz || 'UTC', dateStyle: 'full', timeStyle: 'long'
+      timeZone: fromTz, dateStyle: 'full', timeStyle: 'long'
     }).format(dt);
     const toFormatted = new Intl.DateTimeFormat('en-US', {
-      timeZone: to_tz || 'UTC', dateStyle: 'full', timeStyle: 'long'
+      timeZone: toTz, dateStyle: 'full', timeStyle: 'long'
     }).format(dt);
     const commonZones = [
       'UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
@@ -340,7 +347,7 @@ router.post('/timezone-converter', (req, res) => {
       'Pacific/Honolulu','Africa/Cairo','Africa/Lagos','Africa/Johannesburg'
     ];
     track(req, 'timezone-converter');
-    res.json({ fromFormatted, toFormatted, iso: dt.toISOString(), zones: commonZones });
+    res.json({ fromFormatted, toFormatted, convertedTime: toFormatted, from: fromFormatted, iso: dt.toISOString(), zones: commonZones });
   } catch(e) { res.status(400).json({ error: `Invalid timezone: ${e.message}` }); }
 });
 
@@ -429,7 +436,8 @@ router.post('/favicon-generator', upload.single('image'), async (req, res) => {
       results.push({ size, dataUrl: `data:image/png;base64,${buf.toString('base64')}` });
     }
     track(req, 'favicon-generator');
-    res.json({ sizes: results, originalWidth: img.getWidth(), originalHeight: img.getHeight() });
+    const favicons = results.map(r => ({ size: r.size, data: r.dataUrl, dataUrl: r.dataUrl }));
+    res.json({ sizes: results, favicons, originalWidth: img.getWidth(), originalHeight: img.getHeight() });
   } catch(e) {
     res.status(500).json({ error: 'Could not process image.' });
   }
@@ -453,14 +461,14 @@ const SCREENSHOT_PRESETS = {
 
 router.post('/screenshot-resizer', upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Please upload an image.' });
-  const { preset = 'instagram_square', custom_w, custom_h } = req.body;
+  const { preset = 'custom', custom_w, custom_h, width, height } = req.body;
   try {
     const Jimp = require('jimp');
     const img = await Jimp.read(req.file.buffer);
     let w, h;
     if (preset === 'custom') {
-      w = parseInt(custom_w) || 1080;
-      h = parseInt(custom_h) || 1080;
+      w = parseInt(custom_w || width) || 1080;
+      h = parseInt(custom_h || height) || 1080;
     } else {
       const p = SCREENSHOT_PRESETS[preset];
       if (!p) return res.status(400).json({ error: 'Invalid preset.' });
@@ -552,6 +560,13 @@ router.post('/email-subject-generator', (req, res) => {
       `FREE: Your guide to ${keyword}`,
       `[New] ${topic} — get it before it's gone`,
       `How to ${keyword} in 5 minutes flat`,
+    ],
+    friendly: [
+      `A friendly note about ${topic} 🙂`,
+      `Just wanted to share: ${keyword}`,
+      `Hey! Here's a quick ${topic} update`,
+      `Good news about ${keyword}!`,
+      `Thought you'd like this: ${topic}`,
     ]
   };
 
@@ -596,7 +611,11 @@ router.post('/plagiarism-highlighter', (req, res) => {
     uniqueScore,
     wordCount: words.length,
     phraseCount: repeated.length,
-    label: uniqueScore >= 90 ? 'Highly Original' : uniqueScore >= 70 ? 'Mostly Original' : uniqueScore >= 50 ? 'Some Repetition' : 'High Repetition'
+    label: uniqueScore >= 90 ? 'Highly Original' : uniqueScore >= 70 ? 'Mostly Original' : uniqueScore >= 50 ? 'Some Repetition' : 'High Repetition',
+    // Frontend compatibility aliases
+    duplicates: repeated.length + duplicateSentences.length,
+    score: 100 - uniqueScore,
+    highlighted: text
   });
 });
 
@@ -647,7 +666,7 @@ router.post('/sentence-rewriter', (req, res) => {
 
   // 5. Humanized (run through humanizer)
   try {
-    const humanized = Humanizer.humanize(text);
+    const humanized = Humanizer.humanizeFull(text);
     variations.push({ style: 'Humanized', text: humanized });
   } catch {
     variations.push({ style: 'Humanized', text: casual });
@@ -714,7 +733,7 @@ router.post('/number-to-words', (req, res) => {
   const decStr = number.toString().includes('.') ? number.toString().split('.')[1] : '';
   let result = toWords(Math.abs(intPart));
   if (num < 0) result = 'negative ' + result;
-  if (decStr) result += ' point ' + decStr.split('').map(d => ones[parseInt(d)]).join(' ');
+  if (decStr) result += ' point ' + decStr.split('').map(d => ones[parseInt(d)] || 'zero').join(' ');
 
   track(req, 'number-to-words');
   res.json({ result, number: num });
@@ -725,7 +744,8 @@ router.post('/random-picker', (req, res) => {
   const { mode = 'list', items, sides = 6, count = 1, min = 1, max = 100 } = req.body;
 
   if (mode === 'list') {
-    const list = (items || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const raw = items || '';
+    const list = (Array.isArray(raw) ? raw : raw.split('\n')).map(s => String(s).trim()).filter(Boolean);
     if (!list.length) return res.status(400).json({ error: 'Please enter at least one item.' });
     const n = Math.min(Math.max(parseInt(count) || 1, 1), list.length);
     const shuffled = [...list].sort(() => Math.random() - 0.5);

@@ -10,7 +10,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const userId = req.session.userId;
     const today  = new Date().toISOString().split('T')[0];
 
-    const [totalUses, todayUses, favTool, history, weeklyData, user, paypalButtons] = await Promise.all([
+    const [totalUses, todayUses, favTool, history, weeklyData, user, paypalButtons, categoryBreakdown, topToolsData] = await Promise.all([
       db.get('SELECT COUNT(*) as count FROM tool_usage WHERE user_id=$1', [userId]),
       db.get('SELECT COUNT(*) as count FROM tool_usage WHERE user_id=$1 AND DATE(created_at)=$2', [userId, today]),
       db.get('SELECT tool_name, COUNT(*) as count FROM tool_usage WHERE user_id=$1 GROUP BY tool_id,tool_name ORDER BY count DESC LIMIT 1', [userId]),
@@ -18,6 +18,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       db.all("SELECT DATE(created_at) as date, COUNT(*) as count FROM tool_usage WHERE user_id=$1 AND created_at >= NOW() - INTERVAL '7 days' GROUP BY DATE(created_at) ORDER BY date", [userId]),
       db.get('SELECT * FROM users WHERE id=$1', [userId]),
       db.all('SELECT * FROM paypal_buttons WHERE is_active=1'),
+      db.all('SELECT category, COUNT(*) as count FROM tool_usage WHERE user_id=$1 GROUP BY category ORDER BY count DESC', [userId]),
+      db.all('SELECT tool_name, COUNT(*) as count FROM tool_usage WHERE user_id=$1 GROUP BY tool_id,tool_name ORDER BY count DESC LIMIT 8', [userId]),
     ]);
 
     const dailyLimit = parseInt(await db.getSetting('free_daily_limit') || '10');
@@ -41,6 +43,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         favoriteTool: favTool?.tool_name || 'None yet',
       },
       history, weeklyData,
+      charts: {
+        categoryBreakdown: (categoryBreakdown || []).map(r => ({ category: r.category, count: parseInt(r.count) })),
+        topTools: (topToolsData || []).map(r => ({ name: r.tool_name, count: parseInt(r.count) })),
+      },
       adsEnabled: req.session.role === 'free' ? adsEnabled : false,
       paypalButtons,
     });
