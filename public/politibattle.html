@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PolitiBattle 3D — Political Showdown | ToolHub AI</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127963;</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Bebas+Neue&family=Press+Start+2P&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow-x:hidden;background:#050510;color:#e2e8f0;font-family:'Inter',sans-serif}
+
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.z10{position:relative;z-index:10}
+.overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column}
+.overlay.vis{display:flex}
+
+/* NAV */
+.nav{background:rgba(5,5,16,.94);backdrop-filter:blur(20px);padding:13px 28px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:200}
+.nav a{color:#64748b;text-decoration:none;font-size:.87rem;padding:7px 14px;border-radius:10px;transition:all .2s;font-weight:500}
+.nav a:hover{background:rgba(255,255,255,.06);color:#e2e8f0}
+.nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;margin-right:auto}
+
+/* TYPE BADGES */
+.tb{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:1px}
+.tb-Republican{background:rgba(220,38,38,.2);color:#fca5a5;border:1px solid rgba(220,38,38,.4)}
+.tb-Democrat{background:rgba(37,99,235,.2);color:#93c5fd;border:1px solid rgba(37,99,235,.4)}
+.tb-Libertarian{background:rgba(234,179,8,.2);color:#fde047;border:1px solid rgba(234,179,8,.4)}
+.tb-Green{background:rgba(34,197,94,.2);color:#86efac;border:1px solid rgba(34,197,94,.4)}
+.tb-Socialist{background:rgba(239,68,68,.25);color:#fca5a5;border:1px solid rgba(239,68,68,.45)}
+.tb-Authoritarian{background:rgba(107,33,168,.22);color:#d8b4fe;border:1px solid rgba(107,33,168,.4)}
+.tb-Centrist{background:rgba(148,163,184,.15);color:#cbd5e1;border:1px solid rgba(148,163,184,.35)}
+.tb-Populist{background:rgba(249,115,22,.2);color:#fdba74;border:1px solid rgba(249,115,22,.4)}
+.tb-Corporate{background:rgba(71,85,105,.22);color:#94a3b8;border:1px solid rgba(71,85,105,.45)}
+.tb-Revolutionary{background:rgba(190,18,60,.2);color:#fda4af;border:1px solid rgba(190,18,60,.4)}
+
+/* HERO */
+.hero{text-align:center;padding:80px 24px 60px;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(220,38,38,.07),transparent 60%),radial-gradient(ellipse 60% 40% at 20% 80%,rgba(37,99,235,.05),transparent 50%);pointer-events:none}
+.hero-icon{font-size:4.5rem;margin-bottom:20px;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 0 30px rgba(220,38,38,.4))}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.hero-title{font-family:'Russo One',sans-serif;font-size:clamp(2.8rem,7vw,5rem);background:linear-gradient(135deg,#ef4444 0%,#f59e0b 35%,#3b82f6 70%,#10b981 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.05;margin-bottom:6px}
+.hero-sub{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:#475569;letter-spacing:.2em;margin-bottom:16px}
+.hero-desc{color:#94a3b8;max-width:580px;line-height:1.75;margin:0 auto 36px;font-size:.93rem}
+.hero-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:36px}
+
+/* NAME INPUT */
+.nw{margin-bottom:28px}
+.nw label{display:block;color:#64748b;font-size:.78rem;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase}
+.nw input{padding:12px 20px;border-radius:14px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:1rem;text-align:center;width:280px;font-family:'Inter',sans-serif}
+.nw input:focus{outline:none;border-color:rgba(220,38,38,.5)}
+
+/* ACTION BUTTONS */
+.arow{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-bottom:32px}
+.ab{display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 36px;border-radius:18px;cursor:pointer;transition:all .22s cubic-bezier(.4,0,.2,1);border:1.5px solid rgba(255,255,255,.07);min-width:200px;background:rgba(255,255,255,.02)}
+.ab:hover{transform:translateY(-5px)}
+.ab.red:hover{border-color:rgba(220,38,38,.5);box-shadow:0 20px 50px rgba(220,38,38,.15)}
+.ab.blue:hover{border-color:rgba(37,99,235,.5);box-shadow:0 20px 50px rgba(37,99,235,.15)}
+.ab.gold:hover{border-color:rgba(234,179,8,.5);box-shadow:0 20px 50px rgba(234,179,8,.15)}
+.ab-icon{font-size:2.2rem}.ab-title{font-weight:700;font-size:1rem;color:#fff}.ab-desc{font-size:.78rem;color:#64748b}
+
+/* JOIN SECTION */
+.jsec{display:none;margin-top:4px}
+.jsec.vis{display:block;animation:slideUp .3s ease-out}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.jcard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px;max-width:360px;margin:0 auto}
+.jcard h3{color:#fff;font-size:1rem;font-weight:700;margin-bottom:14px}
+.jrow{display:flex;gap:10px}
+.jrow input{flex:1;padding:12px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:1.15rem;letter-spacing:.15em;text-transform:uppercase;text-align:center;font-weight:700}
+.jrow input:focus{outline:none;border-color:#3b82f6}
+.jbtn{padding:12px 20px;border-radius:12px;border:none;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-weight:700;cursor:pointer}
+#joinErr{color:#f87171;font-size:.8rem;text-align:center;margin-top:8px}
+
+/* ROSTER */
+.rtitle{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#475569;letter-spacing:.12em;margin:44px 0 18px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:10px;max-width:900px;margin:0 auto;padding:0 16px}
+.rcard{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px 8px;text-align:center;transition:all .18s;overflow:hidden}
+.rcard:hover{border-color:rgba(255,255,255,.13);transform:translateY(-2px)}
+.rcard .rimg-wrap{width:60px;height:60px;border-radius:50%;overflow:hidden;margin:0 auto 6px;border:2px solid rgba(255,255,255,.15)}
+.rcard .rimg-wrap img{width:100%;height:100%;object-fit:cover;object-position:top}
+.rcard .rn{font-size:.7rem;font-weight:700;color:#e2e8f0;margin-bottom:3px}
+
+/* WAIT */
+.wbox{background:rgba(5,5,16,.97);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:48px 40px;text-align:center;max-width:420px}
+.wbox h2{font-family:'Russo One',sans-serif;font-size:1.6rem;margin-bottom:8px}
+.wbox p{color:#64748b;font-size:.9rem;margin-bottom:20px}
+.rcode{font-family:'Press Start 2P',monospace;font-size:2.2rem;color:#ef4444;letter-spacing:.2em;padding:18px 32px;background:rgba(220,38,38,.08);border:2px solid rgba(220,38,38,.3);border-radius:14px;margin:12px 0;display:block}
+.cbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.cbtn{padding:9px 18px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#94a3b8;cursor:pointer;font-size:.82rem;transition:all .2s}
+.cbtn:hover{background:rgba(255,255,255,.1);color:#fff}
+.spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.08);border-top-color:#ef4444;border-radius:50%;animation:spin 1s linear infinite;margin:20px auto 0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TEAM SELECT */
+#tsScreen{display:none;min-height:100vh;padding:20px 20px 110px;position:relative;z-index:10}
+.tsh{text-align:center;padding:28px 0 22px}
+.tsh h2{font-family:'Russo One',sans-serif;font-size:2rem;color:#fff;margin-bottom:4px}
+.tsh p{color:#64748b;font-size:.88rem}
+.tsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;max-width:1100px;margin:0 auto}
+.tcard{background:rgba(255,255,255,.03);border:2px solid rgba(255,255,255,.07);border-radius:14px;padding:14px;cursor:pointer;transition:all .2s;text-align:center}
+.tcard:hover{border-color:rgba(255,255,255,.2);transform:translateY(-2px)}
+.tcard.sel{border-color:#ef4444;background:rgba(220,38,38,.08);box-shadow:0 0 24px rgba(220,38,38,.15)}
+.tcard.ccp{border-color:rgba(107,33,168,.4);background:rgba(107,33,168,.05)}
+.tcard.ccp.sel{border-color:#a855f7;box-shadow:0 0 24px rgba(168,85,247,.25)}
+
+/* Avatar frame in team select */
+.av-frame{width:72px;height:72px;border-radius:50%;overflow:hidden;margin:0 auto 6px;border:3px solid rgba(255,255,255,.15);position:relative;background:#0d1022}
+.av-frame img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.av-frame .av-emoji{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.2rem}
+.tcard .cn{font-size:.78rem;font-weight:700;margin:4px 0 2px;color:#fff}
+.tcard .ct{font-size:.6rem;color:#64748b;margin-bottom:5px}
+.tcard .cs{font-size:.6rem;color:#475569;line-height:1.5;margin-top:4px}
+
+.tsbar{position:fixed;bottom:0;left:0;right:0;background:rgba(5,5,16,.97);backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,.08);padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:12px;z-index:100;flex-wrap:wrap}
+.tslot{width:50px;height:50px;border-radius:12px;border:2px dashed rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.6rem;background:rgba(255,255,255,.02);transition:all .2s;overflow:hidden}
+.tslot.f{border-style:solid;border-color:rgba(220,38,38,.5);background:rgba(220,38,38,.07)}
+.tslot img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.tcon{padding:13px 30px;border-radius:13px;border:none;background:linear-gradient(135deg,#ef4444,#f59e0b);color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;opacity:.45;pointer-events:none;transition:all .2s}
+.tcon.ready{opacity:1;pointer-events:auto;box-shadow:0 6px 24px rgba(220,38,38,.3)}
+
+/* BATTLE UI */
+#battleUI{position:fixed;inset:0;z-index:30;display:none;pointer-events:none}
+#battleUI.on{display:block}
+.uia{pointer-events:auto}
+
+/* Fighter HUDs */
+.fhud{position:absolute;background:rgba(5,5,16,.87);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:12px;min-width:260px}
+.fhud.opp{top:80px;left:18px;border-color:rgba(37,99,235,.3)}
+.fhud.mine{bottom:200px;right:18px;border-color:rgba(220,38,38,.3)}
+.fhud-av{width:54px;height:54px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(255,255,255,.2);background:#0d1022;position:relative}
+.fhud-av img{width:100%;height:100%;object-fit:cover;object-position:top}
+.fhud-av .fav-em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.6rem}
+.fhud-info{flex:1;min-width:0}
+.fhud-name{font-family:'Russo One',sans-serif;font-size:.92rem;color:#fff;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fhud-types{margin-bottom:5px}
+.hpbar{background:rgba(255,255,255,.08);border-radius:20px;height:11px;overflow:hidden;margin-bottom:3px}
+.hpfill{height:100%;border-radius:20px;transition:width .55s ease-out;background:linear-gradient(90deg,#22c55e,#4ade80)}
+.hpfill.mid{background:linear-gradient(90deg,#eab308,#facc15)}
+.hpfill.low{background:linear-gradient(90deg,#ef4444,#f87171)}
+.hptxt{font-size:.7rem;color:#94a3b8}
+.stpill{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58rem;font-weight:700;text-transform:uppercase;margin:2px 1px}
+.st-burn{background:rgba(239,68,68,.2);color:#fca5a5}
+.st-paralysis{background:rgba(234,179,8,.2);color:#fde047}
+.st-poison,.st-toxic{background:rgba(168,85,247,.2);color:#d8b4fe}
+.st-sleep{background:rgba(148,163,184,.2);color:#cbd5e1}
+
+/* MOVE PANEL */
+#movePanel{position:absolute;bottom:0;left:0;right:0;padding:10px 14px 14px;background:rgba(5,5,16,.92);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.07);pointer-events:auto}
+.mlabel{text-align:center;font-size:.7rem;color:#475569;margin-bottom:7px;font-weight:600;letter-spacing:.06em}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:820px;margin:0 auto 8px}
+.mvbtn{padding:11px 10px;border-radius:12px;border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);cursor:pointer;text-align:left;transition:all .18s;position:relative;overflow:hidden}
+.mvbtn:hover:not(:disabled){transform:translateY(-2px);border-color:rgba(255,255,255,.22)}
+.mvbtn:disabled{opacity:.32;cursor:not-allowed}
+.mvbtn .mn{font-weight:700;font-size:.78rem;color:#fff;margin-bottom:2px}
+.mvbtn .mi{display:flex;gap:5px;align-items:center;font-size:.64rem;color:#94a3b8}
+.mc{font-size:.57rem;padding:2px 5px;border-radius:5px;font-weight:700;text-transform:uppercase}
+.mc.physical{background:rgba(249,115,22,.2);color:#fdba74}
+.mc.special{background:rgba(96,165,250,.2);color:#93c5fd}
+.mc.status{background:rgba(148,163,184,.18);color:#cbd5e1}
+.mc.ban{background:rgba(239,68,68,.35);color:#fca5a5;animation:bp .8s infinite}
+@keyframes bp{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* TEAM BAR */
+.tbar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.tslotb{width:40px;height:40px;border-radius:10px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .18s;overflow:hidden;position:relative}
+.tslotb:hover:not(.fainted):not(.active){border-color:rgba(255,255,255,.3)}
+.tslotb.active{border-color:#ef4444;background:rgba(220,38,38,.12)}
+.tslotb.fainted{opacity:.22;cursor:not-allowed;filter:grayscale(1)}
+.tslotb img{width:100%;height:100%;object-fit:cover;object-position:top}
+.tslotb .tsem{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem}
+
+/* LOG */
+#bLog{position:absolute;bottom:200px;left:18px;width:290px;background:rgba(5,5,16,.88);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:12px;max-height:165px;overflow-y:auto;pointer-events:auto}
+.le{font-size:.74rem;color:#94a3b8;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03);animation:fi .3s ease-out}
+.le:last-child{border:none}
+.le.eff{color:#4ade80}.le.neff{color:#fbbf24}.le.imm{color:#f87171}.le.fnt{color:#ef4444;font-weight:700}.le.sts{color:#a78bfa}
+.le.ban{color:#ff3333;font-weight:800;font-family:'Press Start 2P',monospace;font-size:.56rem;line-height:1.5}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+#turnCtr{position:absolute;top:80px;left:50%;transform:translateX(-50%);font-family:'Press Start 2P',monospace;font-size:.58rem;color:#475569;background:rgba(5,5,16,.82);padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.06);white-space:nowrap}
+
+/* WINNER */
+.winbox{background:rgba(5,5,16,.97);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:60px 48px;text-align:center;max-width:440px}
+.winbox h1{font-family:'Russo One',sans-serif;font-size:clamp(2rem,5vw,3rem);background:linear-gradient(135deg,#fbbf24,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+.winbox p{color:#94a3b8;font-size:1rem;margin-bottom:28px}
+.pagain{padding:14px 34px;border-radius:14px;border:none;background:linear-gradient(135deg,#ef4444,#f59e0b);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;transition:transform .2s}
+.pagain:hover{transform:scale(1.05)}
+
+/* BAN OVERLAY — CCPAffey nuclear option */
+#banOv{position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(140,0,0,.97);pointer-events:none}
+#banOv.on{display:flex;animation:bshake .07s infinite}
+@keyframes bshake{0%{transform:translate(0,0)}25%{transform:translate(-5px,4px)}50%{transform:translate(6px,-5px)}75%{transform:translate(-4px,5px)}100%{transform:translate(0,0)}}
+.bham{font-size:6rem;animation:bspin .3s linear infinite;filter:drop-shadow(0 0 40px #ff0000)}
+@keyframes bspin{from{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(1.5)}to{transform:rotate(360deg) scale(1)}}
+.btitle{font-family:'Press Start 2P',monospace;font-size:clamp(2.5rem,8vw,5.5rem);color:#fff;text-shadow:5px 5px 0 #000,0 0 60px #ff0000;animation:glitch .22s infinite;line-height:1}
+@keyframes glitch{0%{transform:translate(0);filter:none}20%{transform:translate(-5px,3px);filter:hue-rotate(90deg)}40%{transform:translate(5px,-3px);color:cyan}60%{transform:translate(-3px,4px);filter:hue-rotate(180deg)}80%{transform:translate(4px,-2px);color:#ff0}100%{transform:translate(0);filter:none}}
+.btarget{font-family:'Press Start 2P',monospace;font-size:clamp(.85rem,2.5vw,1.7rem);color:#ff7777;text-shadow:2px 2px 0 #000;animation:glitch .35s infinite;margin:8px 0}
+.btaunt{font-family:'Press Start 2P',monospace;font-size:clamp(.6rem,1.8vw,1.1rem);color:#ffff00;text-shadow:2px 2px 0 #000;margin:10px 0}
+.bscan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0px,rgba(0,0,0,.18) 1px,transparent 1px,transparent 4px);pointer-events:none}
+
+/* FOOTER */
+footer{background:rgba(5,5,16,.8);border-top:1px solid rgba(255,255,255,.05);padding:24px 20px;text-align:center;margin-top:60px}
+footer a{color:#334155;text-decoration:none;margin:0 12px;font-size:.82rem}
+footer a:hover{color:#64748b}
+
+@media(max-width:700px){
+  .fhud{min-width:0;width:calc(50% - 30px);padding:10px 12px}
+  .fhud.mine{right:8px;bottom:220px}
+  .fhud.opp{left:8px;top:76px}
+  .fhud-av{width:40px;height:40px}
+  #bLog{display:none}
+  .mgrid{grid-template-columns:repeat(2,1fr)}
+  .arow{flex-direction:column;align-items:center}
+  .ab{min-width:260px}
+}
+
+/* PP BAR */
+.pp-bar-wrap{background:rgba(255,255,255,.07);border-radius:6px;height:4px;margin-top:3px;overflow:hidden}
+.pp-bar{height:100%;border-radius:6px;transition:width .4s;background:#3b82f6}
+.pp-bar.low{background:#eab308}.pp-bar.empty{background:#ef4444}
+/* WEATHER BANNER */
+#weatherBar{position:absolute;top:76px;left:50%;transform:translateX(-50%);background:rgba(5,5,16,.88);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:5px 14px;font-size:.68rem;color:#94a3b8;font-weight:600;letter-spacing:.06em;white-space:nowrap;transition:all .4s}
+/* FIGHTER BADGES */
+.lucky-badge{color:#fbbf24;font-size:.6rem;font-weight:700}
+.shadow-badge{color:#a78bfa;font-size:.6rem;font-weight:700}
+.purified-badge{color:#6ee7b7;font-size:.6rem;font-weight:700}
+.raid-badge{color:#f87171;font-size:.6rem;font-weight:700;animation:bp .6s infinite}
+/* SHIELD PIPS */
+.shields-row{display:flex;gap:3px;margin-top:3px}
+.shield-pip{font-size:.75rem;opacity:.4}.shield-pip.active{opacity:1}
+/* ABILITY CHIP */
+.abil-chip{display:inline-block;background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.3);color:#a5b4fc;border-radius:8px;font-size:.58rem;padding:1px 6px;margin-top:3px;font-weight:600}
+/* ITEM CHIP */
+.item-chip{display:inline-block;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#fcd34d;border-radius:8px;font-size:.58rem;padding:1px 6px;margin-top:2px;font-weight:600}
+/* SURGE GLOW */
+.surge-active .hp-wrap{box-shadow:0 0 8px rgba(234,179,8,.6)}
+/* ITEM SELECT in team select */
+.item-sel{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;justify-content:center}
+.item-opt{padding:3px 7px;border-radius:8px;border:1.5px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);cursor:pointer;font-size:.6rem;color:#94a3b8;transition:all .15s}
+.item-opt:hover{border-color:rgba(245,158,11,.4);color:#fcd34d}
+.item-opt.chosen{border-color:#f59e0b;background:rgba(245,158,11,.1);color:#fbbf24}
+/* SURGE button */
+#surgeBtn{position:absolute;bottom:200px;right:18px;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;border-radius:12px;padding:9px 18px;color:#fff;font-weight:700;font-size:.78rem;cursor:pointer;display:none;animation:bp .7s infinite}
+#surgeBtn.vis{display:block}
+
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<!-- NAV -->
+<nav class="nav z10">
+  <a href="/" class="logo"><span>⚡</span> ToolHub AI</a>
+  <a href="/">🔧 Tools</a>
+  <a href="/quizzes">🎓 Quizzes</a>
+  <a href="/multiplayer">🎮 Multiplayer</a>
+  <a href="/politibattle" style="color:#ef4444;font-weight:700">🏛️ PolitiBattle</a>
+</nav>
+
+<!-- LOBBY -->
+<div id="lobbyScreen" class="z10">
+  <div class="hero">
+    <div class="hero-icon">🏛️</div>
+    <h1 class="hero-title">POLITIBATTLE</h1>
+    <div class="hero-sub">3D Political Pokemon Showdown</div>
+    <p class="hero-desc">51 real political figures. Full Pokemon battle mechanics. STAB bonuses, type effectiveness, status conditions, entry hazards &amp; the most deranged signature moves ever conceived. Now in 3D with animated attacks.</p>
+    <div class="hero-badges">
+      <span class="tb tb-Republican">Republican</span><span class="tb tb-Democrat">Democrat</span>
+      <span class="tb tb-Libertarian">Libertarian</span><span class="tb tb-Green">Green</span>
+      <span class="tb tb-Socialist">Socialist</span><span class="tb tb-Authoritarian">Authoritarian</span>
+      <span class="tb tb-Centrist">Centrist</span><span class="tb tb-Populist">Populist</span>
+      <span class="tb tb-Corporate">Corporate</span><span class="tb tb-Revolutionary">Revolutionary</span>
+    </div>
+    <div class="nw">
+      <label>Your Trainer Name</label>
+      <input id="trainerName" type="text" placeholder="Enter your name..." maxlength="20">
+    </div>
+    <div class="arow">
+      <div class="ab red" onclick="createGame()"><div class="ab-icon">🚀</div><div class="ab-title">Create Battle</div><div class="ab-desc">Get a code, invite a friend</div></div>
+      <div class="ab blue" onclick="showJoinSection()"><div class="ab-icon">🔗</div><div class="ab-title">Join Battle</div><div class="ab-desc">Enter a 6-letter code</div></div>
+      <div class="ab gold" onclick="createAIGame()"><div class="ab-icon">🤖</div><div class="ab-title">Battle AI</div><div class="ab-desc">Fight the CPU Trainer</div></div>
+    <div class="ab" style="border-color:rgba(239,68,68,.3)" onclick="createRaidBoss()"><div class="ab-icon">👑</div><div class="ab-title">Raid Boss</div><div class="ab-desc">1 vs 3× HP boss</div></div>
+    </div>
+    <div class="jsec" id="joinSection">
+      <div class="jcard">
+        <h3>Enter Battle Code</h3>
+        <div class="jrow">
+          <input id="joinCodeInput" type="text" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
+          <button class="jbtn" onclick="joinGame()">Join</button>
+        </div>
+        <div id="joinErr"></div>
+      </div>
+    </div>
+    <div class="rtitle">THE ROSTER — 51 FIGHTERS</div>
+    <div class="rgrid" id="rosterPreview"></div>
+  </div>
+  <footer><a href="/">🏠 Home</a><a href="/multiplayer">🎮 Multiplayer</a><a href="/privacy">🔒 Privacy</a></footer>
+</div>
+
+<!-- WAITING -->
+<div class="overlay" id="waitScreen">
+  <div class="wbox">
+    <h2>⚔️ Waiting for Opponent...</h2>
+    <p>Share this battle code:</p>
+    <span class="rcode" id="waitCode">------</span>
+    <div class="cbtns">
+      <button class="cbtn" onclick="copyCode()">📋 Copy Code</button>
+      <button class="cbtn" onclick="copyLink()">🔗 Copy Link</button>
+    </div>
+    <div class="spinner"></div>
+    <p style="font-size:.77rem;color:#334155;margin-top:14px">Or <a href="#" onclick="startAI()" style="color:#ef4444">battle the AI</a></p>
+  </div>
+</div>
+
+<!-- TEAM SELECT -->
+<div id="tsScreen">
+  <div class="tsh z10"><h2>CHOOSE YOUR TEAM</h2><p>Pick 6 fighters — first pick leads the charge.</p></div>
+  <div class="tsgrid z10" id="tsGrid"></div>
+  <div class="tsbar">
+    <div class="tslot" id="ts0">?</div><div class="tslot" id="ts1">?</div>
+    <div class="tslot" id="ts2">?</div><div class="tslot" id="ts3">?</div>
+    <div class="tslot" id="ts4">?</div><div class="tslot" id="ts5">?</div>
+    <button class="tcon" id="tconBtn" onclick="confirmTeam()">LOCK IN TEAM ⚔️</button>
+  </div>
+</div>
+
+<!-- BATTLE UI -->
+<div id="battleUI">
+  <div id="weatherBar">☀️ Clear Skies</div>
+  <button id="surgeBtn" onclick="activateSurge()">⚡ SURGE!</button>
+  <div class="fhud opp">
+    <div class="fhud-av" id="oppAv"><div class="fav-em" id="oppAvEm">?</div><img id="oppAvImg" src="" alt="" style="display:none"></div>
+    <div class="fhud-info">
+      <div class="fhud-name" id="oppFName">???</div>
+      <div class="fhud-types" id="oppFTypes"></div>
+      <div class="hpbar"><div class="hpfill" id="oppHpFill" style="width:100%"></div></div>
+      <div class="hptxt" id="oppHpTxt">??? / ???</div>
+      <div id="oppSt"></div>
+    </div>
+  </div>
+  <div class="fhud mine">
+    <div class="fhud-av" id="myAv"><div class="fav-em" id="myAvEm">?</div><img id="myAvImg" src="" alt="" style="display:none"></div>
+    <div class="fhud-info">
+      <div class="fhud-name" id="myFName">???</div>
+      <div class="fhud-types" id="myFTypes"></div>
+      <div class="hpbar"><div class="hpfill" id="myHpFill" style="width:100%"></div></div>
+      <div class="hptxt" id="myHpTxt">??? / ???</div>
+      <div id="mySt"></div>
+    </div>
+  </div>
+  <div id="turnCtr">TURN 1</div>
+  <div id="bLog" class="uia"><div class="le">⚔️ Battle started! Choose your move.</div></div>
+  <div id="movePanel" class="uia">
+    <div class="mlabel" id="moveLabel">YOUR TURN</div>
+    <div class="mgrid" id="movesGrid"></div>
+    <div class="tbar" id="teamBar"></div>
+  </div>
+</div>
+
+<!-- WINNER -->
+<div class="overlay" id="winScreen">
+  <div class="winbox">
+    <h1 id="winText">YOU WIN!</h1>
+    <p id="winSub">Congratulations!</p>
+    <button class="pagain" onclick="location.reload()">Play Again 🔄</button>
+  </div>
+</div>
+
+<!-- BAN OVERLAY -->
+<div id="banOv">
+  <div class="bscan"></div>
+  <div class="bham">🔨</div>
+  <div class="btitle">W!BAN</div>
+  <div class="btarget" id="banTarget">@TARGET</div>
+  <div class="btaunt">?R TROLL+L</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// POLITICIAN IMAGE MAP — Wikipedia/Wikimedia public domain
+// ═══════════════════════════════════════════════════════════
+const POL_IMAGES = {
+  obama:       'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/President_Barack_Obama.jpg/200px-President_Barack_Obama.jpg',
+  biden:       'https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Joe_Biden_presidential_portrait.jpg/200px-Joe_Biden_presidential_portrait.jpg',
+  trump:       'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Donald_Trump_official_portrait.jpg/200px-Donald_Trump_official_portrait.jpg',
+  bush:        'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/George-W-Bush.jpeg/200px-George-W-Bush.jpeg',
+  cheney:      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Richard_Cheney_2005_official_portrait.jpg/200px-Richard_Cheney_2005_official_portrait.jpg',
+  putin:       'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Vladimir_Putin_%282022-12-21%29.jpg/200px-Vladimir_Putin_%282022-12-21%29.jpg',
+  hitler:      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Adolf_Hitler_1933.jpg/200px-Adolf_Hitler_1933.jpg',
+  bernie:      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Bernie_Sanders.jpg/200px-Bernie_Sanders.jpg',
+  hillary:     'https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Hillary_Clinton_official_Secretary_of_State_portrait_crop.jpg/200px-Hillary_Clinton_official_Secretary_of_State_portrait_crop.jpg',
+  aoc:         'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Alexandria_Ocasio-Cortez_116th_Congress_official_portrait.jpg/200px-Alexandria_Ocasio-Cortez_116th_Congress_official_portrait.jpg',
+  pelosi:      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Nancy_Pelosi_115th_Congress_photo.jpg/200px-Nancy_Pelosi_115th_Congress_photo.jpg',
+  tedcruz:     'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Ted_Cruz_official_portrait_%28cropped%29.jpg/200px-Ted_Cruz_official_portrait_%28cropped%29.jpg',
+  mcconnell:   'https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Mitch_McConnell_official_portrait_2016.jpg/200px-Mitch_McConnell_official_portrait_2016.jpg',
+  kamala:      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Kamala_Harris_Vice_Presidential_Portrait.jpg/200px-Kamala_Harris_Vice_Presidential_Portrait.jpg',
+  romney:      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Mitt_Romney_official_portrait.jpg/200px-Mitt_Romney_official_portrait.jpg',
+  reagan:      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Official_Portrait_of_President_Reagan_1981.jpg/200px-Official_Portrait_of_President_Reagan_1981.jpg',
+  musk:        'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Elon_Musk_Royal_Society_%28crop2%29.jpg/200px-Elon_Musk_Royal_Society_%28crop2%29.jpg',
+  pence:       'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Mike_Pence_official_Vice_Presidential_portrait.jpg/200px-Mike_Pence_official_Vice_Presidential_portrait.jpg',
+  desantis:    'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Ron_DeSantis_in_2023_%28cropped%29.jpg/200px-Ron_DeSantis_in_2023_%28cropped%29.jpg',
+  newsom:      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Gavin_Newsom_official_photo_%28cropped%29.jpg/200px-Gavin_Newsom_official_photo_%28cropped%29.jpg',
+  thatcher:    'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Margaret_Thatcher.png/200px-Margaret_Thatcher.png',
+  zelensky:    'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Volodymyr_Zelensky_2019_%28cropped%29.jpg/200px-Volodymyr_Zelensky_2019_%28cropped%29.jpg',
+  jinping:     'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Xi_Jinping_2019.jpg/200px-Xi_Jinping_2019.jpg',
+  kim:         'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Kim_Jong-un_April_2019_%28cropped%29.jpg/200px-Kim_Jong-un_April_2019_%28cropped%29.jpg',
+  merkel:      'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Angela_Merkel_2019_%28cropped%29.jpg/200px-Angela_Merkel_2019_%28cropped%29.jpg',
+  trudeau:     'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Justin_Trudeau_in_2022.jpg/200px-Justin_Trudeau_in_2022.jpg',
+  boris:       'https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Boris_Johnson_official_portrait_%28cropped%29.jpg/200px-Boris_Johnson_official_portrait_%28cropped%29.jpg',
+  pope:        'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Pope_Francis_2021.jpg/200px-Pope_Francis_2021.jpg',
+  gandhi:      'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Mahatma-Gandhi%2C_studio%2C_1931.jpg/200px-Mahatma-Gandhi%2C_studio%2C_1931.jpg',
+  mandela:     'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Nelson_Mandela%2C_2000_%28cropped%29.jpg/200px-Nelson_Mandela%2C_2000_%28cropped%29.jpg',
+  lincoln:     'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Abraham_Lincoln_O-77_matte_collodion_print.jpg/200px-Abraham_Lincoln_O-77_matte_collodion_print.jpg',
+  fdr:         'https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/FDR_1944_Color_Portrait.jpg/200px-FDR_1944_Color_Portrait.jpg',
+  jfk:         'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/John_F._Kennedy%2C_White_House_color_photo_portrait.jpg/200px-John_F._Kennedy%2C_White_House_color_photo_portrait.jpg',
+  nixon:       'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Richard_Nixon_presidential_portrait_%28color%29.jpg/200px-Richard_Nixon_presidential_portrait_%28color%29.jpg',
+  gore:        'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Al_Gore_Vice_Presidential_portrait.jpg/200px-Al_Gore_Vice_Presidential_portrait.jpg',
+  che:         'https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/CheHigh.jpg/200px-CheHigh.jpg',
+  erdogan:     'https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Recep_Tayyip_Erdo%C4%9Fan_2018_%28cropped%29.jpg/200px-Recep_Tayyip_Erdo%C4%9Fan_2018_%28cropped%29.jpg',
+  chavez:      'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Hugo_Chavez_-_Foto_Presidencia.jpg/200px-Hugo_Chavez_-_Foto_Presidencia.jpg',
+  warren:      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Elizabeth_Warren%2C_official_portrait%2C_114th_Congress.jpg/200px-Elizabeth_Warren%2C_official_portrait%2C_114th_Congress.jpg',
+  rand:        'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Rand_Paul_official_Senate_portrait_2016.jpg/200px-Rand_Paul_official_Senate_portrait_2016.jpg',
+  cortez:      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Fidel_Castro_-_MATS_Terminal_Washington_1959.jpg/200px-Fidel_Castro_-_MATS_Terminal_Washington_1959.jpg',
+  modi:        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Narendra_Modi_%282022%29.jpg/200px-Narendra_Modi_%282022%29.jpg',
+  macron:      'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Emmanuel_Macron_in_2019.jpg/200px-Emmanuel_Macron_in_2019.jpg',
+  bezos:       'https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Jeff_Bezos_visits_LAAFB_SMC_%28cropped%29.jpg/200px-Jeff_Bezos_visits_LAAFB_SMC_%28cropped%29.jpg',
+  zuckerberg:  'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Mark_Zuckerberg_F8_2019_Keynote_%2832830578717%29_%28cropped%29.jpg/200px-Mark_Zuckerberg_F8_2019_Keynote_%2832830578717%29_%28cropped%29.jpg',
+  stalin:      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Stalin_Image.jpg/200px-Stalin_Image.jpg',
+  churchill:   'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Winston_Churchill_1941_photo_by_Yousuf_Karsh.jpg/200px-Winston_Churchill_1941_photo_by_Yousuf_Karsh.jpg',
+  cleopatra:   'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Kleopatra-VII.-Altes-Museum-Berlin1.jpg/200px-Kleopatra-VII.-Altes-Museum-Berlin1.jpg',
+  caesar:      'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Gaius_Iulius_Caesar_%28Vatican_Museums%29.jpg/200px-Gaius_Iulius_Caesar_%28Vatican_Museums%29.jpg',
+  mlk:         'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Martin_Luther_King%2C_Jr..jpg/200px-Martin_Luther_King%2C_Jr..jpg',
+};
+
+// Type → hex color map
+const THEX = {
+  Republican:0xdc2626, Democrat:0x2563eb, Libertarian:0xeab308,
+  Green:0x22c55e, Socialist:0xef4444, Authoritarian:0x7c3aed,
+  Centrist:0x94a3b8, Populist:0xf97316, Corporate:0x475569, Revolutionary:0xbe123c
+};
+const TCSS = {
+  Republican:'#dc2626', Democrat:'#2563eb', Libertarian:'#eab308',
+  Green:'#22c55e', Socialist:'#ef4444', Authoritarian:'#7c3aed',
+  Centrist:'#94a3b8', Populist:'#f97316', Corporate:'#475569', Revolutionary:'#be123c'
+};
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS ARENA SETUP
+// ═══════════════════════════════════════════════════════════
+const cvs = document.getElementById('bgCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050510);
+scene.fog = new THREE.FogExp2(0x050510, 0.042);
+
+const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 300);
+camera.position.set(0, 5.5, 12);
+camera.lookAt(0, 1.5, 0);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Lights
+scene.add(new THREE.AmbientLight(0x1a2044, 0.7));
+const sun = new THREE.DirectionalLight(0xffffff, 0.4); sun.position.set(4,12,5); scene.add(sun);
+const rL = new THREE.PointLight(0xff2222, 2.8, 16); rL.position.set(5,3.5,3.5); scene.add(rL);
+const bL = new THREE.PointLight(0x2255ff, 2.8, 16); bL.position.set(-5,3.5,-3.5); scene.add(bL);
+const tL = new THREE.PointLight(0xffffff, 0.25, 25); tL.position.set(0,12,0); scene.add(tL);
+
+// Floor
+scene.add(Object.assign(
+  new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshPhongMaterial({color:0x0d1022,shininess:55,specular:0x1a2044})),
+  { rotation: new THREE.Euler(-Math.PI/2,0,0), position: new THREE.Vector3(0,-0.5,0) }
+));
+
+// Divider line
+const div = new THREE.Mesh(new THREE.PlaneGeometry(0.1,30), new THREE.MeshBasicMaterial({color:0x3355bb,transparent:true,opacity:0.5}));
+div.rotation.x = -Math.PI/2; div.position.y = -0.49; scene.add(div);
+
+// Platforms
+function makePlat(x,z,col){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(4.2,0.2,3.2), new THREE.MeshPhongMaterial({color:col,shininess:35}));
+  m.position.set(x,-0.4,z); scene.add(m); return m;
+}
+makePlat(3.8,-0.39,2.8,0x1c0608); makePlat(-3.8,-0.39,-2.8,0x06080f);
+
+// Background architecture
+const pilG = new THREE.CylinderGeometry(0.3,0.42,10,8);
+const pilM = new THREE.MeshPhongMaterial({color:0x0d1122});
+[[-9,4.5,-8],[9,4.5,-8],[-12,4.5,2],[12,4.5,2]].forEach(([x,y,z])=>{
+  const p = new THREE.Mesh(pilG,pilM); p.position.set(x,y-0.5,z); scene.add(p);
+});
+
+// Huge dark arches (decorative)
+const archG = new THREE.TorusGeometry(6,0.25,8,20,Math.PI);
+const archM = new THREE.MeshPhongMaterial({color:0x0a0f22});
+[-8,8].forEach(x=>{
+  const a = new THREE.Mesh(archG,archM);
+  a.position.set(x,6,-8); a.rotation.y = Math.PI/2; scene.add(a);
+});
+
+// Stars
+const stG = new THREE.BufferGeometry();
+const stP = new Float32Array(600*3);
+for(let i=0;i<600;i++){stP[i*3]=(Math.random()-.5)*300;stP[i*3+1]=Math.random()*100+20;stP[i*3+2]=(Math.random()-.5)*300;}
+stG.setAttribute('position', new THREE.BufferAttribute(stP,3));
+scene.add(new THREE.Points(stG, new THREE.PointsMaterial({color:0xaaccff,size:.3,transparent:true,opacity:.6})));
+
+// Embers
+const EC=80; const eG=new THREE.BufferGeometry();
+const eP=new Float32Array(EC*3); const eV=[];
+for(let i=0;i<EC;i++){eP[i*3]=(Math.random()-.5)*18;eP[i*3+1]=Math.random()*8;eP[i*3+2]=(Math.random()-.5)*18;eV.push({x:(Math.random()-.5)*.014,y:Math.random()*.01+.003,z:(Math.random()-.5)*.014});}
+eG.setAttribute('position', new THREE.BufferAttribute(eP,3));
+const embPts = new THREE.Points(eG, new THREE.PointsMaterial({color:0xff4422,size:.1,transparent:true,opacity:.45}));
+scene.add(embPts);
+
+// ═══════════════════════════════════════════════════════════
+// CHARACTER SPRITE — uses real image on canvas
+// ═══════════════════════════════════════════════════════════
+const spriteCache = {};
+
+function buildSpriteCanvas(pol, img) {
+  const W=300, H=460;
+  const c = document.createElement('canvas'); c.width=W; c.height=H;
+  const g = c.getContext('2d');
+  const tc = TCSS[pol.types[0]] || '#888';
+
+  // Background glow
+  const bgGrd = g.createRadialGradient(W/2,H*.4,0,W/2,H*.4,W*.7);
+  bgGrd.addColorStop(0, tc+'33'); bgGrd.addColorStop(1,'rgba(5,5,16,0)');
+  g.fillStyle=bgGrd; g.fillRect(0,0,W,H);
+
+  // Shadow
+  g.fillStyle='rgba(0,0,0,.35)';
+  g.beginPath(); g.ellipse(W/2,H-22,80,16,0,0,Math.PI*2); g.fill();
+
+  if(pol.id === 'ccpaffey') {
+    // CCPAffey special render
+    g.fillStyle='#120025';
+    g.beginPath();g.moveTo(60,160);g.lineTo(240,160);g.lineTo(280,H-30);g.lineTo(20,H-30);g.closePath();g.fill();
+    g.strokeStyle='#7c3aed';g.lineWidth=2;g.beginPath();g.moveTo(60,160);g.lineTo(20,H-30);g.stroke();
+    g.beginPath();g.moveTo(240,160);g.lineTo(280,H-30);g.stroke();
+    g.fillStyle='#0a0018';
+    g.beginPath();g.ellipse(W/2,100,90,105,0,0,Math.PI*2);g.fill();
+    g.shadowColor='#ff0000';g.shadowBlur=25;
+    g.font='100px serif';g.textAlign='center';g.textBaseline='middle';
+    g.fillStyle='#ff2222';g.fillText('🚫',W/2,110);
+    g.shadowBlur=0;
+    g.font='bold 12px monospace';g.fillStyle='#ff4444';
+    ['BAN','BANNED','🔨','MUTED','REPORTED','FLAGGED'].forEach((w,i)=>{
+      const a=(i/6)*Math.PI*2;
+      g.fillText(w, W/2+Math.cos(a)*100, 245+Math.sin(a)*65);
+    });
+  } else {
+    // Body silhouette (suit)
+    const bodyColor = pol.types[0]==='Democrat'?'#1d4ed8':pol.types[0]==='Republican'?'#b91c1c':pol.types[0]==='Authoritarian'?'#5b21b6':pol.types[0]==='Socialist'?'#c2122a':'#1e293b';
+
+    // Legs
+    g.fillStyle='#0f172a';
+    g.fillRect(90,280,50,130); g.fillRect(160,280,50,130);
+
+    // Shoes
+    g.fillStyle='#111'; g.fillRect(80,400,65,25); g.fillRect(155,400,65,25);
+
+    // Torso / jacket
+    g.fillStyle=bodyColor;
+    g.beginPath();g.roundRect(78,165,144,125,4);g.fill();
+
+    // Shirt
+    g.fillStyle='#f1f5f9';
+    g.beginPath();g.moveTo(150,170);g.lineTo(128,200);g.lineTo(150,196);g.lineTo(172,200);g.closePath();g.fill();
+
+    // Tie
+    const tieC = pol.types[0]==='Democrat'?'#dc2626':pol.types[0]==='Republican'?'#2563eb':'#0f172a';
+    g.fillStyle=tieC;
+    g.fillRect(143,200,14,70);
+    g.beginPath();g.moveTo(143,268);g.lineTo(150,290);g.lineTo(157,268);g.closePath();g.fill();
+
+    // Sleeves/arms
+    g.fillStyle=bodyColor;
+    g.fillRect(36,170,42,90); g.fillRect(222,170,42,90);
+
+    // Hands
+    g.fillStyle='#f0c070';
+    g.beginPath();g.arc(57,264,18,0,Math.PI*2);g.fill();
+    g.beginPath();g.arc(243,264,18,0,Math.PI*2);g.fill();
+
+    // Neck
+    g.fillStyle='#f0c070'; g.fillRect(133,142,34,28);
+
+    // Head
+    g.fillStyle='#f0c070';
+    g.beginPath();g.ellipse(150,108,68,80,0,0,Math.PI*2);g.fill();
+    g.strokeStyle='#d4a050';g.lineWidth=1.5;g.stroke();
+
+    // Ears
+    g.fillStyle='#e8b060';
+    g.beginPath();g.ellipse(84,108,13,19,0,0,Math.PI*2);g.fill();
+    g.beginPath();g.ellipse(216,108,13,19,0,0,Math.PI*2);g.fill();
+
+    // Hair
+    const hairC = {trump:'#c8a000',biden:'#b0b0b0',obama:'#1a0a02',bush:'#5a3010',putin:'#ccc',cheney:'#aaa',reagan:'#3a1a00',hillary:'#f5c518',pelosi:'#c0a020',merkel:'#8b7355',thatcher:'#c4a44c'}[pol.id]||'#2a1506';
+    g.fillStyle=hairC;
+    g.beginPath();g.ellipse(150,50,70,48,0,Math.PI,Math.PI*2);g.fill();
+
+    // Eyebrows
+    g.fillStyle='rgba(0,0,0,.6)';g.lineWidth=3;g.lineCap='round';
+    g.beginPath();g.moveTo(117,82);g.lineTo(137,78);g.stroke();
+    g.beginPath();g.moveTo(163,78);g.lineTo(183,82);g.stroke();
+
+    // Real photo face in circular cutout
+    if(img) {
+      g.save();
+      g.beginPath(); g.arc(150,108,55,0,Math.PI*2); g.clip();
+      g.drawImage(img,95,53,110,130);
+      g.restore();
+      // Circle border
+      g.beginPath();g.arc(150,108,55,0,Math.PI*2);
+      g.strokeStyle=tc;g.lineWidth=4;g.stroke();
+    } else {
+      // Emoji fallback
+      g.font='70px serif';g.textAlign='center';g.textBaseline='middle';
+      g.fillText(pol.emoji, 150,115);
+    }
+  }
+
+  // Name banner top
+  g.fillStyle='rgba(0,0,0,.8)'; g.fillRect(0,0,W,38);
+  g.font='bold 18px Arial'; g.fillStyle='#ffffff'; g.textAlign='center';
+  g.strokeStyle='#000'; g.lineWidth=4; g.strokeText(pol.name,W/2,25); g.fillText(pol.name,W/2,25);
+
+  // Title (smaller)
+  if(pol.title){
+    g.font='italic 11px Arial'; g.fillStyle='rgba(255,255,255,.55)';
+    g.fillText(pol.title,W/2,36);
+  }
+
+  // Type stripe bottom
+  const tc2 = TCSS[pol.types[0]] || '#555';
+  g.fillStyle=tc2; g.fillRect(0,H-34,W,34);
+  g.font='bold 13px Arial'; g.fillStyle='#fff'; g.lineWidth=2;
+  g.strokeText(pol.types.join(' / '),W/2,H-14); g.fillText(pol.types.join(' / '),W/2,H-14);
+
+  return c;
+}
+
+function getOrBuildSprite(pol, done) {
+  if(spriteCache[pol.id]){done(spriteCache[pol.id]);return;}
+  const imgUrl = POL_IMAGES[pol.id];
+  if(imgUrl && pol.id!=='ccpaffey'){
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload = ()=>{ const c=buildSpriteCanvas(pol,img); spriteCache[pol.id]=c; done(c); };
+    img.onerror = ()=>{ const c=buildSpriteCanvas(pol,null); spriteCache[pol.id]=c; done(c); };
+    img.src=imgUrl;
+  } else {
+    const c=buildSpriteCanvas(pol,null); spriteCache[pol.id]=c; done(c);
+  }
+}
+
+function createFighterMesh(pol, isPlayer, done) {
+  getOrBuildSprite(pol, (cv2)=>{
+    const tex = new THREE.CanvasTexture(cv2);
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2,4.9),
+      new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide,depthWrite:false})
+    );
+    mesh.position.set(isPlayer?3.8:-3.8, 2.0, isPlayer?2.8:-2.8);
+    if(!isPlayer) mesh.rotation.y = Math.PI;
+    mesh.userData = { pol, isPlayer, origX:isPlayer?3.8:-3.8, origY:2.0, shake:0 };
+    done(mesh);
+  });
+}
+
+let playerMesh=null, oppMesh=null;
+
+function spawnPlayer(pol, cb){
+  if(playerMesh){scene.remove(playerMesh);playerMesh=null;}
+  createFighterMesh(pol,true,(m)=>{playerMesh=m;scene.add(m);if(cb)cb();});
+}
+function spawnOpp(pol, cb){
+  if(oppMesh){scene.remove(oppMesh);oppMesh=null;}
+  createFighterMesh(pol,false,(m)=>{oppMesh=m;scene.add(m);if(cb)cb();});
+}
+
+// ═══════════════════════════════════════════════════════════
+// PARTICLE BURST SYSTEM
+// ═══════════════════════════════════════════════════════════
+const AP=[];
+function burst(pos, color, cnt, spread, spd, life){
+  const pp=new Float32Array(cnt*3), vv=[];
+  for(let i=0;i<cnt;i++){
+    pp[i*3]=pos.x;pp[i*3+1]=pos.y+.8;pp[i*3+2]=pos.z;
+    vv.push({x:(Math.random()-.5)*spread,y:Math.random()*spd+spd*.35,z:(Math.random()-.5)*spread});
+  }
+  const g2=new THREE.BufferGeometry();
+  g2.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  const pts=new THREE.Points(g2,new THREE.PointsMaterial({color,size:.2,transparent:true,opacity:1}));
+  scene.add(pts); AP.push({pts,vv,life,maxLife:life});
+}
+
+// ═══════════════════════════════════════════════════════════
+// MOVE ANIMATIONS — 3D
+// ═══════════════════════════════════════════════════════════
+const flashDiv = document.createElement('div');
+flashDiv.style.cssText='position:fixed;inset:0;z-index:9990;pointer-events:none;opacity:0;transition:opacity .1s';
+document.body.appendChild(flashDiv);
+
+function screenFlash(hexCol){
+  const r=(hexCol>>16)&0xff, g2=(hexCol>>8)&0xff, b=hexCol&0xff;
+  flashDiv.style.background=`rgba(${r},${g2},${b},.32)`;
+  flashDiv.style.opacity='1';
+  setTimeout(()=>flashDiv.style.opacity='0',130);
+}
+
+function eIn(t){return t*t;}
+function eOut(t){return t*(2-t);}
+function eIO(t){return t<.5?2*t*t:-1+(4-2*t)*t;}
+
+function animPhysical(aM, dM, col, done){
+  if(!aM||!dM){done();return;}
+  const ox=aM.position.x, oz=aM.position.z;
+  const tx=dM.position.x*.55+aM.position.x*.45, tz=dM.position.z*.55+aM.position.z*.45;
+  let t=0, phase=0, hit=false;
+  (function step(){
+    t++;
+    if(phase===0){const p=Math.min(1,t/18);aM.position.x=ox+(tx-ox)*eIn(p);aM.position.z=oz+(tz-oz)*eIn(p);if(t>=18){phase=1;t=0;}}
+    else if(phase===1){
+      if(!hit){hit=true;burst(dM.position.clone(),col,45,3.5,.18,65);if(dM)dM.userData.shake=18;screenFlash(col);}
+      if(t>=14){phase=2;t=0;}
+    }else{const p=Math.min(1,t/20);aM.position.x=tx+(ox-tx)*eOut(p);aM.position.z=tz+(oz-tz)*eOut(p);if(t>=20){aM.position.x=ox;aM.position.z=oz;done();return;}}
+    requestAnimationFrame(step);
+  })();
+}
+
+function animSpecial(aM, dM, col, done){
+  if(!aM||!dM){done();return;}
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(.3,10,10),new THREE.MeshBasicMaterial({color:col}));
+  ball.position.copy(aM.position);ball.position.y+=1.3; scene.add(ball);
+  // Glow ring
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.8,.08,8,20),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.7}));
+  ring.position.copy(aM.position);ring.position.y+=1.3;ring.rotation.x=Math.PI/2; scene.add(ring);
+  const sp=ball.position.clone(), ep=dM.position.clone(); ep.y+=1.3;
+  let t=0;
+  (function step(){
+    t++;
+    const p=Math.min(1,t/44);
+    ball.position.lerpVectors(sp,ep,eIO(p));
+    ring.position.copy(aM.position);ring.position.y+=1.3;ring.scale.setScalar(1+t*.05);ring.material.opacity=Math.max(0,.7-t*.02);
+    if(t%4===0)burst(ball.position.clone(),col,5,.4,.07,22);
+    if(t>=44){
+      scene.remove(ball);scene.remove(ring);
+      burst(ep,col,60,5,.24,65);
+      if(dM)dM.userData.shake=20;screenFlash(col);done();return;
+    }
+    requestAnimationFrame(step);
+  })();
+}
+
+function animStatus(tM, col, done){
+  if(!tM){done();return;}
+  let t=0;
+  (function step(){
+    t++;
+    if(t%6===0){
+      const a=(t/66)*Math.PI*5;
+      burst(new THREE.Vector3(tM.position.x+Math.cos(a)*1.4, tM.position.y+1+Math.sin(a*.5)*.7, tM.position.z+Math.sin(a)*1.4),col,4,.3,.07,30);
+    }
+    if(t>=66){done();return;}
+    requestAnimationFrame(step);
+  })();
+}
+
+function animBan(defName, done){
+  document.getElementById('banTarget').textContent='@'+defName;
+  document.getElementById('banOv').classList.add('on');
+  if(playerMesh)burst(playerMesh.position.clone(),0xff0000,100,8,.4,160);
+  if(oppMesh)burst(oppMesh.position.clone(),0xff0000,100,8,.4,160);
+  setTimeout(()=>{
+    if(playerMesh){scene.remove(playerMesh);playerMesh=null;}
+    if(oppMesh){scene.remove(oppMesh);oppMesh=null;}
+  },300);
+  setTimeout(()=>{document.getElementById('banOv').classList.remove('on');done();},3500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN RENDER LOOP
+// ═══════════════════════════════════════════════════════════
+let tic=0;
+(function loop(){
+  requestAnimationFrame(loop); tic+=.016;
+  // Embers
+  const ea=eG.attributes.position;
+  for(let i=0;i<EC;i++){ea.array[i*3]+=eV[i].x;ea.array[i*3+1]+=eV[i].y;ea.array[i*3+2]+=eV[i].z;if(ea.array[i*3+1]>10){ea.array[i*3]=(Math.random()-.5)*18;ea.array[i*3+1]=0;ea.array[i*3+2]=(Math.random()-.5)*18;}}
+  ea.needsUpdate=true;
+  // Fighters bob + billboard + shake
+  if(playerMesh){
+    playerMesh.position.y=playerMesh.userData.origY+Math.sin(tic*1.5)*.13;
+    if(playerMesh.userData.shake>0){playerMesh.position.x=playerMesh.userData.origX+(Math.random()-.5)*.18;playerMesh.userData.shake--;}
+    playerMesh.lookAt(camera.position);
+  }
+  if(oppMesh){
+    oppMesh.position.y=oppMesh.userData.origY+Math.sin(tic*1.5+Math.PI)*.13;
+    if(oppMesh.userData.shake>0){oppMesh.position.x=oppMesh.userData.origX+(Math.random()-.5)*.18;oppMesh.userData.shake--;}
+    oppMesh.lookAt(camera.position);
+  }
+  // Light pulse
+  rL.intensity=2.5+Math.sin(tic*2.1)*.65; bL.intensity=2.5+Math.sin(tic*1.75+1.5)*.65;
+  // Particles
+  for(let i=AP.length-1;i>=0;i--){
+    const ap=AP[i]; const pa=ap.pts.geometry.attributes.position;
+    for(let j=0;j<ap.vv.length;j++){pa.array[j*3]+=ap.vv[j].x;pa.array[j*3+1]+=ap.vv[j].y;pa.array[j*3+2]+=ap.vv[j].z;ap.vv[j].y-=.008;}
+    pa.needsUpdate=true; ap.life--;ap.pts.material.opacity=ap.life/ap.maxLife;
+    if(ap.life<=0){scene.remove(ap.pts);AP.splice(i,1);}
+  }
+  renderer.render(scene,camera);
+})();
+
+// ═══════════════════════════════════════════════════════════
+// BATTLE STATE
+// ═══════════════════════════════════════════════════════════
+let socket=null, roomCode=null, myRole=null;
+let politicians=[], selectedTeam=[];
+let myTeam=[], myActive=0, oppTeam=[], oppActive=0;
+let waitingForAction=false, needsSwitch=false, turnNum=1;
+
+// NEW STATE
+let currentWeather = null;
+window.ITEMS_DATA = null;
+
+function updateFighterBadges(who, f){
+  const parts=[];
+  if(f.lucky)parts.push('<span class="lucky-badge">★ Lucky</span>');
+  if(f.shadow)parts.push('<span class="shadow-badge">◆ Shadow</span>');
+  if(f.purified)parts.push('<span class="purified-badge">✦ Purified</span>');
+  if(f._isRaidBoss)parts.push('<span class="raid-badge">👑 RAID BOSS</span>');
+  const stEl=document.getElementById(who+'St');
+  if(stEl){
+    let html=f.status?`<span class="stpill st-${f.status}">${f.status.toUpperCase()}</span>`:'';
+    html+=parts.join('');
+    // Ability chip
+    if(f.ability){const abilName=f.ability.replace(/_/g,' ');html+=`<br><span class="abil-chip">✦ ${abilName}</span>`;}
+    // Item chip
+    if(f.heldItem){const iData=window.ITEMS_DATA&&window.ITEMS_DATA[f.heldItem];html+=`<span class="item-chip">${iData?iData.icon:'🎒'} ${f.heldItem.replace(/_/g,' ')}</span>`;}
+    // PvP Shields
+    if(f.pvpShields>0){html+='<div class="shields-row">'+Array.from({length:2},(_,i)=>`<span class="shield-pip${i<f.pvpShields?' active':''}">🛡️</span>`).join('')+'</div>';}
+    // Surge mode
+    if(f.surgeMode)html+=`<span style="color:#fbbf24;font-size:.6rem;font-weight:700">⚡ SURGE ${f.surgeTurnsLeft}</span>`;
+    stEl.innerHTML=html;
+  }
+}
+
+function activateSurge(){
+  if(!roomCode||waitingForAction)return;
+  socket.emit('battle:useSurge',{code:roomCode});
+  document.getElementById('surgeBtn').classList.remove('vis');
+}
+
+// SOCKET
+function connectSocket(){
+  if(socket)return;
+  socket=io('/politibattle',{transports:['websocket','polling']});
+  socket.on('connect',()=>console.log('[PB] connected',socket.id));
+  socket.on('battle:playerJoined',()=>document.getElementById('waitScreen').classList.remove('vis'));
+  socket.on('battle:teamSelect',d=>{
+    politicians=d.politicians;
+    if(d.items){window.ITEMS_DATA={};d.items.forEach(it=>window.ITEMS_DATA[it.id]=it);}
+    buildTeamSelect(d.items||[]);
+  });
+  socket.on('battle:start',d=>startBattle(d));
+  socket.on('battle:surgeActivated',d=>{addLog(`⚡ ${d.name} SURGE MODE activated!`,'eff');renderBattleUI();});
+  socket.on('battle:turnResult',d=>handleTurnResult(d));
+  socket.on('battle:switched',d=>handleSwitch(d));
+}
+
+function getName(){return document.getElementById('trainerName').value.trim()||'Trainer';}
+
+// LOBBY
+function createGame(){
+  connectSocket();myRole='host';
+  socket.emit('battle:create',{name:getName()},res=>{
+    if(res.error)return alert(res.error);
+    roomCode=res.code;document.getElementById('waitCode').textContent=roomCode;
+    document.getElementById('waitScreen').classList.add('vis');
+  });
+}
+function showJoinSection(){const s=document.getElementById('joinSection');s.classList.toggle('vis');if(s.classList.contains('vis'))setTimeout(()=>document.getElementById('joinCodeInput').focus(),80);}
+function joinGame(){
+  const code=document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if(code.length<4){document.getElementById('joinErr').textContent='Enter a valid code';return;}
+  connectSocket();myRole='guest';roomCode=code;
+  socket.emit('battle:join',{code,name:getName()},res=>{if(res.error)document.getElementById('joinErr').textContent=res.error;});
+}
+function createAIGame(raidMode){
+  connectSocket();myRole='host';
+  socket.emit('battle:create',{name:getName()},res=>{
+    if(res.error)return alert(res.error);
+    roomCode=res.code;
+    socket.emit('battle:startAI',{code:roomCode,raidMode:raidMode||false},()=>{});
+  });
+}
+function createRaidBoss(){createAIGame(true);}
+function startAI(){if(!roomCode)return;socket.emit('battle:startAI',{code:roomCode},()=>{});document.getElementById('waitScreen').classList.remove('vis');}
+function copyCode(){navigator.clipboard.writeText(roomCode).catch(()=>{});event.target.textContent='Copied!';setTimeout(()=>event.target.textContent='Copy Code',1500);}
+function copyLink(){navigator.clipboard.writeText(location.origin+'/politibattle?code='+roomCode).catch(()=>{});event.target.textContent='Copied!';setTimeout(()=>event.target.textContent='Copy Link',1500);}
+
+// HUD avatar helpers
+function setHudAv(prefix, pol){
+  const em=document.getElementById(prefix+'AvEm'), img=document.getElementById(prefix+'AvImg');
+  const url=POL_IMAGES[pol.id];
+  if(url&&pol.id!=='ccpaffey'){
+    img.crossOrigin='anonymous'; img.src=url;
+    img.onload=()=>{img.style.display='block';em.style.display='none';};
+    img.onerror=()=>{img.style.display='none';em.style.display='flex';em.textContent=pol.emoji;};
+  } else {
+    img.style.display='none'; em.style.display='flex'; em.textContent=pol.emoji;
+  }
+  // Border color = type color
+  const tc2=TCSS[pol.types[0]]||'#555';
+  document.getElementById(prefix+'Av').style.borderColor=tc2+'99';
+}
+
+// TEAM SELECT
+// Selected items per slot
+let selectedItems = {};
+
+function buildTeamSelect(itemsList){
+  document.getElementById('lobbyScreen').style.display='none';
+  document.getElementById('waitScreen').classList.remove('vis');
+  document.getElementById('tsScreen').style.display='block';
+  selectedTeam=[];
+
+  const grid=document.getElementById('tsGrid');
+  grid.innerHTML=politicians.map(p=>{
+    const imgUrl=POL_IMAGES[p.id];
+    const isCCP=p.id==='ccpaffey';
+    const tc2=TCSS[p.types[0]]||'#555';
+    return `
+      <div class="tcard${isCCP?' ccp':''}" id="tsc-${p.id}" onclick="toggleSelect('${p.id}')">
+        <div class="av-frame" style="border-color:${tc2}88">
+          <div class="av-emoji" id="ae-${p.id}">${p.emoji}</div>
+          ${imgUrl&&!isCCP?`<img src="${imgUrl}" alt="${p.name}" crossorigin="anonymous" style="display:none" onload="this.style.display='block';this.previousElementSibling.style.display='none'" onerror="this.style.display='none'">`:''}
+        </div>
+        <div class="cn">${p.name}</div>
+        <div class="ct">${p.title||''}</div>
+        <div>${(p.types||[]).map(t=>`<span class="tb tb-${t}">${t}</span>`).join('')}</div>
+        <div class="cs">HP:${p.stats.hp} ATK:${p.stats.atk} SPE:${p.stats.spe}</div>
+        ${isCCP?'<div style="color:#f87171;font-size:.58rem;margin-top:5px;font-weight:700">⚠️ WARNING: BAN move</div>':''}
+        <div class="item-sel" id="isel-${p.id}"></div>
+      </div>`;
+  }).join('');
+}
+
+function toggleSelect(id){
+  const idx=selectedTeam.indexOf(id);
+  if(idx>-1){selectedTeam.splice(idx,1);document.getElementById('tsc-'+id).classList.remove('sel');}
+  else{if(selectedTeam.length>=6)return;selectedTeam.push(id);document.getElementById('tsc-'+id).classList.add('sel');}
+  const pol=politicians;
+  for(let i=0;i<6;i++){
+    const sl=document.getElementById('ts'+i);
+    if(selectedTeam[i]){
+      const p=pol.find(x=>x.id===selectedTeam[i]);
+      const url=POL_IMAGES[p.id];
+      if(url&&p.id!=='ccpaffey'){sl.innerHTML=`<img src="${url}" crossorigin="anonymous" alt="${p.name}" onerror="this.outerHTML='${p.emoji}'">`;sl.classList.add('f');}
+      else{sl.innerHTML=p.emoji;sl.style.fontSize='1.6rem';sl.classList.add('f');}
+    } else {sl.innerHTML='?';sl.style.fontSize='1.4rem';sl.classList.remove('f');}
+  }
+  document.getElementById('tconBtn').classList.toggle('ready',selectedTeam.length===6);
+  // Render item pickers for selected cards
+  politicians.forEach(p=>{
+    const el=document.getElementById('isel-'+p.id);
+    if(!el)return;
+    if(!selectedTeam.includes(p.id)){el.innerHTML='';return;}
+    const items=window.ITEMS_DATA?Object.entries(window.ITEMS_DATA).slice(0,12):[];
+    el.innerHTML=items.map(([iid,it])=>`<div class="item-opt${selectedItems[p.id]===iid?' chosen':''}" onclick="pickItem('${p.id}','${iid}',event)" title="${it.desc}">${it.icon}</div>`).join('');
+  });
+}
+
+function pickItem(polId, itemId, e){
+  e.stopPropagation();
+  if(selectedItems[polId]===itemId){delete selectedItems[polId];}
+  else{selectedItems[polId]=itemId;}
+  toggleSelect(polId); // re-trigger to refresh
+  // Don't toggle actual selection
+  if(!selectedTeam.includes(polId)){selectedTeam.push(polId);}
+}
+
+function confirmTeam(){
+  if(selectedTeam.length!==6)return;
+  // Build items map: slot index -> item id
+  const itemsMap={};
+  selectedTeam.forEach((polId,idx)=>{if(selectedItems[polId])itemsMap[idx]=selectedItems[polId];});
+  socket.emit('battle:teamReady',{code:roomCode,team:selectedTeam,items:itemsMap});
+  const b=document.getElementById('tconBtn'); b.textContent='Waiting...'; b.style.pointerEvents='none';
+}
+
+// BATTLE START
+function startBattle(data){
+  document.getElementById('tsScreen').style.display='none';
+  if(myRole==='host'){myTeam=data.hostTeam;oppTeam=data.guestTeam;myActive=data.hostActive;oppActive=data.guestActive;}
+  else{myTeam=data.guestTeam;oppTeam=data.hostTeam;myActive=data.guestActive;oppActive=data.hostActive;}
+  waitingForAction=false;turnNum=1;
+  currentWeather={name:'Clear Skies',icon:'☀️',turns:0};
+
+  const me=myTeam[myActive], opp=oppTeam[oppActive];
+  spawnPlayer(me,null);
+  spawnOpp(opp,null);
+  document.getElementById('battleUI').classList.add('on');
+  renderBattleUI();
+}
+
+function setHp(who, cur, max){
+  const pct=Math.max(0,Math.min(100,cur/max*100));
+  const f=document.getElementById(who+'HpFill');
+  f.style.width=pct+'%';
+  f.className='hpfill'+(pct<20?' low':pct<50?' mid':'');
+  document.getElementById(who+'HpTxt').textContent=Math.max(0,cur)+' / '+max;
+}
+
+function renderBattleUI(){
+  const me=myTeam[myActive], opp=oppTeam[oppActive];
+  if(!me)return;
+  document.getElementById('myFName').textContent=me.name;
+  document.getElementById('myFTypes').innerHTML=(me.types||[]).map(t=>`<span class="tb tb-${t}">${t}</span>`).join('');
+  setHp('my',me.currentHp,me.stats.hp);
+  document.getElementById('mySt').innerHTML=me.status?`<span class="stpill st-${me.status}">${me.status.toUpperCase()}</span>`:'';
+  setHudAv('my', me);
+  if(opp){
+    document.getElementById('oppFName').textContent=opp.name;
+    document.getElementById('oppFTypes').innerHTML=(opp.types||[]).map(t=>`<span class="tb tb-${t}">${t}</span>`).join('');
+    setHp('opp',opp.currentHp,opp.stats.hp);
+    document.getElementById('oppSt').innerHTML=opp.status?`<span class="stpill st-${opp.status}">${opp.status.toUpperCase()}</span>`:'';
+    setHudAv('opp', opp);
+  }
+  renderMoves(me);
+  // Weather display
+  const wInfo=currentWeather||{};
+  const wBar=document.getElementById('weatherBar');
+  if(wBar){const wIcon=wInfo.icon||'☀️';const wName=wInfo.name||'Clear Skies';const turns=wInfo.turns>0?` (${wInfo.turns})`:'';wBar.textContent=wIcon+' '+wName+turns;wBar.style.borderColor=wInfo.name&&wInfo.name!=='Clear Skies'?'rgba(234,179,8,.3)':'rgba(255,255,255,.1)';}
+  // Surge button
+  const me2=myTeam[myActive];const myItem=me2&&me2.heldItem;const itemData=window.ITEMS_DATA&&window.ITEMS_DATA[myItem];
+  const surgeBtn=document.getElementById('surgeBtn');
+  if(surgeBtn){surgeBtn.classList.toggle('vis',!!(itemData&&itemData.surgeItem&&!me2._surgeUsed&&me2.currentHp>0));}
+  // HUD badges
+  updateFighterBadges('my', me2||{});if(myTeam[0])updateFighterBadges('opp',oppTeam[oppActive]||{});
+  document.getElementById('teamBar').innerHTML=myTeam.map((f,i)=>{  document.getElementById('teamBar').innerHTML=myTeam.map((f,i)=>{
+    const url=POL_IMAGES[f.id];
+    const inner=url&&f.id!=='ccpaffey'
+      ? `<img src="${url}" crossorigin="anonymous" alt="" onerror="this.outerHTML='<span class=tsem>${f.emoji}</span>'">`
+      : `<span class="tsem">${f.emoji}</span>`;
+    return `<div class="tslotb ${i===myActive?'active':''} ${f.currentHp<=0?'fainted':''}" onclick="chooseSwitch(${i})" title="${f.name} ${Math.max(0,f.currentHp)}/${f.stats.hp}">${inner}</div>`;
+  }).join('');
+  document.getElementById('turnCtr').textContent='TURN '+turnNum;
+}
+
+function renderMoves(me){
+  const g=document.getElementById('movesGrid');
+  if(!me.moves||!me.moves.length){g.innerHTML='<div style="color:#475569;font-size:.8rem;grid-column:span 4;text-align:center;padding:10px">Waiting...</div>';return;}
+  g.innerHTML=me.moves.map((m,i)=>{
+    const isBan=!!(m.effect&&m.effect.ban);
+    const ppPct=m.maxPp>0?Math.round((m.pp/m.maxPp)*100):0;
+    const ppCls=m.pp===0?'empty':ppPct<=25?'low':'';
+    const ppColor=m.pp===0?'#ef4444':ppPct<=25?'#eab308':'#3b82f6';
+    const nopp=m.pp<=0;
+    return `<button class="mvbtn" onclick="chooseMove(${i})" ${(waitingForAction||nopp)?'disabled':''} style="${nopp?'opacity:.25;':''}">
+      <span class="tb tb-${m.type}" style="position:absolute;top:5px;right:5px;font-size:.52rem">${m.type}</span>
+      <div class="mn">${m.name}</div>
+      <div class="mi">
+        <span class="mc ${isBan?'ban':m.category}">${isBan?'🚫BAN':m.category}</span>
+        ${m.power?`<span>⚡${m.power}</span>`:''}
+        <span>🎯${m.accuracy}%</span>
+        <span style="color:${ppColor};font-weight:700">${m.pp}/${m.maxPp}PP</span>
+      </div>
+      <div class="pp-bar-wrap"><div class="pp-bar ${ppCls}" style="width:${ppPct}%;background:${ppColor}"></div></div>
+    </button>`;
+  }).join('');
+}
+
+// ACTIONS
+function chooseMove(index){
+  if(waitingForAction)return; waitingForAction=true;
+  socket.emit('battle:action',{code:roomCode,action:{type:'move',index}});
+  document.getElementById('moveLabel').textContent='WAITING...';
+  renderMoves(myTeam[myActive]);
+}
+function chooseSwitch(index){
+  const f=myTeam[index];
+  if(!f||index===myActive||f.currentHp<=0)return;
+  if(needsSwitch){
+    socket.emit('battle:switch',{code:roomCode,index});
+    myActive=index; needsSwitch=false;
+    spawnPlayer(myTeam[myActive],null);
+    addLog('Go, '+myTeam[myActive].name+'!');
+    renderBattleUI(); return;
+  }
+  if(waitingForAction)return; waitingForAction=true;
+  socket.emit('battle:action',{code:roomCode,action:{type:'switch',index}});
+  addLog('Switching to '+f.name+'...');
+}
+
+// TURN RESULT
+function handleTurnResult(data){
+  const isBan=data.log&&data.log.some(l=>l.includes('W!BAN'));
+
+  const doAfter=()=>{
+    waitingForAction=false; turnNum++;
+    if(myRole==='host'){myTeam=data.hostTeam;oppTeam=data.guestTeam;myActive=data.hostActive;oppActive=data.guestActive;}
+    else{myTeam=data.guestTeam;oppTeam=data.hostTeam;myActive=data.guestActive;oppActive=data.hostActive;}
+    // Update weather
+    if(data.weatherInfo){currentWeather={...data.weatherInfo,turns:data.weatherInfo.weatherTurns||0};}
+    data.log.forEach(msg=>{
+      let c='';
+      if(msg.includes('super effective'))c='eff';
+      else if(msg.includes('not very'))c='neff';
+      else if(msg.includes('no effect'))c='imm';
+      else if(msg.includes('fainted')||msg.includes('BANNED'))c='fnt';
+      else if(msg.includes('burned')||msg.includes('poison')||msg.includes('paralyz')||msg.includes('sleep'))c='sts';
+      else if(msg.includes('W!BAN'))c='ban';
+      addLog(msg,c);
+    });
+    // Refresh meshes if needed
+    const me=myTeam[myActive], opp=oppTeam[oppActive];
+    if(me&&me.currentHp>0&&(!playerMesh||playerMesh.userData.pol?.id!==me.id))spawnPlayer(me,null);
+    if(opp&&opp.currentHp>0&&(!oppMesh||oppMesh.userData.pol?.id!==opp.id))spawnOpp(opp,null);
+    if(me&&me.currentHp<=0&&playerMesh){burst(playerMesh.position.clone(),0xffffff,40,4,.2,55);scene.remove(playerMesh);playerMesh=null;}
+    if(opp&&opp.currentHp<=0&&oppMesh){burst(oppMesh.position.clone(),0xffffff,40,4,.2,55);scene.remove(oppMesh);oppMesh=null;}
+    document.getElementById('moveLabel').textContent='YOUR TURN';
+    const mns=myRole==='host'?data.hostNeedsSwitch:data.guestNeedsSwitch;
+    if(mns&&!data.winner){needsSwitch=true;addLog('Your fighter was KO\'d! Choose a replacement!','fnt');}
+    renderBattleUI();
+    if(data.winner)setTimeout(()=>showWinner(data.winner),1200);
+  };
+
+  if(isBan){
+    const dn=oppTeam[oppActive]?oppTeam[oppActive].name:'Unknown';
+    animBan(dn,doAfter);
+  } else {
+    // Pick animation by move type from log
+    const me=myTeam[myActive], opp=oppTeam[oppActive];
+    const myMoved=data.log&&me&&data.log.some(l=>l.startsWith(me.name+' used'));
+    const atk=myMoved?playerMesh:oppMesh;
+    const def=myMoved?oppMesh:playerMesh;
+    const hasDmg=data.log&&data.log.some(l=>l.includes('(-'));
+    const typeColor=inferTypeColor(data.log);
+    if(hasDmg){
+      (Math.random()>.5?animSpecial:animPhysical)(atk,def,typeColor,doAfter);
+    } else {
+      animStatus(atk,typeColor,doAfter);
+    }
+  }
+}
+
+function inferTypeColor(log){
+  const map={Republican:0xdc2626,Democrat:0x2563eb,Libertarian:0xeab308,Green:0x22c55e,Socialist:0xef4444,Authoritarian:0x7c3aed,Centrist:0x94a3b8,Populist:0xf97316,Corporate:0x475569,Revolutionary:0xbe123c};
+  if(!log)return 0xf97316;
+  for(const [k,v] of Object.entries(map)){if(log.some(l=>l.includes(k)))return v;}
+  return 0xf97316;
+}
+
+function handleSwitch(data){
+  const isOppSide=(data.side!==(myRole==='host'?'host':'guest'));
+  if(isOppSide){oppActive=data.index;if(data.hazardLog)data.hazardLog.forEach(m=>addLog(m));addLog('Opponent sent out '+data.name+'!');spawnOpp(oppTeam[oppActive],null);}
+  else{if(data.hazardLog)data.hazardLog.forEach(m=>addLog(m));}
+  renderBattleUI();
+}
+
+function addLog(msg,cls=''){
+  const log=document.getElementById('bLog');
+  const d=document.createElement('div'); d.className='le'+(cls?' '+cls:''); d.textContent=msg;
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+  while(log.children.length>30)log.removeChild(log.firstChild);
+}
+
+function showWinner(winner){
+  const win=winner===myRole, draw=winner==='draw';
+  document.getElementById('winText').textContent=draw?'DRAW!':win?'YOU WIN!':'YOU LOSE!';
+  document.getElementById('winSub').textContent=draw?'Both sides fought to a standstill.':win?'Outstanding, Trainer!':'Better luck next time!';
+  document.getElementById('winScreen').classList.add('vis');
+  if(win){for(let i=0;i<6;i++)setTimeout(()=>burst(new THREE.Vector3((Math.random()-.5)*8,Math.random()*3+1,(Math.random()-.5)*4),Math.random()*0xffffff|0,55,5,.28,90),i*350);}
+}
+
+// ROSTER PREVIEW
+async function loadRoster(){
+  try{
+    const res=await fetch('/api/politibattle/roster');
+    const data=await res.json();
+    document.getElementById('rosterPreview').innerHTML=data.map(p=>{
+      const url=POL_IMAGES[p.id];
+      const tc2=TCSS[p.types[0]]||'#555';
+      return `<div class="rcard">
+        <div class="rimg-wrap" style="border-color:${tc2}88">
+          ${url&&p.id!=='ccpaffey'?`<img src="${url}" alt="${p.name}" crossorigin="anonymous" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top" onerror="this.outerHTML='<div style=font-size:1.8rem;text-align:center;line-height:60px>${p.emoji}</div>'">`:`<div style="font-size:1.8rem;text-align:center;line-height:60px">${p.emoji}</div>`}
+        </div>
+        <div class="rn">${p.name}</div>
+        <div>${(p.types||[]).map(t=>`<span class="tb tb-${t}" style="font-size:.52rem">${t}</span>`).join('')}</div>
+      </div>`;
+    }).join('');
+  }catch(e){console.log('[PB] roster load error');}
+}
+
+function checkAutoJoin(){
+  const p=new URLSearchParams(location.search);
+  const c=p.get('code');
+  if(c){document.getElementById('joinCodeInput').value=c.toUpperCase();document.getElementById('joinSection').classList.add('vis');}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{loadRoster();checkAutoJoin();});
+document.getElementById('joinCodeInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
+</script>
+</body>
+</html>
