@@ -453,6 +453,7 @@ const TCSS = {
 // ═══════════════════════════════════════════════════════════
 // THREE.JS ARENA SETUP
 // ═══════════════════════════════════════════════════════════
+try {
 const cvs = document.getElementById('bgCanvas');
 const renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -826,6 +827,7 @@ let tic=0;
   }
   renderer.render(scene,camera);
 })();
+} catch(e) { console.warn('[PolitiBattle] 3D init failed, continuing without Three.js', e); }
 
 // ═══════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════
