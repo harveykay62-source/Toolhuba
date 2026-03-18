@@ -288,19 +288,6 @@ function renderHome(initialCat) {
       <div class="section-title">🔥 Trending Now</div>
       <div class="trending-strip" id="trendingStrip"></div>
 
-      <a href="/politibattle" style="display:block;text-decoration:none;margin:28px 0 8px;">
-        <div style="background:linear-gradient(135deg,rgba(220,38,38,.12) 0%,rgba(10,10,18,.95) 40%,rgba(37,99,235,.12) 100%);border:1px solid rgba(220,38,38,.35);border-radius:20px;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;position:relative;overflow:hidden;transition:all .25s;box-shadow:0 0 40px rgba(220,38,38,.08)" onmouseover="this.style.borderColor='rgba(220,38,38,.7)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(220,38,38,.35)';this.style.transform='none'">
-          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-            <div style="font-size:3rem;filter:drop-shadow(0 0 20px rgba(220,38,38,.8))">🏛️</div>
-            <div>
-              <div style="font-family:'Russo One',sans-serif;font-size:1.6rem;background:linear-gradient(90deg,#ef4444,#f59e0b,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.04em">POLITIBATTLE 3D</div>
-              <div style="color:#94a3b8;font-size:.88rem;margin-top:4px">⚔️ 51 Political Fighters · 3D Animated Moves · Type Effectiveness · Battle AI or Friends</div>
-            </div>
-          </div>
-          <div style="background:linear-gradient(135deg,#ef4444,#f59e0b);color:#fff;font-weight:800;font-size:.95rem;padding:14px 28px;border-radius:14px;white-space:nowrap">⚔️ BATTLE NOW</div>
-        </div>
-      </a>
-
       <div class="home-categories-intro">
         ${Object.entries(catDescriptions).map(([catId, cat]) => `
           <a href="/category/${catId}" class="home-cat-card ${cat.bg}" onclick="event.preventDefault();navigate('category','${catId}')">

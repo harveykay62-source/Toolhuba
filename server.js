@@ -162,12 +162,7 @@ app.get('/host-game',    (req, res) => res.sendFile(path.join(__dirname, 'public
 app.get('/join-game',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'join-game.html')));
 app.get('/game-room',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'game-room.html')));
 app.get('/leaderboard',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
-app.get('/politibattle',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
-app.get('/politibattle/create', (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
-app.get('/politibattle/join',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
-app.get('/politibattle/ai',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
-app.get('/politibattle/raid',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
-app.get('/politibattle/random', (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
+app.get('/politibattle', (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
 app.get('/privacy',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
 
 // ── Teacher dashboard ─────────────────────────────────────────────────────────
