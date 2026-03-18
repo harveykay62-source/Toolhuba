@@ -1530,13 +1530,76 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function checkAutoMode() {
-  const path = location.pathname.replace(/\/$/, '');
-  const mode = path.split('/').pop();
-  if (mode === 'create') { connectSocket(); createGame(); }
-  else if (mode === 'join')   { showJoinSection(); }
-  else if (mode === 'ai')     { connectSocket(); createAIGame(); }
-  else if (mode === 'raid')   { connectSocket(); createRaidBoss(); }
-  else if (mode === 'random') { createRandomInvite(); }
+  const mode = location.pathname.replace(/\/$/, '').split('/').pop();
+  if (!['create','join','ai','raid','random'].includes(mode)) return;
+
+  // Immediately hide lobby, show loading screen
+  document.getElementById('lobbyScreen').style.display = 'none';
+
+  if (mode === 'join') {
+    // Show a standalone join page — no socket needed yet
+    document.getElementById('lobbyScreen').style.display = 'flex';
+    document.getElementById('lobbyScreen').style.flexDirection = 'column';
+    document.getElementById('lobbyScreen').style.alignItems = 'center';
+    document.getElementById('lobbyScreen').style.justifyContent = 'center';
+    document.getElementById('lobbyScreen').style.minHeight = '100vh';
+    // Hide everything except the join card
+    document.querySelector('.hero').style.display = 'none';
+    document.querySelector('.rtitle') && (document.querySelector('.rtitle').style.display = 'none');
+    document.getElementById('rosterPreview').style.display = 'none';
+    const js = document.getElementById('joinSection');
+    js.classList.add('vis');
+    js.style.cssText = 'display:block;margin-top:0';
+    // Add a back link
+    const back = document.createElement('a');
+    back.href = '/politibattle';
+    back.style.cssText = 'color:#475569;font-size:.82rem;margin-top:18px;text-decoration:none';
+    back.textContent = '← Back to lobby';
+    js.after(back);
+    setTimeout(() => document.getElementById('joinCodeInput').focus(), 80);
+    return;
+  }
+
+  // For create/ai/raid/random — show a loading overlay then trigger
+  const loading = document.createElement('div');
+  loading.id = 'modeLoading';
+  loading.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#050510';
+  const titles = { create:'⚔️ Creating Battle Room...', ai:'🤖 Starting AI Battle...', raid:'👑 Summoning Raid Boss...', random:'🎲 Building Random Team...' };
+  loading.innerHTML = `
+    <div style="font-size:3rem">${{create:'⚔️',ai:'🤖',raid:'👑',random:'🎲'}[mode]}</div>
+    <div style="font-family:'Russo One',sans-serif;font-size:1.5rem;color:#fff">${titles[mode]}</div>
+    <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,.08);border-top-color:#ef4444;border-radius:50%;animation:spin 1s linear infinite"></div>
+    <a href="/politibattle" style="color:#475569;font-size:.82rem;margin-top:8px;text-decoration:none">← Back to lobby</a>
+  `;
+  document.body.appendChild(loading);
+
+  function removeLoading() {
+    const el = document.getElementById('modeLoading');
+    if (el) el.remove();
+  }
+
+  // Hook into buildTeamSelect to remove loading when team select appears
+  const origBTS = buildTeamSelect;
+  window.buildTeamSelect = function() { removeLoading(); origBTS(); };
+
+  // Hook into waitScreen show for create mode
+  const origCreateGame = createGame;
+  window._modeCreateGame = function() {
+    connectSocket();
+    myRole = 'host';
+    socket.emit('battle:create', { name: getName() }, (res) => {
+      if (res.error) { removeLoading(); alert('Error: ' + res.error); location.href='/politibattle'; return; }
+      roomCode = res.code;
+      removeLoading();
+      document.getElementById('waitCode').textContent = roomCode;
+      document.getElementById('waitScreen').classList.add('vis');
+    });
+  };
+
+  if (mode === 'create')      { setTimeout(_modeCreateGame, 300); }
+  else if (mode === 'ai')     { setTimeout(() => createAIGame(false), 300); }
+  else if (mode === 'raid')   { setTimeout(() => createAIGame(true), 300); }
+  else if (mode === 'random') { setTimeout(() => { removeLoading(); createRandomInvite(); }, 300); }
 }
 document.getElementById('joinCodeInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
 
