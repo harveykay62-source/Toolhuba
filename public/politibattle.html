@@ -279,6 +279,7 @@ footer a:hover{color:#64748b}
       <div class="ab blue" onclick="showJoinSection()"><div class="ab-icon">🔗</div><div class="ab-title">Join Battle</div><div class="ab-desc">Enter a 6-letter code</div></div>
       <div class="ab gold" onclick="createAIGame()"><div class="ab-icon">🤖</div><div class="ab-title">Battle AI</div><div class="ab-desc">Fight the CPU Trainer</div></div>
     <div class="ab" style="border-color:rgba(239,68,68,.3)" onclick="createRaidBoss()"><div class="ab-icon">👑</div><div class="ab-title">Raid Boss</div><div class="ab-desc">1 vs 3× HP boss</div></div>
+    <div class="ab" style="border-color:rgba(168,85,247,.3)" onclick="createRandomInvite()"><div class="ab-icon">🎲</div><div class="ab-title">Random + Invite</div><div class="ab-desc">Random team — share link</div></div>
     </div>
     <div class="jsec" id="joinSection">
       <div class="jcard">
@@ -319,6 +320,7 @@ footer a:hover{color:#64748b}
     <div class="tslot" id="ts0">?</div><div class="tslot" id="ts1">?</div>
     <div class="tslot" id="ts2">?</div><div class="tslot" id="ts3">?</div>
     <div class="tslot" id="ts4">?</div><div class="tslot" id="ts5">?</div>
+    <button onclick="randomizeTeam()" style="padding:10px 18px;border-radius:12px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:#c4b5fd;font-weight:700;font-size:.82rem;cursor:pointer">🎲 Randomise</button>
     <button class="tcon" id="tconBtn" onclick="confirmTeam()">LOCK IN TEAM ⚔️</button>
   </div>
 </div>
@@ -825,395 +827,720 @@ let tic=0;
 })();
 
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // BATTLE STATE
 // ═══════════════════════════════════════════════════════════
-let socket=null, roomCode=null, myRole=null;
-let politicians=[], selectedTeam=[];
-let myTeam=[], myActive=0, oppTeam=[], oppActive=0;
-let waitingForAction=false, needsSwitch=false, turnNum=1;
-
-// NEW STATE
+let socket = null;
+let roomCode = null;
+let myRole = null;
+let politicians = [];
+let selectedTeam = [];
+let selectedItems = {};
+let myTeam = [], myActive = 0;
+let oppTeam = [], oppActive = 0;
+let waitingForAction = false;
+let needsSwitch = false;
+let turnNum = 1;
 let currentWeather = null;
 window.ITEMS_DATA = null;
 
-function updateFighterBadges(who, f){
-  const parts=[];
-  if(f.lucky)parts.push('<span class="lucky-badge">★ Lucky</span>');
-  if(f.shadow)parts.push('<span class="shadow-badge">◆ Shadow</span>');
-  if(f.purified)parts.push('<span class="purified-badge">✦ Purified</span>');
-  if(f._isRaidBoss)parts.push('<span class="raid-badge">👑 RAID BOSS</span>');
-  const stEl=document.getElementById(who+'St');
-  if(stEl){
-    let html=f.status?`<span class="stpill st-${f.status}">${f.status.toUpperCase()}</span>`:'';
-    html+=parts.join('');
-    // Ability chip
-    if(f.ability){const abilName=f.ability.replace(/_/g,' ');html+=`<br><span class="abil-chip">✦ ${abilName}</span>`;}
-    // Item chip
-    if(f.heldItem){const iData=window.ITEMS_DATA&&window.ITEMS_DATA[f.heldItem];html+=`<span class="item-chip">${iData?iData.icon:'🎒'} ${f.heldItem.replace(/_/g,' ')}</span>`;}
-    // PvP Shields
-    if(f.pvpShields>0){html+='<div class="shields-row">'+Array.from({length:2},(_,i)=>`<span class="shield-pip${i<f.pvpShields?' active':''}">🛡️</span>`).join('')+'</div>';}
-    // Surge mode
-    if(f.surgeMode)html+=`<span style="color:#fbbf24;font-size:.6rem;font-weight:700">⚡ SURGE ${f.surgeTurnsLeft}</span>`;
-    stEl.innerHTML=html;
-  }
-}
+// Item ids list for random picks
+const ALL_ITEM_IDS = [
+  'lobbyist_briefcase','assault_rifle','nuclear_football','constitution_shield',
+  'flak_jacket','campaign_funds','executive_pardon','air_force_one',
+  'candy','stardust_bag','poison_pen','shiv','lucky_egg','shadow_orb',
+  'purified_heart','mega_stone','pvp_shield','buddy_bond'
+];
 
-function activateSurge(){
-  if(!roomCode||waitingForAction)return;
-  socket.emit('battle:useSurge',{code:roomCode});
-  document.getElementById('surgeBtn').classList.remove('vis');
-}
+// ═══════════════════════════════════════════════════════════
+// SOCKET CONNECTION
+// ═══════════════════════════════════════════════════════════
+function connectSocket() {
+  if (socket && socket.connected) return;
+  socket = io('/politibattle', { transports: ['websocket', 'polling'] });
 
-// SOCKET
-function connectSocket(){
-  if(socket)return;
-  socket=io('/politibattle',{transports:['websocket','polling']});
-  socket.on('connect',()=>console.log('[PB] connected',socket.id));
-  socket.on('battle:playerJoined',()=>document.getElementById('waitScreen').classList.remove('vis'));
-  socket.on('battle:teamSelect',d=>{
-    politicians=d.politicians;
-    if(d.items){window.ITEMS_DATA={};d.items.forEach(it=>window.ITEMS_DATA[it.id]=it);}
-    buildTeamSelect(d.items||[]);
+  socket.on('connect', () => console.log('[PolitiBattle] connected', socket.id));
+  socket.on('connect_error', (e) => console.error('[PolitiBattle] connect error', e));
+
+  socket.on('battle:playerJoined', (d) => {
+    document.getElementById('waitScreen').classList.remove('vis');
+    addLog('⚔️ Opponent joined: ' + (d.guestName || 'Challenger'));
   });
-  socket.on('battle:start',d=>startBattle(d));
-  socket.on('battle:surgeActivated',d=>{addLog(`⚡ ${d.name} SURGE MODE activated!`,'eff');renderBattleUI();});
-  socket.on('battle:turnResult',d=>handleTurnResult(d));
-  socket.on('battle:switched',d=>handleSwitch(d));
+
+  socket.on('battle:teamSelect', (d) => {
+    politicians = d.politicians;
+    if (d.items) {
+      window.ITEMS_DATA = {};
+      d.items.forEach(it => window.ITEMS_DATA[it.id] = it);
+    }
+    buildTeamSelect();
+  });
+
+  socket.on('battle:start', (d) => startBattle(d));
+  socket.on('battle:turnResult', (d) => handleTurnResult(d));
+  socket.on('battle:switched', (d) => handleSwitch(d));
+  socket.on('battle:surgeActivated', (d) => {
+    addLog('⚡ ' + d.name + ' activated SURGE MODE!', 'eff');
+    renderBattleUI();
+  });
 }
 
-function getName(){return document.getElementById('trainerName').value.trim()||'Trainer';}
+// ═══════════════════════════════════════════════════════════
+// LOBBY ACTIONS
+// ═══════════════════════════════════════════════════════════
+function getName() {
+  return document.getElementById('trainerName').value.trim() || 'Trainer';
+}
 
-// LOBBY
-function createGame(){
-  connectSocket();myRole='host';
-  socket.emit('battle:create',{name:getName()},res=>{
-    if(res.error)return alert(res.error);
-    roomCode=res.code;document.getElementById('waitCode').textContent=roomCode;
+function createGame() {
+  connectSocket();
+  myRole = 'host';
+  socket.emit('battle:create', { name: getName() }, (res) => {
+    if (res.error) return alert('Error: ' + res.error);
+    roomCode = res.code;
+    document.getElementById('waitCode').textContent = roomCode;
     document.getElementById('waitScreen').classList.add('vis');
   });
 }
-function showJoinSection(){const s=document.getElementById('joinSection');s.classList.toggle('vis');if(s.classList.contains('vis'))setTimeout(()=>document.getElementById('joinCodeInput').focus(),80);}
-function joinGame(){
-  const code=document.getElementById('joinCodeInput').value.trim().toUpperCase();
-  if(code.length<4){document.getElementById('joinErr').textContent='Enter a valid code';return;}
-  connectSocket();myRole='guest';roomCode=code;
-  socket.emit('battle:join',{code,name:getName()},res=>{if(res.error)document.getElementById('joinErr').textContent=res.error;});
+
+function showJoinSection() {
+  const s = document.getElementById('joinSection');
+  s.classList.toggle('vis');
+  if (s.classList.contains('vis')) {
+    setTimeout(() => document.getElementById('joinCodeInput').focus(), 80);
+  }
 }
-function createAIGame(raidMode){
-  connectSocket();myRole='host';
-  socket.emit('battle:create',{name:getName()},res=>{
-    if(res.error)return alert(res.error);
-    roomCode=res.code;
-    socket.emit('battle:startAI',{code:roomCode,raidMode:raidMode||false},()=>{});
+
+function joinGame() {
+  const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if (code.length < 4) { document.getElementById('joinErr').textContent = 'Enter a valid code'; return; }
+  connectSocket();
+  myRole = 'guest';
+  roomCode = code;
+  socket.emit('battle:join', { code, name: getName() }, (res) => {
+    if (res.error) { document.getElementById('joinErr').textContent = res.error; return; }
+    // Guest goes straight to team select via socket event
   });
 }
-function createRaidBoss(){createAIGame(true);}
-function startAI(){if(!roomCode)return;socket.emit('battle:startAI',{code:roomCode},()=>{});document.getElementById('waitScreen').classList.remove('vis');}
-function copyCode(){navigator.clipboard.writeText(roomCode).catch(()=>{});event.target.textContent='Copied!';setTimeout(()=>event.target.textContent='Copy Code',1500);}
-function copyLink(){navigator.clipboard.writeText(location.origin+'/politibattle?code='+roomCode).catch(()=>{});event.target.textContent='Copied!';setTimeout(()=>event.target.textContent='Copy Link',1500);}
 
-// HUD avatar helpers
-function setHudAv(prefix, pol){
-  const em=document.getElementById(prefix+'AvEm'), img=document.getElementById(prefix+'AvImg');
-  const url=POL_IMAGES[pol.id];
-  if(url&&pol.id!=='ccpaffey'){
-    img.crossOrigin='anonymous'; img.src=url;
-    img.onload=()=>{img.style.display='block';em.style.display='none';};
-    img.onerror=()=>{img.style.display='none';em.style.display='flex';em.textContent=pol.emoji;};
-  } else {
-    img.style.display='none'; em.style.display='flex'; em.textContent=pol.emoji;
-  }
-  // Border color = type color
-  const tc2=TCSS[pol.types[0]]||'#555';
-  document.getElementById(prefix+'Av').style.borderColor=tc2+'99';
+function createAIGame(raidMode) {
+  connectSocket();
+  myRole = 'host';
+  socket.emit('battle:create', { name: getName() }, (res) => {
+    if (res.error) return alert('Error: ' + res.error);
+    roomCode = res.code;
+    socket.emit('battle:startAI', { code: roomCode, raidMode: raidMode || false }, () => {});
+  });
 }
 
-// TEAM SELECT
-// Selected items per slot
-let selectedItems = {};
+function createRaidBoss() { createAIGame(true); }
 
-function buildTeamSelect(itemsList){
-  document.getElementById('lobbyScreen').style.display='none';
+function startAI() {
+  if (!roomCode) return;
+  socket.emit('battle:startAI', { code: roomCode }, () => {});
   document.getElementById('waitScreen').classList.remove('vis');
-  document.getElementById('tsScreen').style.display='block';
-  selectedTeam=[];
+}
 
-  const grid=document.getElementById('tsGrid');
-  grid.innerHTML=politicians.map(p=>{
-    const imgUrl=POL_IMAGES[p.id];
-    const isCCP=p.id==='ccpaffey';
-    const tc2=TCSS[p.types[0]]||'#555';
+function copyCode() {
+  navigator.clipboard.writeText(roomCode).catch(() => {});
+  const t = event.target; t.textContent = '✅ Copied!';
+  setTimeout(() => t.textContent = '📋 Copy Code', 1500);
+}
+
+function copyLink() {
+  const link = location.origin + '/politibattle?code=' + roomCode;
+  navigator.clipboard.writeText(link).catch(() => {});
+  const t = event.target; t.textContent = '✅ Copied!';
+  setTimeout(() => t.textContent = '🔗 Copy Link', 1500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RANDOM TEAM + INVITE LINK — main new feature
+// ═══════════════════════════════════════════════════════════
+function createRandomInvite() {
+  if (!politicians || politicians.length === 0) {
+    // Fetch roster first then retry
+    fetch('/api/politibattle/roster').then(r => r.json()).then(data => {
+      politicians = data;
+      createRandomInvite();
+    });
+    return;
+  }
+
+  // Pick 6 random fighters (no CCPAffey in random to avoid instant BAN)
+  const pool = politicians.filter(p => p.id !== 'ccpaffey');
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const team = shuffled.slice(0, 6).map(p => p.id);
+
+  // Pick random items for each slot (some slots get no item)
+  const items = {};
+  team.forEach((_, i) => {
+    if (Math.random() > 0.35) { // 65% chance to get an item
+      items[i] = ALL_ITEM_IDS[Math.floor(Math.random() * ALL_ITEM_IDS.length)];
+    }
+  });
+
+  // Show the random team preview
+  showRandomTeamPreview(team, items);
+}
+
+function showRandomTeamPreview(team, items) {
+  const modal = document.getElementById('randomModal');
+  const preview = document.getElementById('randomPreview');
+  const pol = politicians.length ? politicians : [];
+
+  preview.innerHTML = team.map((id, i) => {
+    const p = pol.find(x => x.id === id) || { name: id, emoji: '❓', types: [] };
+    const imgUrl = POL_IMAGES[id];
+    const itemId = items[i];
+    const itemName = window.ITEMS_DATA && itemId && window.ITEMS_DATA[itemId]
+      ? (window.ITEMS_DATA[itemId].icon + ' ' + window.ITEMS_DATA[itemId].name)
+      : (itemId ? itemId.replace(/_/g, ' ') : 'No item');
+    const tc = TCSS[p.types[0]] || '#555';
     return `
-      <div class="tcard${isCCP?' ccp':''}" id="tsc-${p.id}" onclick="toggleSelect('${p.id}')">
-        <div class="av-frame" style="border-color:${tc2}88">
-          <div class="av-emoji" id="ae-${p.id}">${p.emoji}</div>
-          ${imgUrl&&!isCCP?`<img src="${imgUrl}" alt="${p.name}" crossorigin="anonymous" style="display:none" onload="this.style.display='block';this.previousElementSibling.style.display='none'" onerror="this.style.display='none'">`:''}
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 8px;text-align:center;border-top:2px solid ${tc}">
+        <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin:0 auto 5px;border:2px solid ${tc}55">
+          ${imgUrl && id !== 'ccpaffey'
+            ? `<img src="${imgUrl}" crossorigin="anonymous" style="width:100%;height:100%;object-fit:cover;object-position:top" onerror="this.style.display='none'">`
+            : `<div style="font-size:1.5rem;line-height:48px;text-align:center">${p.emoji}</div>`}
         </div>
-        <div class="cn">${p.name}</div>
-        <div class="ct">${p.title||''}</div>
-        <div>${(p.types||[]).map(t=>`<span class="tb tb-${t}">${t}</span>`).join('')}</div>
-        <div class="cs">HP:${p.stats.hp} ATK:${p.stats.atk} SPE:${p.stats.spe}</div>
-        ${isCCP?'<div style="color:#f87171;font-size:.58rem;margin-top:5px;font-weight:700">⚠️ WARNING: BAN move</div>':''}
-        <div class="item-sel" id="isel-${p.id}"></div>
+        <div style="font-size:.72rem;font-weight:700;color:#fff;margin-bottom:3px">${p.name}</div>
+        <div>${(p.types||[]).map(t=>`<span class="tb tb-${t}" style="font-size:.5rem">${t}</span>`).join('')}</div>
+        <div style="font-size:.6rem;color:#fcd34d;margin-top:4px">${itemName}</div>
       </div>`;
   }).join('');
+
+  // Store for when we host with this team
+  modal._team = team;
+  modal._items = items;
+  modal.style.display = 'flex';
 }
 
-function toggleSelect(id){
-  const idx=selectedTeam.indexOf(id);
-  if(idx>-1){selectedTeam.splice(idx,1);document.getElementById('tsc-'+id).classList.remove('sel');}
-  else{if(selectedTeam.length>=6)return;selectedTeam.push(id);document.getElementById('tsc-'+id).classList.add('sel');}
-  const pol=politicians;
-  for(let i=0;i<6;i++){
-    const sl=document.getElementById('ts'+i);
-    if(selectedTeam[i]){
-      const p=pol.find(x=>x.id===selectedTeam[i]);
-      const url=POL_IMAGES[p.id];
-      if(url&&p.id!=='ccpaffey'){sl.innerHTML=`<img src="${url}" crossorigin="anonymous" alt="${p.name}" onerror="this.outerHTML='${p.emoji}'">`;sl.classList.add('f');}
-      else{sl.innerHTML=p.emoji;sl.style.fontSize='1.6rem';sl.classList.add('f');}
-    } else {sl.innerHTML='?';sl.style.fontSize='1.4rem';sl.classList.remove('f');}
-  }
-  document.getElementById('tconBtn').classList.toggle('ready',selectedTeam.length===6);
-  // Render item pickers for selected cards
-  politicians.forEach(p=>{
-    const el=document.getElementById('isel-'+p.id);
-    if(!el)return;
-    if(!selectedTeam.includes(p.id)){el.innerHTML='';return;}
-    const items=window.ITEMS_DATA?Object.entries(window.ITEMS_DATA).slice(0,12):[];
-    el.innerHTML=items.map(([iid,it])=>`<div class="item-opt${selectedItems[p.id]===iid?' chosen':''}" onclick="pickItem('${p.id}','${iid}',event)" title="${it.desc}">${it.icon}</div>`).join('');
+function closeRandomModal() {
+  document.getElementById('randomModal').style.display = 'none';
+}
+
+function hostWithRandomTeam() {
+  const modal = document.getElementById('randomModal');
+  const team = modal._team;
+  const items = modal._items;
+  closeRandomModal();
+
+  // Pre-fill selected team + items so confirmTeam works
+  selectedTeam = [...team];
+  selectedItems = {};
+  team.forEach((id, i) => { if (items[i]) selectedItems[id] = items[i]; });
+
+  // Create room and show waiting screen with shareable link
+  connectSocket();
+  myRole = 'host';
+  socket.emit('battle:create', { name: getName() }, (res) => {
+    if (res.error) return alert('Error: ' + res.error);
+    roomCode = res.code;
+    document.getElementById('waitCode').textContent = roomCode;
+    document.getElementById('waitScreen').classList.add('vis');
+    // When opponent joins, we'll auto-confirm the pre-filled team
+    socket._randomTeamReady = true;
   });
 }
 
-function pickItem(polId, itemId, e){
-  e.stopPropagation();
-  if(selectedItems[polId]===itemId){delete selectedItems[polId];}
-  else{selectedItems[polId]=itemId;}
-  toggleSelect(polId); // re-trigger to refresh
-  // Don't toggle actual selection
-  if(!selectedTeam.includes(polId)){selectedTeam.push(polId);}
-}
+// ═══════════════════════════════════════════════════════════
+// TEAM SELECT
+// ═══════════════════════════════════════════════════════════
+function buildTeamSelect() {
+  document.getElementById('lobbyScreen').style.display = 'none';
+  document.getElementById('waitScreen').classList.remove('vis');
+  document.getElementById('tsScreen').style.display = 'block';
 
-function confirmTeam(){
-  if(selectedTeam.length!==6)return;
-  // Build items map: slot index -> item id
-  const itemsMap={};
-  selectedTeam.forEach((polId,idx)=>{if(selectedItems[polId])itemsMap[idx]=selectedItems[polId];});
-  socket.emit('battle:teamReady',{code:roomCode,team:selectedTeam,items:itemsMap});
-  const b=document.getElementById('tconBtn'); b.textContent='Waiting...'; b.style.pointerEvents='none';
-}
-
-// BATTLE START
-function startBattle(data){
-  document.getElementById('tsScreen').style.display='none';
-  if(myRole==='host'){myTeam=data.hostTeam;oppTeam=data.guestTeam;myActive=data.hostActive;oppActive=data.guestActive;}
-  else{myTeam=data.guestTeam;oppTeam=data.hostTeam;myActive=data.guestActive;oppActive=data.hostActive;}
-  waitingForAction=false;turnNum=1;
-  currentWeather={name:'Clear Skies',icon:'☀️',turns:0};
-
-  const me=myTeam[myActive], opp=oppTeam[oppActive];
-  spawnPlayer(me,null);
-  spawnOpp(opp,null);
-  document.getElementById('battleUI').classList.add('on');
-  renderBattleUI();
-}
-
-function setHp(who, cur, max){
-  const pct=Math.max(0,Math.min(100,cur/max*100));
-  const f=document.getElementById(who+'HpFill');
-  f.style.width=pct+'%';
-  f.className='hpfill'+(pct<20?' low':pct<50?' mid':'');
-  document.getElementById(who+'HpTxt').textContent=Math.max(0,cur)+' / '+max;
-}
-
-function renderBattleUI(){
-  const me=myTeam[myActive], opp=oppTeam[oppActive];
-  if(!me)return;
-  document.getElementById('myFName').textContent=me.name;
-  document.getElementById('myFTypes').innerHTML=(me.types||[]).map(t=>`<span class="tb tb-${t}">${t}</span>`).join('');
-  setHp('my',me.currentHp,me.stats.hp);
-  document.getElementById('mySt').innerHTML=me.status?`<span class="stpill st-${me.status}">${me.status.toUpperCase()}</span>`:'';
-  setHudAv('my', me);
-  if(opp){
-    document.getElementById('oppFName').textContent=opp.name;
-    document.getElementById('oppFTypes').innerHTML=(opp.types||[]).map(t=>`<span class="tb tb-${t}">${t}</span>`).join('');
-    setHp('opp',opp.currentHp,opp.stats.hp);
-    document.getElementById('oppSt').innerHTML=opp.status?`<span class="stpill st-${opp.status}">${opp.status.toUpperCase()}</span>`:'';
-    setHudAv('opp', opp);
+  // If random team was pre-filled, auto-confirm immediately
+  if (socket && socket._randomTeamReady && selectedTeam.length === 6) {
+    socket._randomTeamReady = false;
+    // Render briefly then auto-confirm
+    renderTeamGrid();
+    setTimeout(() => confirmTeam(), 400);
+    return;
   }
-  renderMoves(me);
-  // Weather display
-  const wInfo=currentWeather||{};
-  const wBar=document.getElementById('weatherBar');
-  if(wBar){const wIcon=wInfo.icon||'☀️';const wName=wInfo.name||'Clear Skies';const turns=wInfo.turns>0?` (${wInfo.turns})`:'';wBar.textContent=wIcon+' '+wName+turns;wBar.style.borderColor=wInfo.name&&wInfo.name!=='Clear Skies'?'rgba(234,179,8,.3)':'rgba(255,255,255,.1)';}
-  // Surge button
-  const me2=myTeam[myActive];const myItem=me2&&me2.heldItem;const itemData=window.ITEMS_DATA&&window.ITEMS_DATA[myItem];
-  const surgeBtn=document.getElementById('surgeBtn');
-  if(surgeBtn){surgeBtn.classList.toggle('vis',!!(itemData&&itemData.surgeItem&&!me2._surgeUsed&&me2.currentHp>0));}
-  // HUD badges
-  updateFighterBadges('my', me2||{});if(myTeam[0])updateFighterBadges('opp',oppTeam[oppActive]||{});
-  document.getElementById('teamBar').innerHTML=myTeam.map((f,i)=>{  document.getElementById('teamBar').innerHTML=myTeam.map((f,i)=>{
-    const url=POL_IMAGES[f.id];
-    const inner=url&&f.id!=='ccpaffey'
-      ? `<img src="${url}" crossorigin="anonymous" alt="" onerror="this.outerHTML='<span class=tsem>${f.emoji}</span>'">`
-      : `<span class="tsem">${f.emoji}</span>`;
-    return `<div class="tslotb ${i===myActive?'active':''} ${f.currentHp<=0?'fainted':''}" onclick="chooseSwitch(${i})" title="${f.name} ${Math.max(0,f.currentHp)}/${f.stats.hp}">${inner}</div>`;
+
+  selectedTeam = [];
+  selectedItems = {};
+  renderTeamGrid();
+}
+
+function renderTeamGrid() {
+  const grid = document.getElementById('tsGrid');
+  grid.innerHTML = politicians.map(p => {
+    const imgUrl = POL_IMAGES[p.id];
+    const isCCP = p.id === 'ccpaffey';
+    const tc2 = TCSS[p.types[0]] || '#555';
+    const isSel = selectedTeam.includes(p.id);
+    return `
+      <div class="tcard${isCCP ? ' ccp' : ''}${isSel ? ' sel' : ''}" id="tsc-${p.id}" onclick="toggleSelect('${p.id}')">
+        <div class="av-frame" style="border-color:${tc2}88">
+          <div class="av-emoji" id="ae-${p.id}">${p.emoji}</div>
+          ${imgUrl && !isCCP ? `<img src="${imgUrl}" alt="${p.name}" crossorigin="anonymous" style="display:none"
+            onload="this.style.display='block';this.previousElementSibling.style.display='none'"
+            onerror="this.style.display='none'">` : ''}
+        </div>
+        <div class="cn">${p.name}</div>
+        <div class="ct">${p.title || ''}</div>
+        <div>${(p.types || []).map(t => `<span class="tb tb-${t}">${t}</span>`).join('')}</div>
+        <div class="cs">HP:${p.stats.hp} ATK:${p.stats.atk} SPE:${p.stats.spe}</div>
+        ${p.ability ? `<div style="color:#a5b4fc;font-size:.55rem;margin-top:3px">✦ ${(p.ability.name||p.ability).replace(/_/g,' ')}</div>` : ''}
+        ${isCCP ? '<div style="color:#f87171;font-size:.58rem;margin-top:5px;font-weight:700">⚠️ BAN move</div>' : ''}
+        <div class="item-sel" id="isel-${p.id}">${isSel ? renderItemPicker(p.id) : ''}</div>
+      </div>`;
   }).join('');
-  document.getElementById('turnCtr').textContent='TURN '+turnNum;
+
+  refreshSlots();
 }
 
-function renderMoves(me){
-  const g=document.getElementById('movesGrid');
-  if(!me.moves||!me.moves.length){g.innerHTML='<div style="color:#475569;font-size:.8rem;grid-column:span 4;text-align:center;padding:10px">Waiting...</div>';return;}
-  g.innerHTML=me.moves.map((m,i)=>{
-    const isBan=!!(m.effect&&m.effect.ban);
-    const ppPct=m.maxPp>0?Math.round((m.pp/m.maxPp)*100):0;
-    const ppCls=m.pp===0?'empty':ppPct<=25?'low':'';
-    const ppColor=m.pp===0?'#ef4444':ppPct<=25?'#eab308':'#3b82f6';
-    const nopp=m.pp<=0;
-    return `<button class="mvbtn" onclick="chooseMove(${i})" ${(waitingForAction||nopp)?'disabled':''} style="${nopp?'opacity:.25;':''}">
-      <span class="tb tb-${m.type}" style="position:absolute;top:5px;right:5px;font-size:.52rem">${m.type}</span>
-      <div class="mn">${m.name}</div>
-      <div class="mi">
-        <span class="mc ${isBan?'ban':m.category}">${isBan?'🚫BAN':m.category}</span>
-        ${m.power?`<span>⚡${m.power}</span>`:''}
-        <span>🎯${m.accuracy}%</span>
-        <span style="color:${ppColor};font-weight:700">${m.pp}/${m.maxPp}PP</span>
-      </div>
-      <div class="pp-bar-wrap"><div class="pp-bar ${ppCls}" style="width:${ppPct}%;background:${ppColor}"></div></div>
-    </button>`;
-  }).join('');
+function renderItemPicker(polId) {
+  if (!window.ITEMS_DATA) return '';
+  return Object.entries(window.ITEMS_DATA).map(([iid, it]) =>
+    `<div class="item-opt${selectedItems[polId] === iid ? ' chosen' : ''}"
+       onclick="pickItem('${polId}','${iid}',event)" title="${it.desc}">${it.icon}</div>`
+  ).join('');
 }
 
-// ACTIONS
-function chooseMove(index){
-  if(waitingForAction)return; waitingForAction=true;
-  socket.emit('battle:action',{code:roomCode,action:{type:'move',index}});
-  document.getElementById('moveLabel').textContent='WAITING...';
-  renderMoves(myTeam[myActive]);
-}
-function chooseSwitch(index){
-  const f=myTeam[index];
-  if(!f||index===myActive||f.currentHp<=0)return;
-  if(needsSwitch){
-    socket.emit('battle:switch',{code:roomCode,index});
-    myActive=index; needsSwitch=false;
-    spawnPlayer(myTeam[myActive],null);
-    addLog('Go, '+myTeam[myActive].name+'!');
-    renderBattleUI(); return;
-  }
-  if(waitingForAction)return; waitingForAction=true;
-  socket.emit('battle:action',{code:roomCode,action:{type:'switch',index}});
-  addLog('Switching to '+f.name+'...');
-}
-
-// TURN RESULT
-function handleTurnResult(data){
-  const isBan=data.log&&data.log.some(l=>l.includes('W!BAN'));
-
-  const doAfter=()=>{
-    waitingForAction=false; turnNum++;
-    if(myRole==='host'){myTeam=data.hostTeam;oppTeam=data.guestTeam;myActive=data.hostActive;oppActive=data.guestActive;}
-    else{myTeam=data.guestTeam;oppTeam=data.hostTeam;myActive=data.guestActive;oppActive=data.hostActive;}
-    // Update weather
-    if(data.weatherInfo){currentWeather={...data.weatherInfo,turns:data.weatherInfo.weatherTurns||0};}
-    data.log.forEach(msg=>{
-      let c='';
-      if(msg.includes('super effective'))c='eff';
-      else if(msg.includes('not very'))c='neff';
-      else if(msg.includes('no effect'))c='imm';
-      else if(msg.includes('fainted')||msg.includes('BANNED'))c='fnt';
-      else if(msg.includes('burned')||msg.includes('poison')||msg.includes('paralyz')||msg.includes('sleep'))c='sts';
-      else if(msg.includes('W!BAN'))c='ban';
-      addLog(msg,c);
-    });
-    // Refresh meshes if needed
-    const me=myTeam[myActive], opp=oppTeam[oppActive];
-    if(me&&me.currentHp>0&&(!playerMesh||playerMesh.userData.pol?.id!==me.id))spawnPlayer(me,null);
-    if(opp&&opp.currentHp>0&&(!oppMesh||oppMesh.userData.pol?.id!==opp.id))spawnOpp(opp,null);
-    if(me&&me.currentHp<=0&&playerMesh){burst(playerMesh.position.clone(),0xffffff,40,4,.2,55);scene.remove(playerMesh);playerMesh=null;}
-    if(opp&&opp.currentHp<=0&&oppMesh){burst(oppMesh.position.clone(),0xffffff,40,4,.2,55);scene.remove(oppMesh);oppMesh=null;}
-    document.getElementById('moveLabel').textContent='YOUR TURN';
-    const mns=myRole==='host'?data.hostNeedsSwitch:data.guestNeedsSwitch;
-    if(mns&&!data.winner){needsSwitch=true;addLog('Your fighter was KO\'d! Choose a replacement!','fnt');}
-    renderBattleUI();
-    if(data.winner)setTimeout(()=>showWinner(data.winner),1200);
-  };
-
-  if(isBan){
-    const dn=oppTeam[oppActive]?oppTeam[oppActive].name:'Unknown';
-    animBan(dn,doAfter);
+function toggleSelect(id) {
+  const idx = selectedTeam.indexOf(id);
+  const card = document.getElementById('tsc-' + id);
+  if (idx > -1) {
+    selectedTeam.splice(idx, 1);
+    delete selectedItems[id];
+    card.classList.remove('sel');
+    const isel = document.getElementById('isel-' + id);
+    if (isel) isel.innerHTML = '';
   } else {
-    // Pick animation by move type from log
-    const me=myTeam[myActive], opp=oppTeam[oppActive];
-    const myMoved=data.log&&me&&data.log.some(l=>l.startsWith(me.name+' used'));
-    const atk=myMoved?playerMesh:oppMesh;
-    const def=myMoved?oppMesh:playerMesh;
-    const hasDmg=data.log&&data.log.some(l=>l.includes('(-'));
-    const typeColor=inferTypeColor(data.log);
-    if(hasDmg){
-      (Math.random()>.5?animSpecial:animPhysical)(atk,def,typeColor,doAfter);
+    if (selectedTeam.length >= 6) return;
+    selectedTeam.push(id);
+    card.classList.add('sel');
+    const isel = document.getElementById('isel-' + id);
+    if (isel) isel.innerHTML = renderItemPicker(id);
+  }
+  refreshSlots();
+  document.getElementById('tconBtn').classList.toggle('ready', selectedTeam.length === 6);
+}
+
+function pickItem(polId, itemId, e) {
+  e.stopPropagation();
+  if (selectedItems[polId] === itemId) {
+    delete selectedItems[polId];
+  } else {
+    selectedItems[polId] = itemId;
+  }
+  // Re-render just the item picker for this card
+  const isel = document.getElementById('isel-' + polId);
+  if (isel) isel.innerHTML = renderItemPicker(polId);
+}
+
+function refreshSlots() {
+  for (let i = 0; i < 6; i++) {
+    const sl = document.getElementById('ts' + i);
+    if (!sl) continue;
+    if (selectedTeam[i]) {
+      const p = politicians.find(x => x.id === selectedTeam[i]);
+      if (!p) continue;
+      const url = POL_IMAGES[p.id];
+      if (url && p.id !== 'ccpaffey') {
+        sl.innerHTML = `<img src="${url}" crossorigin="anonymous" alt="${p.name}"
+          style="width:100%;height:100%;object-fit:cover;border-radius:10px"
+          onerror="this.outerHTML='<span style=font-size:1.6rem>${p.emoji}</span>'">`;
+      } else {
+        sl.innerHTML = `<span style="font-size:1.6rem">${p.emoji}</span>`;
+      }
+      sl.classList.add('f');
     } else {
-      animStatus(atk,typeColor,doAfter);
+      sl.innerHTML = '?';
+      sl.classList.remove('f');
     }
   }
 }
 
-function inferTypeColor(log){
-  const map={Republican:0xdc2626,Democrat:0x2563eb,Libertarian:0xeab308,Green:0x22c55e,Socialist:0xef4444,Authoritarian:0x7c3aed,Centrist:0x94a3b8,Populist:0xf97316,Corporate:0x475569,Revolutionary:0xbe123c};
-  if(!log)return 0xf97316;
-  for(const [k,v] of Object.entries(map)){if(log.some(l=>l.includes(k)))return v;}
-  return 0xf97316;
+function randomizeTeam() {
+  // Quick randomize inside team select
+  const pool = politicians.filter(p => p.id !== 'ccpaffey');
+  const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 6);
+
+  // Clear current selection
+  selectedTeam.forEach(id => {
+    const c = document.getElementById('tsc-' + id);
+    if (c) c.classList.remove('sel');
+    const isel = document.getElementById('isel-' + id);
+    if (isel) isel.innerHTML = '';
+  });
+  selectedTeam = [];
+  selectedItems = {};
+
+  // Apply new selection
+  shuffled.forEach(p => {
+    selectedTeam.push(p.id);
+    const c = document.getElementById('tsc-' + p.id);
+    if (c) {
+      c.classList.add('sel');
+      const isel = document.getElementById('isel-' + p.id);
+      if (isel) isel.innerHTML = renderItemPicker(p.id);
+    }
+    // Random item 65% chance
+    if (Math.random() > 0.35 && window.ITEMS_DATA) {
+      const itemIds = Object.keys(window.ITEMS_DATA);
+      selectedItems[p.id] = itemIds[Math.floor(Math.random() * itemIds.length)];
+      const isel = document.getElementById('isel-' + p.id);
+      if (isel) isel.innerHTML = renderItemPicker(p.id);
+    }
+  });
+
+  refreshSlots();
+  document.getElementById('tconBtn').classList.toggle('ready', selectedTeam.length === 6);
+
+  // Scroll to top so player can see their team
+  document.getElementById('tsScreen').scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function handleSwitch(data){
-  const isOppSide=(data.side!==(myRole==='host'?'host':'guest'));
-  if(isOppSide){oppActive=data.index;if(data.hazardLog)data.hazardLog.forEach(m=>addLog(m));addLog('Opponent sent out '+data.name+'!');spawnOpp(oppTeam[oppActive],null);}
-  else{if(data.hazardLog)data.hazardLog.forEach(m=>addLog(m));}
+function confirmTeam() {
+  if (selectedTeam.length !== 6) return;
+  const itemsMap = {};
+  selectedTeam.forEach((polId, idx) => {
+    if (selectedItems[polId]) itemsMap[idx] = selectedItems[polId];
+  });
+  socket.emit('battle:teamReady', { code: roomCode, team: selectedTeam, items: itemsMap });
+  const b = document.getElementById('tconBtn');
+  b.textContent = '⏳ Waiting for opponent...';
+  b.style.pointerEvents = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// BATTLE START
+// ═══════════════════════════════════════════════════════════
+function startBattle(data) {
+  document.getElementById('tsScreen').style.display = 'none';
+  if (myRole === 'host') {
+    myTeam = data.hostTeam; oppTeam = data.guestTeam;
+    myActive = data.hostActive; oppActive = data.guestActive;
+  } else {
+    myTeam = data.guestTeam; oppTeam = data.hostTeam;
+    myActive = data.guestActive; oppActive = data.hostActive;
+  }
+  waitingForAction = false; turnNum = 1;
+  currentWeather = { name: 'Clear Skies', icon: '☀️', turns: 0 };
+  const me = myTeam[myActive], opp = oppTeam[oppActive];
+  spawnPlayer(me, null);
+  spawnOpp(opp, null);
+  document.getElementById('battleUI').classList.add('on');
   renderBattleUI();
 }
 
-function addLog(msg,cls=''){
-  const log=document.getElementById('bLog');
-  const d=document.createElement('div'); d.className='le'+(cls?' '+cls:''); d.textContent=msg;
-  log.appendChild(d); log.scrollTop=log.scrollHeight;
-  while(log.children.length>30)log.removeChild(log.firstChild);
+// ═══════════════════════════════════════════════════════════
+// HUD HELPERS
+// ═══════════════════════════════════════════════════════════
+function setHudAv(prefix, pol) {
+  const em = document.getElementById(prefix + 'AvEm');
+  const img = document.getElementById(prefix + 'AvImg');
+  const url = POL_IMAGES[pol.id];
+  if (url && pol.id !== 'ccpaffey') {
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+    img.onload = () => { img.style.display = 'block'; em.style.display = 'none'; };
+    img.onerror = () => { img.style.display = 'none'; em.style.display = 'flex'; em.textContent = pol.emoji; };
+  } else {
+    img.style.display = 'none'; em.style.display = 'flex'; em.textContent = pol.emoji;
+  }
+  const tc2 = TCSS[pol.types[0]] || '#555';
+  document.getElementById(prefix + 'Av').style.borderColor = tc2 + '99';
 }
 
-function showWinner(winner){
-  const win=winner===myRole, draw=winner==='draw';
-  document.getElementById('winText').textContent=draw?'DRAW!':win?'YOU WIN!':'YOU LOSE!';
-  document.getElementById('winSub').textContent=draw?'Both sides fought to a standstill.':win?'Outstanding, Trainer!':'Better luck next time!';
+function setHp(who, cur, max) {
+  const pct = Math.max(0, Math.min(100, cur / max * 100));
+  const f = document.getElementById(who + 'HpFill');
+  f.style.width = pct + '%';
+  f.className = 'hpfill' + (pct < 20 ? ' low' : pct < 50 ? ' mid' : '');
+  document.getElementById(who + 'HpTxt').textContent = Math.max(0, cur) + ' / ' + max;
+}
+
+function updateFighterBadges(who, f) {
+  if (!f) return;
+  const stEl = document.getElementById(who + 'St');
+  if (!stEl) return;
+  let html = f.status ? `<span class="stpill st-${f.status}">${f.status.toUpperCase()}</span>` : '';
+  if (f.lucky) html += '<span class="lucky-badge"> ★ Lucky</span>';
+  if (f.shadow) html += '<span class="shadow-badge"> ◆ Shadow</span>';
+  if (f.purified) html += '<span class="purified-badge"> ✦ Purified</span>';
+  if (f._isRaidBoss) html += '<span class="raid-badge"> 👑 RAID</span>';
+  if (f.surgeMode) html += `<span style="color:#fbbf24;font-size:.6rem;font-weight:700"> ⚡${f.surgeTurnsLeft}</span>`;
+  if (f.ability) html += `<br><span class="abil-chip">✦ ${String(f.ability).replace(/_/g, ' ')}</span>`;
+  if (f.heldItem) {
+    const iData = window.ITEMS_DATA && window.ITEMS_DATA[f.heldItem];
+    html += `<span class="item-chip">${iData ? iData.icon : '🎒'} ${String(f.heldItem).replace(/_/g, ' ')}</span>`;
+  }
+  if (f.pvpShields > 0) {
+    html += '<div class="shields-row">' + [0,1].map(i => `<span class="shield-pip${i < f.pvpShields ? ' active' : ''}">🛡️</span>`).join('') + '</div>';
+  }
+  stEl.innerHTML = html;
+}
+
+function renderBattleUI() {
+  const me = myTeam[myActive], opp = oppTeam[oppActive];
+  if (!me) return;
+
+  document.getElementById('myFName').textContent = me.name;
+  document.getElementById('myFTypes').innerHTML = (me.types || []).map(t => `<span class="tb tb-${t}">${t}</span>`).join('');
+  setHp('my', me.currentHp, me.stats.hp);
+  setHudAv('my', me);
+  updateFighterBadges('my', me);
+
+  if (opp) {
+    document.getElementById('oppFName').textContent = opp.name;
+    document.getElementById('oppFTypes').innerHTML = (opp.types || []).map(t => `<span class="tb tb-${t}">${t}</span>`).join('');
+    setHp('opp', opp.currentHp, opp.stats.hp);
+    setHudAv('opp', opp);
+    updateFighterBadges('opp', opp);
+  }
+
+  // Weather bar
+  const wBar = document.getElementById('weatherBar');
+  if (wBar && currentWeather) {
+    const hasWeather = currentWeather.name !== 'Clear Skies';
+    wBar.textContent = (currentWeather.icon || '☀️') + ' ' + (currentWeather.name || 'Clear') + (currentWeather.turns > 0 ? ` (${currentWeather.turns})` : '');
+    wBar.style.borderColor = hasWeather ? 'rgba(234,179,8,.4)' : 'rgba(255,255,255,.08)';
+    wBar.style.color = hasWeather ? '#fde047' : '#475569';
+  }
+
+  // Surge button
+  const surgeBtn = document.getElementById('surgeBtn');
+  if (surgeBtn) {
+    const myItem = me.heldItem;
+    const itemData = window.ITEMS_DATA && myItem && window.ITEMS_DATA[myItem];
+    const canSurge = itemData && itemData.surgeItem && !me._surgeUsed && me.currentHp > 0;
+    surgeBtn.classList.toggle('vis', !!canSurge);
+  }
+
+  renderMoves(me);
+
+  // Team bar
+  document.getElementById('teamBar').innerHTML = myTeam.map((f, i) => {
+    const url = POL_IMAGES[f.id];
+    const inner = (url && f.id !== 'ccpaffey')
+      ? `<img src="${url}" crossorigin="anonymous" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top" onerror="this.style.display='none'">`
+      : `<span class="tsem">${f.emoji}</span>`;
+    return `<div class="tslotb ${i === myActive ? 'active' : ''} ${f.currentHp <= 0 ? 'fainted' : ''}"
+      onclick="chooseSwitch(${i})" title="${f.name} ${Math.max(0, f.currentHp)}/${f.stats.hp}">${inner}</div>`;
+  }).join('');
+
+  document.getElementById('turnCtr').textContent = 'TURN ' + turnNum;
+}
+
+function renderMoves(me) {
+  const g = document.getElementById('movesGrid');
+  if (!me.moves || !me.moves.length) {
+    g.innerHTML = '<div style="color:#475569;font-size:.8rem;grid-column:span 4;text-align:center;padding:10px">Waiting...</div>';
+    return;
+  }
+  g.innerHTML = me.moves.map((m, i) => {
+    const isBan = !!(m.effect && m.effect.ban);
+    const pp = m.pp !== undefined ? m.pp : 10;
+    const maxPp = m.maxPp !== undefined ? m.maxPp : 10;
+    const ppPct = maxPp > 0 ? Math.round(pp / maxPp * 100) : 0;
+    const ppColor = pp === 0 ? '#ef4444' : ppPct <= 25 ? '#eab308' : '#3b82f6';
+    const nopp = pp <= 0;
+    return `<button class="mvbtn" onclick="chooseMove(${i})" ${(waitingForAction || nopp) ? 'disabled' : ''} style="${nopp ? 'opacity:.25;' : ''}">
+      <span class="tb tb-${m.type}" style="position:absolute;top:5px;right:5px;font-size:.52rem">${m.type}</span>
+      <div class="mn">${m.name}</div>
+      <div class="mi">
+        <span class="mc ${isBan ? 'ban' : m.category}">${isBan ? '🚫BAN' : m.category}</span>
+        ${m.power ? `<span>⚡${m.power}</span>` : ''}
+        <span>🎯${m.accuracy}%</span>
+        <span style="color:${ppColor};font-weight:700;font-size:.6rem">${pp}/${maxPp}PP</span>
+      </div>
+      <div class="pp-bar-wrap"><div class="pp-bar" style="width:${ppPct}%;background:${ppColor}"></div></div>
+    </button>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// BATTLE ACTIONS
+// ═══════════════════════════════════════════════════════════
+function chooseMove(index) {
+  if (waitingForAction) return;
+  waitingForAction = true;
+  socket.emit('battle:action', { code: roomCode, action: { type: 'move', index } });
+  document.getElementById('moveLabel').textContent = 'WAITING...';
+  renderMoves(myTeam[myActive]);
+}
+
+function chooseSwitch(index) {
+  if (!myTeam[index] || index === myActive || myTeam[index].currentHp <= 0) return;
+  if (needsSwitch) {
+    socket.emit('battle:switch', { code: roomCode, index });
+    myActive = index; needsSwitch = false;
+    spawnPlayer(myTeam[myActive], null);
+    addLog('Go, ' + myTeam[myActive].name + '!');
+    renderBattleUI();
+    return;
+  }
+  if (waitingForAction) return;
+  waitingForAction = true;
+  socket.emit('battle:action', { code: roomCode, action: { type: 'switch', index } });
+  addLog('Switching to ' + myTeam[index].name + '...');
+}
+
+function activateSurge() {
+  if (!roomCode || waitingForAction) return;
+  socket.emit('battle:useSurge', { code: roomCode });
+  document.getElementById('surgeBtn').classList.remove('vis');
+}
+
+// ═══════════════════════════════════════════════════════════
+// HANDLE TURN RESULT
+// ═══════════════════════════════════════════════════════════
+function handleTurnResult(data) {
+  const isBan = data.log && data.log.some(l => l.includes('W!BAN'));
+  const doAfter = () => {
+    waitingForAction = false; turnNum++;
+    if (myRole === 'host') {
+      myTeam = data.hostTeam; oppTeam = data.guestTeam;
+      myActive = data.hostActive; oppActive = data.guestActive;
+    } else {
+      myTeam = data.guestTeam; oppTeam = data.hostTeam;
+      myActive = data.guestActive; oppActive = data.hostActive;
+    }
+    if (data.weatherInfo) currentWeather = { ...data.weatherInfo, turns: data.weatherTurns || 0 };
+    data.log.forEach(msg => {
+      let c = '';
+      if (msg.includes('super effective') || msg.includes('Critical')) c = 'eff';
+      else if (msg.includes('not very')) c = 'neff';
+      else if (msg.includes('no effect') || msg.includes('No effect')) c = 'imm';
+      else if (msg.includes('fainted') || msg.includes('BANNED')) c = 'fnt';
+      else if (msg.includes('burned') || msg.includes('poison') || msg.includes('paralyz') || msg.includes('sleep')) c = 'sts';
+      else if (msg.includes('W!BAN')) c = 'ban';
+      addLog(msg, c);
+    });
+    const me = myTeam[myActive], opp = oppTeam[oppActive];
+    if (me && me.currentHp > 0 && (!playerMesh || playerMesh.userData.pol?.id !== me.id)) spawnPlayer(me, null);
+    if (opp && opp.currentHp > 0 && (!oppMesh || oppMesh.userData.pol?.id !== opp.id)) spawnOpp(opp, null);
+    if (me && me.currentHp <= 0 && playerMesh) { burst(playerMesh.position.clone(), 0xffffff, 40, 4, .2, 55); scene.remove(playerMesh); playerMesh = null; }
+    if (opp && opp.currentHp <= 0 && oppMesh) { burst(oppMesh.position.clone(), 0xffffff, 40, 4, .2, 55); scene.remove(oppMesh); oppMesh = null; }
+    document.getElementById('moveLabel').textContent = 'YOUR TURN';
+    const mns = myRole === 'host' ? data.hostNeedsSwitch : data.guestNeedsSwitch;
+    if (mns && !data.winner) { needsSwitch = true; addLog('⚠️ Fighter KO\'d! Choose a replacement!', 'fnt'); }
+    renderBattleUI();
+    if (data.winner) setTimeout(() => showWinner(data.winner), 1200);
+  };
+
+  if (isBan) {
+    animBan(oppTeam[oppActive] ? oppTeam[oppActive].name : '???', doAfter);
+  } else {
+    const me = myTeam[myActive], opp = oppTeam[oppActive];
+    const myMoved = data.log && me && data.log.some(l => l.startsWith(me.name + ' used'));
+    const atk = myMoved ? playerMesh : oppMesh;
+    const def = myMoved ? oppMesh : playerMesh;
+    const hasDmg = data.log && data.log.some(l => l.includes('(−') || l.includes('(-'));
+    const typeColor = inferTypeColor(data.log);
+    if (hasDmg) {
+      (Math.random() > 0.5 ? animSpecial : animPhysical)(atk, def, typeColor, doAfter);
+    } else {
+      animStatus(atk, typeColor, doAfter);
+    }
+  }
+}
+
+function inferTypeColor(log) {
+  const m = { Republican:0xdc2626, Democrat:0x2563eb, Libertarian:0xeab308, Green:0x22c55e, Socialist:0xef4444, Authoritarian:0x7c3aed, Centrist:0x94a3b8, Populist:0xf97316, Corporate:0x475569, Revolutionary:0xbe123c };
+  if (!log) return 0xf97316;
+  for (const [k, v] of Object.entries(m)) if (log.some(l => l.includes(k))) return v;
+  return 0xf97316;
+}
+
+function handleSwitch(data) {
+  const isOppSide = (data.side !== (myRole === 'host' ? 'host' : 'guest'));
+  if (isOppSide) {
+    oppActive = data.index;
+    if (data.hazardLog) data.hazardLog.forEach(m => addLog(m));
+    addLog('Opponent sent out ' + data.name + '!');
+    spawnOpp(oppTeam[oppActive], null);
+  } else {
+    if (data.hazardLog) data.hazardLog.forEach(m => addLog(m));
+  }
+  renderBattleUI();
+}
+
+function addLog(msg, cls = '') {
+  const log = document.getElementById('bLog');
+  if (!log) return;
+  const d = document.createElement('div');
+  d.className = 'le' + (cls ? ' ' + cls : '');
+  d.textContent = msg;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  while (log.children.length > 30) log.removeChild(log.firstChild);
+}
+
+function showWinner(winner) {
+  const win = winner === myRole, draw = winner === 'draw';
+  document.getElementById('winText').textContent = draw ? '🤝 DRAW!' : win ? '🏆 YOU WIN!' : '💀 YOU LOSE!';
+  document.getElementById('winSub').textContent = draw ? 'Both sides fought to a standstill.' : win ? 'Outstanding, Trainer!' : 'Better luck next time!';
   document.getElementById('winScreen').classList.add('vis');
-  if(win){for(let i=0;i<6;i++)setTimeout(()=>burst(new THREE.Vector3((Math.random()-.5)*8,Math.random()*3+1,(Math.random()-.5)*4),Math.random()*0xffffff|0,55,5,.28,90),i*350);}
+  if (win) for (let i = 0; i < 6; i++) setTimeout(() => burst(new THREE.Vector3((Math.random()-.5)*8, Math.random()*3+1, (Math.random()-.5)*4), Math.random()*0xffffff|0, 55, 5, .28, 90), i * 350);
 }
 
+// ═══════════════════════════════════════════════════════════
 // ROSTER PREVIEW
-async function loadRoster(){
-  try{
-    const res=await fetch('/api/politibattle/roster');
-    const data=await res.json();
-    document.getElementById('rosterPreview').innerHTML=data.map(p=>{
-      const url=POL_IMAGES[p.id];
-      const tc2=TCSS[p.types[0]]||'#555';
+// ═══════════════════════════════════════════════════════════
+async function loadRoster() {
+  try {
+    const res = await fetch('/api/politibattle/roster');
+    const data = await res.json();
+    politicians = data; // cache for random team
+    document.getElementById('rosterPreview').innerHTML = data.map(p => {
+      const url = POL_IMAGES[p.id];
+      const tc2 = TCSS[p.types[0]] || '#555';
       return `<div class="rcard">
         <div class="rimg-wrap" style="border-color:${tc2}88">
-          ${url&&p.id!=='ccpaffey'?`<img src="${url}" alt="${p.name}" crossorigin="anonymous" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top" onerror="this.outerHTML='<div style=font-size:1.8rem;text-align:center;line-height:60px>${p.emoji}</div>'">`:`<div style="font-size:1.8rem;text-align:center;line-height:60px">${p.emoji}</div>`}
+          ${url && p.id !== 'ccpaffey'
+            ? `<img src="${url}" alt="${p.name}" crossorigin="anonymous" loading="lazy"
+                style="width:100%;height:100%;object-fit:cover;object-position:top"
+                onerror="this.outerHTML='<div style=font-size:1.8rem;text-align:center;line-height:60px>${p.emoji}</div>'">`
+            : `<div style="font-size:1.8rem;text-align:center;line-height:60px">${p.emoji}</div>`}
         </div>
         <div class="rn">${p.name}</div>
-        <div>${(p.types||[]).map(t=>`<span class="tb tb-${t}" style="font-size:.52rem">${t}</span>`).join('')}</div>
+        <div>${(p.types || []).map(t => `<span class="tb tb-${t}" style="font-size:.52rem">${t}</span>`).join('')}</div>
       </div>`;
     }).join('');
-  }catch(e){console.log('[PB] roster load error');}
+  } catch(e) { console.log('[PolitiBattle] roster error', e); }
 }
 
-function checkAutoJoin(){
-  const p=new URLSearchParams(location.search);
-  const c=p.get('code');
-  if(c){document.getElementById('joinCodeInput').value=c.toUpperCase();document.getElementById('joinSection').classList.add('vis');}
+function checkAutoJoin() {
+  const p = new URLSearchParams(location.search);
+  const c = p.get('code');
+  if (c) {
+    document.getElementById('joinCodeInput').value = c.toUpperCase();
+    document.getElementById('joinSection').classList.add('vis');
+  }
 }
 
-document.addEventListener('DOMContentLoaded',()=>{loadRoster();checkAutoJoin();});
-document.getElementById('joinCodeInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
-</script>
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadRoster();
+  checkAutoJoin();
+});
+document.getElementById('joinCodeInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
+
+<!-- RANDOM TEAM + INVITE MODAL -->
+<div id="randomModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;background:rgba(5,5,16,.95);flex-direction:column;gap:20px;padding:20px">
+  <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:32px;max-width:640px;width:100%">
+    <h2 style="font-family:'Russo One',sans-serif;font-size:1.5rem;color:#fff;margin-bottom:6px;text-align:center">🎲 Random Team Generated!</h2>
+    <p style="color:#64748b;font-size:.85rem;text-align:center;margin-bottom:20px">Your randomised squad with random items. Host a battle with this team &amp; send the link to a friend.</p>
+    <div id="randomPreview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <button onclick="hostWithRandomTeam()" style="padding:13px 28px;border-radius:13px;border:none;background:linear-gradient(135deg,#ef4444,#f59e0b);color:#fff;font-weight:700;font-size:.95rem;cursor:pointer">🚀 Host with this team</button>
+      <button onclick="createRandomInvite()" style="padding:13px 24px;border-radius:13px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#94a3b8;font-weight:600;font-size:.9rem;cursor:pointer">🔄 Reroll</button>
+      <button onclick="closeRandomModal()" style="padding:13px 24px;border-radius:13px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#475569;font-weight:600;font-size:.9rem;cursor:pointer">✕ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- WAITING SCREEN - extended with invite link copy -->
+
 </body>
 </html>
