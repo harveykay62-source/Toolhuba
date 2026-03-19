@@ -44,8 +44,4 @@ router.get('/types', (req, res) => {
   res.json({ types: TYPES, chart: TYPE_CHART });
 });
 
-router.get('/arena', (req, res) => {
-  res.sendFile('arena.html', { root: './public' });
-});
-
 module.exports = router;

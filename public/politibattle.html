@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PolitiBattle — Political Showdown | ToolHub AI</title>
+<title>PolitiBattle — 3D Political Showdown | ToolHub AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Bebas+Neue&family=Orbitron:wght@700;900&family=Press+Start+2P&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{--r:#ef4444;--b:#3b82f6;--g:#22c55e;--gold:#f59e0b;--bg:#08090f;--card:rgba(255,255,255,.04);--bdr:rgba(255,255,255,.07);--muted:#64748b}
@@ -31,7 +31,7 @@ nav a:hover{background:rgba(255,255,255,.06);color:#fff}
 .h-desc{font-size:.95rem;color:#94a3b8;max-width:540px;margin:0 auto 40px;line-height:1.7}
 .h-acts{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:40px;position:relative;z-index:1}
 .hb{display:flex;flex-direction:column;align-items:center;gap:9px;padding:24px 36px;border-radius:17px;cursor:pointer;transition:all .25s;border:1px solid var(--bdr);min-width:180px;position:relative;overflow:hidden}
-.hb::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;border-radius:17px;pointer-events:none}
+.hb::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;border-radius:17px}
 .hb:hover{transform:translateY(-5px)}.hb:hover::after{opacity:1}
 .hb.a{background:rgba(220,38,38,.08)}.hb.a::after{background:linear-gradient(135deg,rgba(220,38,38,.15),transparent)}.hb.a:hover{border-color:rgba(220,38,38,.4);box-shadow:0 24px 70px rgba(220,38,38,.18)}
 .hb.b{background:rgba(37,99,235,.08)}.hb.b::after{background:linear-gradient(135deg,rgba(37,99,235,.15),transparent)}.hb.b:hover{border-color:rgba(37,99,235,.4);box-shadow:0 24px 70px rgba(37,99,235,.18)}
@@ -341,16 +341,17 @@ footer a:hover{color:#94a3b8}
 <div class="screen active" id="homeScreen">
   <div class="h-icon">🏛️</div>
   <div class="h-title">POLITI<span style="color:#3b82f6">BATTLE</span></div>
-  <div class="h-sub">Political Showdown · Full Mechanics</div>
+  <div class="h-sub">Political Showdown · 3D Battles · Full Mechanics</div>
   <p class="h-desc">50 political figures. 10 types. Full Pokémon-style mechanics — STAB, crits, weather, entry hazards, held items, abilities, PP, switch strategy. <strong style="color:#fbbf24">Trump gets deported mid-battle.</strong></p>
   <div class="h-acts">
     <div class="hb a" onclick="goTeam()"><div class="hbi">⚔️</div><div class="hbl">Build &amp; Battle</div><div class="hbd">Pick your team · Fight the AI</div></div>
     <div class="hb b" onclick="doRandom()"><div class="hbi">🎲</div><div class="hbl">Random Battle</div><div class="hbd">Instant action · Random teams</div></div>
-    <div class="hb" style="background:rgba(34,197,94,.08)" onclick="window.location.href='/politibattle-multi'"><div class="hbi" style="position:relative;z-index:1">🌐</div><div class="hbl" style="position:relative;z-index:1">Online Battle</div><div class="hbd" style="position:relative;z-index:1">Fight real players</div></div>
     <div class="hb c" onclick="goDex()"><div class="hbi">📖</div><div class="hbl">PolitiDex</div><div class="hbd">Browse all 50 politicians</div></div>
     <div class="hb" style="background:rgba(99,102,241,.08)" onclick="openTypeChart()"><div class="hbi" style="position:relative;z-index:1">📊</div><div class="hbl" style="position:relative;z-index:1">Type Chart</div><div class="hbd" style="position:relative;z-index:1">10×10 effectiveness grid</div></div>
+    <div class="hb" style="background:rgba(99,102,241,.08)" onclick="openTypeChart()"><div class="hbi" style="position:relative;z-index:1">📊</div><div class="hbl" style="position:relative;z-index:1">Type Chart</div><div class="hbd" style="position:relative;z-index:1">10×10 effectiveness grid</div></div>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:14px;justify-content:center"><button onclick="openHowToPlay()" style="padding:8px 18px;border-radius:12px;background:var(--card);border:1px solid var(--bdr);color:var(--muted);font-size:.78rem;cursor:pointer;transition:all .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color=''">❓ How to Play</button></div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;justify-content:center"><button onclick="openHowToPlay()" style="padding:8px 18px;border-radius:12px;background:var(--card);border:1px solid var(--bdr);color:var(--muted);font-size:.78rem;cursor:pointer;transition:all .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color=''">❓ How to Play</button></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;justify-content:center"><button onclick="openHowToPlay()" style="padding:7px 18px;border-radius:12px;background:var(--card);border:1px solid var(--bdr);color:var(--muted);font-size:.78rem;cursor:pointer;transition:color .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color=''">❓ How to Play</button></div>
   <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:28px">
     <span class="t t-Republican">Republican</span><span class="t t-Democrat">Democrat</span><span class="t t-Libertarian">Libertarian</span><span class="t t-Green">Green</span><span class="t t-Socialist">Socialist</span><span class="t t-Authoritarian">Authoritarian</span><span class="t t-Centrist">Centrist</span><span class="t t-Populist">Populist</span><span class="t t-Corporate">Corporate</span><span class="t t-Revolutionary">Revolutionary</span>
   </div>
@@ -440,6 +441,7 @@ footer a:hover{color:#94a3b8}
     <div class="bctrl">
       <button class="cc" onclick="togSw()" id="swtog">🔄 Switch</button>
       <button class="cc gd" onclick="showItem()">🎒 Item</button>
+      <button class="cc" onclick="open3DArena()" style="color:#a78bfa;border-color:rgba(124,58,237,.3)">🎮 3D Arena</button>
       <button class="cc dg" onclick="forfeit()">🏳️ Forfeit</button>
       <div class="tnc" id="tnc">Turn 1</div>
     </div>
@@ -1601,16 +1603,16 @@ function showMod(p){
 function launch(pRoster,aRoster){launchBattle(pRoster,aRoster);}
 function launchBattle(pRoster,aRoster){
   REPLAY_LOG=[];
-  const pTeam=pRoster.map(p=>buildFighter(p,true));
-  const aTeam=aRoster.map(p=>buildFighter(p,false));
-  // Save battle state to sessionStorage then open 3D Arena
-  try {
-    sessionStorage.setItem('politiBattleState', JSON.stringify({
-      pTeam, aTeam, pIdx:0, aIdx:0, weather:null, wT:0,
-      turn:1, pHz:[], aHz:[]
-    }));
-  } catch(e) { console.warn('sessionStorage save failed', e); }
-  window.location.href = '/arena';
+  const b={pTeam:pRoster.map(p=>buildFighter(p,true)),aTeam:aRoster.map(p=>buildFighter(p,false)),pIdx:0,aIdx:0,weather:null,wT:0,turn:1,busy:false,pHz:[],aHz:[],over:false,kosDealt:0};
+  // Store battle state for 3D arena page
+  try{sessionStorage.setItem('politiBattleState',JSON.stringify({pTeam:b.pTeam,aTeam:b.aTeam,pIdx:0,aIdx:0,weather:null,wT:0,turn:1,pHz:[],aHz:[]}));}catch(e){}
+  BAT=b;ss('battleScreen');
+  initArena();buildStars();setupEnemyTooltip();
+  entryAbl(b,b.pTeam[0],b.aTeam[0]);entryAbl(b,b.aTeam[0],b.pTeam[0]);
+  render();startTimer();SFX.playFanfare();
+  rlog(`<span class="li">⚔️ BATTLE START: ${b.pTeam[0].n} vs ${b.aTeam[0].n}!</span>`);
+  blog(b,`<span class="li">⚔️ ${b.pTeam[0].n} vs ${b.aTeam[0].n}!</span>`);
+  blog(b,`<span class="ls">🎯 Choose your move!</span>`);
 }
 function entryAbl(b,f,foe){
   if(!f.abl)return;
@@ -1735,6 +1737,7 @@ function renderHz(b){
 function togSw(){const sp=document.getElementById('swp'),mp=document.getElementById('mpanel'),btn=document.getElementById('swtog');if(sp.classList.contains('on')){sp.classList.remove('on');mp.style.display='';btn.textContent='🔄 Switch';}else{sp.classList.add('on');mp.style.display='none';btn.textContent='⚔️ Fight';}}
 function showItem(){if(!BAT)return;const pf=BAT.pTeam[BAT.pIdx];if(!pf.itm){blog(BAT,`<span class="ls">No held item!</span>`);return;}blog(BAT,`<span class="ls">🎒 ${pf.n} holds ${pf.itm}!</span>`);}
 function forfeit(){if(!BAT)return;endBattle(false);}
+function open3DArena(){if(!BAT)return;try{sessionStorage.setItem('politiBattleState',JSON.stringify({pTeam:BAT.pTeam,aTeam:BAT.aTeam,pIdx:BAT.pIdx,aIdx:BAT.aIdx,weather:BAT.weather,wT:BAT.wT,turn:BAT.turn,pHz:BAT.pHz,aHz:BAT.aHz}));}catch(e){}window.location.href='/arena';}
 
 async function playerMove(idx){
   if(!BAT||BAT.busy||BAT.over)return;const b=BAT;const pf=b.pTeam[b.pIdx],ef=b.aTeam[b.aIdx];
@@ -2184,11 +2187,40 @@ function updateFighterVisuals(b){
   };
   pe.style.filter=gf(pf);ee.style.filter=gf(ef);
 }
-
-
+function updateFighterVisuals(b){
+  if(!b)return;
+  const pf=b.pTeam[b.pIdx],ef=b.aTeam[b.aIdx];
+  const pe=document.getElementById('pf3d'),ee=document.getElementById('ef3d');
+  if(!pe||!ee)return;
+  const getFilter=f=>{
+    if(f.status==='freeze')return 'brightness(1.3) saturate(0.2) sepia(0.8) hue-rotate(180deg)';
+    if(f.status==='burn')return 'sepia(0.4) saturate(2.5) hue-rotate(-15deg) brightness(1.1)';
+    if(f.status==='paralysis')return 'sepia(0.5) hue-rotate(35deg) brightness(1.2)';
+    if(f.status==='poison'||f.status==='toxic')return 'hue-rotate(255deg) saturate(1.8)';
+    if(f.confused)return 'hue-rotate(180deg) saturate(1.5)';
+    return 'drop-shadow(0 8px 26px rgba(0,0,0,.7))';
+  };
+  pe.style.filter=getFilter(pf);
+  ee.style.filter=getFilter(ef);
+}
+function updateFighterVisuals(b){
+  if(!b)return;
+  const pf=b.pTeam[b.pIdx],ef=b.aTeam[b.aIdx];
+  const pe=document.getElementById('pf3d'),ee=document.getElementById('ef3d');
+  if(!pe||!ee)return;
+  const gf=f=>{
+    if(!f||f.fainted)return'opacity(0.35)';
+    if(f.status==='freeze')return'brightness(1.3) saturate(0.2) sepia(0.8) hue-rotate(180deg)';
+    if(f.status==='burn')return'sepia(0.4) saturate(2.5) hue-rotate(-15deg) brightness(1.1)';
+    if(f.status==='paralysis')return'sepia(0.5) hue-rotate(35deg) brightness(1.2)';
+    if(f.status==='poison'||f.status==='toxic')return'hue-rotate(255deg) saturate(1.8)';
+    if(f.confused)return'hue-rotate(180deg) saturate(1.5)';
+    return'drop-shadow(0 8px 26px rgba(0,0,0,.7))';
+  };
+  pe.style.filter=gf(pf);ee.style.filter=gf(ef);
+}
 
 // ═══ TYPE CHART MODAL ═══
-
 
 function openHowToPlay(){document.getElementById('howToPlayModal').style.display='flex';}
 function openTypeChart(){

@@ -1,2178 +1,374 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PolitiBattle — 3D Arena | ToolHub AI</title>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&family=Orbitron:wght@700;900&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PolitiBattle Arena — 3D Combat</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════════════════════
-   POLITIBATTLE 3D ARENA — STYLES
-   ═══════════════════════════════════════════════════════════════════ */
-:root {
-  --r: #ef4444; --b: #3b82f6; --g: #22c55e; --gold: #f59e0b;
-  --bg: #08090f; --card: rgba(255,255,255,.04); --bdr: rgba(255,255,255,.07);
-  --muted: #64748b; --font-retro: 'Press Start 2P', monospace;
-  --font-head: 'Russo One', sans-serif; --font-num: 'Orbitron', monospace;
+:root{
+  --rep:#ef4444;--dem:#3b82f6;--soc:#ec4899;--auth:#7c3aed;
+  --grn:#22c55e;--lib:#eab308;--cen:#94a3b8;--pop:#f97316;
+  --corp:#475569;--rev:#dc2626;--gold:#f59e0b;
+  --bg:#050810;--card:rgba(255,255,255,.035);--bdr:rgba(255,255,255,.08);--muted:#64748b;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-body { font-family: 'Inter', sans-serif; color: #e2e8f0; }
-
-/* ── THREE.JS CANVAS ── */
-#arena-canvas { position: fixed; inset: 0; z-index: 0; }
-
-/* ── BACK BUTTON ── */
-#back-btn {
-  position: fixed; top: 14px; left: 14px; z-index: 100;
-  background: rgba(0,0,0,.7); backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,.12); border-radius: 10px;
-  padding: 7px 16px; color: #94a3b8; font-size: .78rem; font-weight: 600;
-  text-decoration: none; transition: all .2s; font-family: inherit;
-}
-#back-btn:hover { color: #fff; background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.25); }
-
-/* ── TURN COUNTER ── */
-#turn-counter {
-  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 100;
-  font-family: var(--font-retro); font-size: .6rem; color: #94a3b8;
-  background: rgba(0,0,0,.65); backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
-  padding: 5px 14px; text-align: center;
-}
-
-/* ── WEATHER BADGE ── */
-#weather-badge {
-  position: fixed; top: 42px; left: 50%; transform: translateX(-50%); z-index: 100;
-  font-family: var(--font-retro); font-size: .5rem; color: #93c5fd;
-  background: rgba(0,0,0,.65); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,.15); border-radius: 16px;
-  padding: 3px 12px; display: none;
-}
-
-/* ── HP BOXES ── */
-.hp-box {
-  position: fixed; z-index: 100;
-  background: rgba(4,4,13,.92); backdrop-filter: blur(14px);
-  border: 1px solid rgba(255,255,255,.1); border-radius: 14px;
-  padding: 12px 14px; min-width: 220px;
-}
-.hp-box.player { bottom: 200px; left: 14px; }
-.hp-box.enemy { top: 14px; right: 14px; }
-.hp-name { font-weight: 800; font-size: .82rem; color: #fff; }
-.hp-lv { font-size: .58rem; color: var(--muted); }
-.hp-types { display: flex; gap: 2px; margin-top: 3px; flex-wrap: wrap; }
-.type-badge {
-  display: inline-block; padding: 1px 6px; border-radius: 12px;
-  font-size: .52rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
-}
-.type-badge.Republican { background: rgba(239,68,68,.18); color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
-.type-badge.Democrat { background: rgba(59,130,246,.18); color: #93c5fd; border: 1px solid rgba(59,130,246,.3); }
-.type-badge.Libertarian { background: rgba(234,179,8,.18); color: #fde047; border: 1px solid rgba(234,179,8,.3); }
-.type-badge.Green { background: rgba(34,197,94,.18); color: #86efac; border: 1px solid rgba(34,197,94,.3); }
-.type-badge.Socialist { background: rgba(236,72,153,.18); color: #f9a8d4; border: 1px solid rgba(236,72,153,.3); }
-.type-badge.Authoritarian { background: rgba(124,58,237,.18); color: #c4b5fd; border: 1px solid rgba(124,58,237,.3); }
-.type-badge.Centrist { background: rgba(148,163,184,.18); color: #cbd5e1; border: 1px solid rgba(148,163,184,.3); }
-.type-badge.Populist { background: rgba(249,115,22,.18); color: #fdba74; border: 1px solid rgba(249,115,22,.3); }
-.type-badge.Corporate { background: rgba(71,85,105,.22); color: #94a3b8; border: 1px solid rgba(71,85,105,.4); }
-.type-badge.Revolutionary { background: rgba(220,38,38,.18); color: #fda4af; border: 1px solid rgba(220,38,38,.35); }
-.hp-bar-track {
-  height: 8px; border-radius: 4px; background: rgba(255,255,255,.1);
-  overflow: hidden; margin-top: 6px;
-}
-.hp-bar-fill {
-  height: 100%; border-radius: 4px;
-  transition: width .5s ease, background .5s;
-  background: linear-gradient(90deg, #22c55e, #4ade80);
-}
-.hp-bar-fill.yellow { background: linear-gradient(90deg, #eab308, #fde047); }
-.hp-bar-fill.red { background: linear-gradient(90deg, #ef4444, #f87171); }
-.hp-text {
-  display: flex; justify-content: space-between;
-  font-size: .58rem; color: var(--muted); margin-top: 2px;
-}
-.status-chips { margin-top: 4px; display: flex; gap: 3px; flex-wrap: wrap; }
-.status-chip {
-  padding: 1px 6px; border-radius: 5px; font-size: .52rem;
-  font-weight: 700; text-transform: uppercase;
-}
-.status-chip.burn { background: rgba(239,68,68,.25); color: #fca5a5; }
-.status-chip.paralysis { background: rgba(234,179,8,.25); color: #fde047; }
-.status-chip.sleep { background: rgba(148,163,184,.25); color: #cbd5e1; }
-.status-chip.poison, .status-chip.toxic { background: rgba(168,85,247,.25); color: #d8b4fe; }
-.status-chip.freeze { background: rgba(147,197,253,.3); color: #bfdbfe; }
-.status-chip.item { background: rgba(245,158,11,.15); color: var(--gold); }
-
-/* ── BATTLE LOG ── */
-#battle-log {
-  position: fixed; bottom: 145px; left: 50%; transform: translateX(-50%);
-  z-index: 100; width: min(600px, 90vw);
-  background: rgba(0,0,0,.75); backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.08); border-radius: 10px;
-  padding: 8px 12px; max-height: 70px; overflow-y: auto;
-  font-family: var(--font-retro); font-size: .5rem; line-height: 2;
-  color: #94a3b8;
-}
-#battle-log p { margin-bottom: 1px; animation: logIn .15s ease-out; }
-@keyframes logIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.li { color: #fff; } .le { color: var(--gold); } .ld { color: #f87171; }
-.lh { color: #4ade80; } .ls { color: #c4b5fd; } .lc { color: #fbbf24; font-weight: bold; }
-
-/* ── MOVE PANEL ── */
-#move-panel {
-  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-  z-index: 100; width: min(620px, 94vw);
-  display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
-}
-.move-btn {
-  background: rgba(8,10,20,.92); backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,.1); border-radius: 11px;
-  padding: 9px 11px; cursor: pointer; transition: all .2s; text-align: left;
-  position: relative; overflow: hidden;
-}
-.move-btn:hover:not(:disabled) {
-  transform: translateY(-2px); border-color: rgba(255,255,255,.25);
-  background: rgba(20,22,40,.95);
-}
-.move-btn:disabled { opacity: .4; cursor: not-allowed; }
-.move-btn .mv-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px; }
-.move-btn .mv-name { font-weight: 700; font-size: .76rem; color: #fff; }
-.move-btn .mv-pp { font-size: .58rem; color: var(--muted); }
-.move-btn .mv-meta { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-bottom: 2px; }
-.mv-cat {
-  font-size: .52rem; padding: 1px 6px; border-radius: 7px;
-  font-weight: 600; text-transform: uppercase;
-}
-.mv-cat.physical { background: rgba(249,115,22,.2); color: #fdba74; border: 1px solid rgba(249,115,22,.3); }
-.mv-cat.special { background: rgba(99,102,241,.2); color: #a5b4fc; border: 1px solid rgba(99,102,241,.3); }
-.mv-cat.status { background: rgba(148,163,184,.2); color: #cbd5e1; border: 1px solid rgba(148,163,184,.3); }
-.mv-stat { font-size: .55rem; color: var(--muted); }
-.pp-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,.1); margin-top: 4px; overflow: hidden; }
-.pp-fill { height: 100%; border-radius: 2px; transition: width .3s; }
-
-/* ── CONTROLS ROW ── */
-#controls-row {
-  position: fixed; bottom: 130px; right: 14px; z-index: 100;
-  display: flex; gap: 6px; align-items: center;
-}
-.ctrl-btn {
-  padding: 5px 12px; border-radius: 9px;
-  border: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.7);
-  color: var(--muted); font-size: .72rem; font-weight: 600;
-  cursor: pointer; transition: all .2s; backdrop-filter: blur(8px);
-  font-family: inherit;
-}
-.ctrl-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
-.ctrl-btn.danger { color: #f87171; border-color: rgba(239,68,68,.3); }
-.ctrl-btn.danger:hover { background: rgba(239,68,68,.1); }
-
-/* ── SWITCH PANEL ── */
-#switch-panel {
-  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-  z-index: 101; width: min(620px, 94vw);
-  display: none; grid-template-columns: repeat(3, 1fr); gap: 7px;
-}
-#switch-panel.open { display: grid; }
-.sw-btn {
-  background: rgba(8,10,20,.92); backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,.1); border-radius: 11px;
-  padding: 8px; cursor: pointer; transition: all .2s; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-}
-.sw-btn:hover:not(:disabled) { border-color: rgba(255,255,255,.2); background: rgba(20,22,40,.95); }
-.sw-btn:disabled { opacity: .4; cursor: not-allowed; }
-.sw-emoji { font-size: 1.6rem; }
-.sw-name { font-size: .66rem; font-weight: 600; color: #fff; }
-.sw-hp-bar { width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); overflow: hidden; }
-.sw-hp-fill { height: 100%; border-radius: 2px; }
-
-/* ── SOUND CONTROLS ── */
-#sound-ctrl {
-  position: fixed; top: 14px; right: 14px; z-index: 200;
-  display: flex; align-items: center; gap: 6px;
-  background: rgba(0,0,0,.6); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,.1); border-radius: 10px;
-  padding: 4px 10px;
-}
-#mute-btn {
-  background: none; border: none; color: #fff;
-  font-size: 1rem; cursor: pointer; padding: 0;
-}
-#vol-slider { width: 55px; accent-color: #22c55e; }
-
-/* ── DAMAGE FLOATERS ── */
-.dmg-float {
-  position: fixed; font-family: var(--font-num); font-size: 1.4rem;
-  font-weight: 900; text-shadow: 0 2px 10px rgba(0,0,0,.9);
-  animation: dmgFly 1.1s ease-out forwards; pointer-events: none; z-index: 150; color: #fff;
-}
-@keyframes dmgFly {
-  0% { opacity: 1; transform: translateY(0) scale(1); }
-  28% { transform: translateY(-28px) scale(1.2); }
-  100% { opacity: 0; transform: translateY(-80px) scale(.7); }
-}
-.dmg-float.crit { color: #fbbf24; font-size: 1.8rem; }
-.dmg-float.heal { color: #4ade80; }
-.dmg-float.miss { color: #94a3b8; font-size: .95rem; }
-.dmg-float.se { color: #ff6b6b; }
-.dmg-float.resist { color: #64748b; }
-
-/* ── CRIT BANNER ── */
-.crit-banner {
-  position: fixed; top: 36%; left: 50%; transform: translate(-50%, -50%);
-  font-family: var(--font-retro); font-size: .82rem;
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 12px #fbbf24);
-  animation: critPop 1s ease-out forwards; z-index: 160; pointer-events: none;
-}
-@keyframes critPop {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
-  25% { opacity: 1; transform: translate(-50%, -55%) scale(1.3); }
-  55% { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -75%) scale(.8); }
-}
-
-/* ── KO TEXT ── */
-.ko-text {
-  position: fixed; font-family: var(--font-retro); font-size: 2.6rem;
-  color: #ef4444; text-shadow: 0 0 40px #ef4444, 0 0 80px #ef4444;
-  animation: koAnim 1.3s ease-out forwards; z-index: 160; pointer-events: none;
-}
-@keyframes koAnim {
-  0% { opacity: 0; transform: scale(.2) rotate(-10deg); }
-  28% { opacity: 1; transform: scale(1.4) rotate(5deg); }
-  55% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.2); }
-}
-
-/* ── VICTORY / DEFEAT OVERLAY ── */
-#end-overlay {
-  position: fixed; inset: 0; z-index: 300; display: none;
-  align-items: center; justify-content: center; flex-direction: column;
-  background: rgba(0,0,0,.85); backdrop-filter: blur(12px);
-}
-#end-overlay.active { display: flex; }
-#end-emoji { font-size: 5rem; animation: endBounce 1s ease-out; margin-bottom: 16px; }
-@keyframes endBounce {
-  0% { transform: scale(0) rotate(-20deg); }
-  60% { transform: scale(1.3) rotate(5deg); }
-  100% { transform: scale(1); }
-}
-#end-title {
-  font-family: var(--font-head); font-size: clamp(2rem, 6vw, 3.8rem);
-  color: var(--gold); margin-bottom: 10px;
-}
-#end-sub { font-size: .95rem; color: var(--muted); margin-bottom: 32px; }
-#end-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-.end-btn {
-  padding: 11px 26px; border-radius: 12px; font-weight: 700;
-  font-size: .88rem; border: none; cursor: pointer; transition: all .2s;
-  font-family: inherit;
-}
-.end-btn.primary { background: linear-gradient(135deg, var(--gold), #d97706); color: #000; }
-.end-btn.primary:hover { transform: scale(1.05); box-shadow: 0 8px 28px rgba(245,158,11,.3); }
-.end-btn.secondary { background: var(--card); border: 1px solid var(--bdr); color: var(--muted); }
-.end-btn.secondary:hover { color: #fff; background: rgba(255,255,255,.08); }
-
-/* ── BATTLE TIMER ── */
-#battle-timer {
-  position: fixed; top: 68px; right: 14px; z-index: 100;
-  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
-}
-.timer-num {
-  font-family: var(--font-num); font-size: .8rem;
-  font-weight: 700; color: #fff;
-}
-.timer-num.urgent { color: #ef4444; animation: tPulse .5s ease-in-out infinite alternate; }
-@keyframes tPulse { 0% { opacity: 1; } 100% { opacity: .5; } }
-.timer-bar-wrap {
-  width: 70px; height: 4px; border-radius: 2px;
-  background: rgba(255,255,255,.1); overflow: hidden;
-}
-.timer-bar-fill {
-  height: 100%; border-radius: 2px;
-  transition: width 1s linear, background .3s;
-  background: linear-gradient(90deg, #22c55e, #4ade80);
-}
-.timer-bar-fill.yellow { background: linear-gradient(90deg, #eab308, #fde047); }
-.timer-bar-fill.red { background: linear-gradient(90deg, #ef4444, #f87171); }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 480px) {
-  #move-panel { grid-template-columns: 1fr; }
-  #switch-panel { grid-template-columns: repeat(2, 1fr); }
-  .hp-box { min-width: 160px; padding: 8px 10px; }
-  .hp-box.player { bottom: 240px; }
-  .hp-name { font-size: .72rem; }
-  #battle-log { bottom: 185px; font-size: .45rem; }
-  #controls-row { bottom: 170px; }
-}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:#e2e8f0;font-family:'Chakra Petch',sans-serif}
+canvas#c3d{position:fixed;inset:0;z-index:0;display:block}
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column}
+#hud>*{pointer-events:auto}
+.topbar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:rgba(5,8,16,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--bdr)}
+.bk{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:9px;background:var(--card);border:1px solid var(--bdr);color:var(--muted);font-size:.72rem;font-weight:700;cursor:pointer;text-decoration:none;font-family:'Chakra Petch',sans-serif;transition:.2s}
+.bk:hover{color:#fff;background:rgba(255,255,255,.08)}
+.wbdg{margin:0 auto;padding:3px 12px;border-radius:16px;font-size:.62rem;font-weight:700;font-family:'Orbitron',sans-serif;display:none;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.5);backdrop-filter:blur(6px)}
+.tnc{font-family:'Orbitron',sans-serif;font-size:.68rem;color:var(--gold);background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);padding:3px 12px;border-radius:9px}
+.hprow{display:flex;gap:10px;padding:6px 14px;justify-content:space-between}
+.hpp{flex:1;max-width:360px;background:rgba(5,8,16,.92);backdrop-filter:blur(18px);border:1px solid var(--bdr);border-radius:14px;padding:9px 13px;position:relative;overflow:hidden}
+.hpp::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.hpp.pl::before{background:linear-gradient(90deg,var(--dem),var(--grn))}
+.hpp.en::before{background:linear-gradient(90deg,var(--rep),var(--auth))}
+.hpn{font-family:'Russo One',sans-serif;font-size:.88rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hpsub{font-size:.56rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hptyps{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+.tp{padding:1px 6px;border-radius:6px;font-size:.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.tp-Republican{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.tp-Democrat{background:rgba(59,130,246,.18);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.tp-Socialist{background:rgba(236,72,153,.18);color:#f9a8d4;border:1px solid rgba(236,72,153,.3)}
+.tp-Authoritarian{background:rgba(124,58,237,.18);color:#c4b5fd;border:1px solid rgba(124,58,237,.3)}
+.tp-Green{background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.3)}
+.tp-Libertarian{background:rgba(234,179,8,.18);color:#fde047;border:1px solid rgba(234,179,8,.3)}
+.tp-Centrist{background:rgba(148,163,184,.18);color:#cbd5e1;border:1px solid rgba(148,163,184,.3)}
+.tp-Populist{background:rgba(249,115,22,.18);color:#fdba74;border:1px solid rgba(249,115,22,.3)}
+.tp-Corporate{background:rgba(71,85,105,.22);color:#94a3b8;border:1px solid rgba(71,85,105,.4)}
+.tp-Revolutionary{background:rgba(220,38,38,.18);color:#fda4af;border:1px solid rgba(220,38,38,.35)}
+.hptrk{height:8px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:5px}
+.hpf{height:100%;border-radius:5px;transition:width .55s cubic-bezier(.4,0,.2,1),background .4s;background:linear-gradient(90deg,#22c55e,#4ade80);position:relative}
+.hpf.y{background:linear-gradient(90deg,#eab308,#fde047)}.hpf.r{background:linear-gradient(90deg,#ef4444,#f87171)}
+.hpf::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent);border-radius:5px 5px 0 0}
+.hptxt{display:flex;justify-content:space-between;font-size:.56rem;color:var(--muted);margin-top:2px}
+.schps{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap}
+.sch{padding:1px 5px;border-radius:5px;font-size:.5rem;font-weight:700;text-transform:uppercase}
+.sch.burn{background:rgba(239,68,68,.25);color:#fca5a5}.sch.paralysis{background:rgba(234,179,8,.25);color:#fde047}
+.sch.sleep{background:rgba(148,163,184,.25);color:#cbd5e1}.sch.poison,.sch.toxic{background:rgba(168,85,247,.25);color:#d8b4fe}
+.sch.freeze{background:rgba(147,197,253,.3);color:#bfdbfe}.sch.confused{background:rgba(249,115,22,.25);color:#fdba74}
+.spacer{flex:1;pointer-events:none}
+.bpanel{background:rgba(5,8,16,.95);backdrop-filter:blur(18px);border-top:1px solid var(--bdr);padding:8px 12px;display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow-y:auto}
+.blog{background:rgba(255,255,255,.02);border:1px solid var(--bdr);border-radius:9px;padding:6px 9px;max-height:72px;overflow-y:auto;font-family:'Press Start 2P',monospace;font-size:.48rem;line-height:2.1;color:#94a3b8;scroll-behavior:smooth}
+.blog p{margin-bottom:0;animation:lin .12s ease-out}
+@keyframes lin{from{opacity:0;transform:translateY(3px)}to{opacity:1}}
+.li{color:#fff}.le{color:var(--gold)}.ld{color:#f87171}.lh{color:#4ade80}.ls{color:#c4b5fd}.lc{color:#fbbf24;font-weight:700}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mb{background:var(--card);border:1px solid var(--bdr);border-radius:11px;padding:7px 9px;cursor:pointer;transition:.2s;text-align:left;position:relative;overflow:hidden}
+.mb:hover:not(:disabled){transform:translateY(-2px);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.06)}
+.mb:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
+.mbt{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.mbn{font-weight:700;font-size:.68rem;color:#fff;font-family:'Russo One',sans-serif}
+.mbpp{font-size:.54rem;color:var(--muted)}
+.mbm{display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+.mc{font-size:.46rem;padding:1px 4px;border-radius:5px;font-weight:700;text-transform:uppercase}
+.mc.physical{background:rgba(249,115,22,.2);color:#fdba74;border:1px solid rgba(249,115,22,.3)}
+.mc.special{background:rgba(99,102,241,.2);color:#a5b4fc;border:1px solid rgba(99,102,241,.3)}
+.mc.status{background:rgba(148,163,184,.2);color:#cbd5e1;border:1px solid rgba(148,163,184,.3)}
+.mpw{font-size:.46rem;color:var(--muted)}
+.ppb{height:3px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:3px;overflow:hidden}
+.ppf{height:100%;border-radius:2px;transition:width .3s}
+.swp{display:none;grid-template-columns:repeat(3,1fr);gap:5px}
+.swp.on{display:grid}
+.swb{background:var(--card);border:1px solid var(--bdr);border-radius:9px;padding:5px;cursor:pointer;transition:.2s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.swb:hover:not(:disabled){border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)}
+.swb:disabled{opacity:.3;cursor:not-allowed}
+.swe{font-size:1.3rem}.swn{font-size:.56rem;font-weight:700;color:#fff}
+.swhp{width:100%;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+.swhpf{height:100%;border-radius:2px;background:#22c55e}
+.ctrls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cc{padding:5px 12px;border-radius:9px;border:1px solid var(--bdr);background:var(--card);color:var(--muted);font-size:.68rem;font-weight:700;cursor:pointer;transition:.2s;font-family:'Chakra Petch',sans-serif}
+.cc:hover{background:rgba(255,255,255,.08);color:#fff}
+.cc.sw{color:var(--gold);border-color:rgba(245,158,11,.3)}
+.cc.sw:hover{background:rgba(245,158,11,.08)}
+.dmgfl{position:fixed;font-family:'Orbitron',monospace;font-weight:900;text-shadow:0 2px 10px rgba(0,0,0,.9);animation:dflt 1.15s ease-out forwards;pointer-events:none;z-index:50;color:#fff}
+@keyframes dflt{0%{opacity:1;transform:translateY(0) scale(1)}28%{transform:translateY(-28px) scale(1.3)}100%{opacity:0;transform:translateY(-80px) scale(.55)}}
+.dmgfl.cr{color:#fbbf24;font-size:1.6rem}.dmgfl.hl{color:#4ade80}.dmgfl.ms{color:#94a3b8;font-size:.8rem}.dmgfl.sp{color:#ff6b6b}.dmgfl.rs{color:#64748b}
+.critb{position:fixed;top:34%;left:50%;transform:translate(-50%,-50%);font-family:'Press Start 2P',monospace;font-size:.8rem;background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 12px #fbbf24);animation:cpop .95s ease-out forwards;z-index:60;pointer-events:none;white-space:nowrap}
+@keyframes cpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}22%{opacity:1;transform:translate(-50%,-55%) scale(1.4)}55%{opacity:1}100%{opacity:0;transform:translate(-50%,-72%) scale(.7)}}
+.koex{position:fixed;top:38%;left:50%;transform:translate(-50%,-50%);font-family:'Press Start 2P',monospace;font-size:2.2rem;color:#ef4444;text-shadow:0 0 35px #ef4444,0 0 70px #ef4444;animation:kox 1.2s ease-out forwards;z-index:60;pointer-events:none}
+@keyframes kox{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(-8deg)}25%{opacity:1;transform:translate(-50%,-55%) scale(1.45) rotate(4deg)}55%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}}
+.vov{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.88);backdrop-filter:blur(14px)}
+.vov.on{display:flex}
+.vbox{text-align:center;animation:vin .55s ease-out}
+@keyframes vin{from{opacity:0;transform:scale(.65)}to{opacity:1;transform:scale(1)}}
+.vi{font-size:5rem;margin-bottom:14px}
+.vt{font-family:'Russo One',sans-serif;font-size:2.4rem;margin-bottom:6px}
+.vs{font-size:.82rem;color:#94a3b8;margin-bottom:22px}
+.vb{padding:12px 30px;border-radius:14px;border:none;cursor:pointer;font-family:'Russo One',sans-serif;font-size:.95rem;color:#fff;background:linear-gradient(135deg,var(--rep),var(--dem));box-shadow:0 8px 30px rgba(220,38,38,.3);transition:.25s}
+.vb:hover{transform:translateY(-3px);box-shadow:0 14px 45px rgba(220,38,38,.5)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
 </style>
 </head>
 <body>
-
-<!-- ═══ BACK BUTTON ═══ -->
-<a href="/politibattle" id="back-btn">← Back to PolitiBattle</a>
-
-<!-- ═══ TURN COUNTER ═══ -->
-<div id="turn-counter">Turn 1</div>
-
-<!-- ═══ WEATHER BADGE ═══ -->
-<div id="weather-badge"></div>
-
-<!-- ═══ SOUND CONTROLS ═══ -->
-<div id="sound-ctrl">
-  <button id="mute-btn" onclick="toggleMute()">🔊</button>
-  <input type="range" id="vol-slider" min="0" max="100" value="70" oninput="setVolume(this.value)">
-</div>
-
-<!-- ═══ BATTLE TIMER ═══ -->
-<div id="battle-timer">
-  <div class="timer-num" id="timer-num">60</div>
-  <div class="timer-bar-wrap"><div class="timer-bar-fill" id="timer-fill" style="width:100%"></div></div>
-</div>
-
-<!-- ═══ ENEMY HP BOX ═══ -->
-<div class="hp-box enemy" id="enemy-hp-box">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div>
-      <div class="hp-name" id="e-name">—</div>
-      <div class="hp-lv" id="e-lv">Lv.50</div>
-    </div>
-    <div class="hp-types" id="e-types"></div>
+<canvas id="c3d"></canvas>
+<div id="hud">
+  <div class="topbar">
+    <a href="/politibattle" class="bk">◀ PolitiBattle</a>
+    <div class="wbdg" id="wbdg"></div>
+    <div class="tnc" id="tnc">Turn 1</div>
   </div>
-  <div class="hp-bar-track"><div class="hp-bar-fill" id="e-hp-fill" style="width:100%"></div></div>
-  <div class="hp-text"><span>HP</span><span id="e-hp-text">—</span></div>
-  <div class="status-chips" id="e-chips"></div>
-</div>
-
-<!-- ═══ PLAYER HP BOX ═══ -->
-<div class="hp-box player" id="player-hp-box">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div>
-      <div class="hp-name" id="p-name">—</div>
-      <div class="hp-lv" id="p-lv">Lv.50</div>
-    </div>
-    <div class="hp-types" id="p-types"></div>
+  <div class="hprow">
+    <div class="hpp pl"><div class="hpn" id="pn">—</div><div class="hpsub" id="ps">Lv.50</div><div class="hptyps" id="pt"></div><div class="hptrk"><div class="hpf" id="phf" style="width:100%"></div></div><div class="hptxt"><span id="pht">—</span><span id="php">100%</span></div><div class="schps" id="psc"></div></div>
+    <div class="hpp en"><div class="hpn" id="en">—</div><div class="hpsub" id="es">Lv.50</div><div class="hptyps" id="et"></div><div class="hptrk"><div class="hpf" id="ehf" style="width:100%"></div></div><div class="hptxt"><span id="eht">—</span><span id="ehp">100%</span></div><div class="schps" id="esc"></div></div>
   </div>
-  <div class="hp-bar-track"><div class="hp-bar-fill" id="p-hp-fill" style="width:100%"></div></div>
-  <div class="hp-text"><span>HP</span><span id="p-hp-text">—</span></div>
-  <div class="status-chips" id="p-chips"></div>
-</div>
-
-<!-- ═══ BATTLE LOG ═══ -->
-<div id="battle-log"><p class="li">Battle begins!</p></div>
-
-<!-- ═══ MOVE PANEL ═══ -->
-<div id="move-panel"></div>
-
-<!-- ═══ SWITCH PANEL ═══ -->
-<div id="switch-panel"></div>
-
-<!-- ═══ CONTROLS ROW ═══ -->
-<div id="controls-row">
-  <button class="ctrl-btn" id="switch-toggle" onclick="toggleSwitch()">🔄 Switch</button>
-  <button class="ctrl-btn" onclick="showItem()">🎒 Item</button>
-  <button class="ctrl-btn danger" onclick="forfeit()">🏳️ Forfeit</button>
-</div>
-
-<!-- ═══ END OVERLAY ═══ -->
-<div id="end-overlay">
-  <div id="end-emoji">🏆</div>
-  <div id="end-title">VICTORY!</div>
-  <div id="end-sub">Your team crushed it!</div>
-  <div id="end-actions">
-    <button class="end-btn primary" onclick="location.href='/politibattle'">⚔️ Play Again</button>
-    <button class="end-btn secondary" onclick="location.href='/politibattle'">🏠 Home</button>
+  <div class="spacer"></div>
+  <div class="bpanel">
+    <div class="blog" id="blog"></div>
+    <div class="mgrid" id="mgrid"></div>
+    <div class="swp" id="swp"></div>
+    <div class="ctrls"><button class="cc sw" onclick="togSw()">🔄 Switch</button></div>
   </div>
 </div>
+<div class="vov" id="vov"><div class="vbox"><div class="vi" id="vi">🏆</div><div class="vt" id="vt">VICTORY!</div><div class="vs" id="vs2">Your team crushed the opposition!</div><button class="vb" onclick="location.href='/politibattle'">Return to Lobby</button></div></div>
 
-<!-- ═══ THREE.JS CANVAS CONTAINER ═══ -->
-<div id="arena-canvas"></div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-'use strict';
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 1: TYPE CHART, MOVES & POLITICIANS DATA
-   ═══════════════════════════════════════════════════════════════════════ */
-
+// ═══ TYPE CHART (exact match) ═══
 const TC={Republican:{Republican:1,Democrat:1.5,Libertarian:.5,Green:1.5,Socialist:2,Authoritarian:.5,Centrist:1,Populist:1,Corporate:.5,Revolutionary:2},Democrat:{Republican:1.5,Democrat:1,Libertarian:.5,Green:1,Socialist:.5,Authoritarian:.5,Centrist:1,Populist:.5,Corporate:2,Revolutionary:1},Libertarian:{Republican:.5,Democrat:1,Libertarian:1,Green:.5,Socialist:1.5,Authoritarian:2,Centrist:1,Populist:1,Corporate:.5,Revolutionary:1.5},Green:{Republican:1,Democrat:.5,Libertarian:1,Green:1,Socialist:.5,Authoritarian:1,Centrist:1.5,Populist:1,Corporate:2,Revolutionary:1},Socialist:{Republican:2,Democrat:.5,Libertarian:1,Green:1,Socialist:1,Authoritarian:.5,Centrist:1,Populist:1.5,Corporate:2,Revolutionary:.5},Authoritarian:{Republican:1,Democrat:1.5,Libertarian:.5,Green:.5,Socialist:.5,Authoritarian:1,Centrist:1,Populist:1.5,Corporate:1,Revolutionary:.5},Centrist:{Republican:1,Democrat:1,Libertarian:1,Green:1,Socialist:1,Authoritarian:1,Centrist:1,Populist:1,Corporate:1,Revolutionary:1},Populist:{Republican:.5,Democrat:1.5,Libertarian:1,Green:1,Socialist:1,Authoritarian:.5,Centrist:2,Populist:1,Corporate:1.5,Revolutionary:1},Corporate:{Republican:.5,Democrat:.5,Libertarian:1,Green:.5,Socialist:.5,Authoritarian:1,Centrist:1,Populist:.5,Corporate:1,Revolutionary:1},Revolutionary:{Republican:1.5,Democrat:1,Libertarian:1,Green:1,Socialist:1,Authoritarian:1.5,Centrist:.5,Populist:.5,Corporate:1.5,Revolutionary:1}};
-TC.Authoritarian.Libertarian=0;TC.Corporate.Revolutionary=0;TC.Centrist.Revolutionary=0;
+TC.Authoritarian.Libertarian=0;TC.Corporate.Revolutionary=0;
+const TPCSS={Republican:'#ef4444',Democrat:'#3b82f6',Socialist:'#ec4899',Authoritarian:'#7c3aed',Green:'#22c55e',Libertarian:'#eab308',Centrist:'#94a3b8',Populist:'#f97316',Corporate:'#475569',Revolutionary:'#dc2626'};
 
-const M={taxCut:{n:'Tax Cut Slash',tp:'Republican',c:'special',pw:80,ac:100,pp:16,d:'Slashes the budget.',ef:null},filibuster:{n:'Filibuster',tp:'Republican',c:'status',pw:0,ac:90,pp:10,d:'Puts foe to sleep.',ef:{status:'sleep'},pri:-1},gunLobby:{n:'Gun Lobby Barrage',tp:'Republican',c:'physical',pw:90,ac:85,pp:10,d:'NRA barrage. May flinch.',ef:{chance:20,flinch:true}},redWave:{n:'Red Wave',tp:'Republican',c:'special',pw:70,ac:100,pp:16,d:'Conservative energy.',ef:null},tearWall:{n:'Tear Down This Wall!',tp:'Republican',c:'physical',pw:100,ac:90,pp:8,d:'Smashes defenses.',ef:{dn:{def:1},tgt:true}},scanStones:{n:'Scandal Stones',tp:'Republican',c:'status',pw:0,ac:100,pp:16,d:'Sets entry hazards.',ef:{hz:'stealthRock'}},cancelC:{n:'Cancel Culture',tp:'Democrat',c:'special',pw:75,ac:95,pp:16,d:'Cancels opponent.',ef:{chance:30,dn:{spa:1},tgt:true}},blueWave:{n:'Blue Wave',tp:'Democrat',c:'special',pw:70,ac:100,pp:16,d:'Progressive tsunami.',ef:null},socialNet:{n:'Social Safety Net',tp:'Democrat',c:'status',pw:0,ac:100,pp:10,d:'Heals 50%.',ef:{heal:.5,self:true}},factCheck:{n:'Fact Check',tp:'Democrat',c:'special',pw:60,ac:100,pp:20,d:'Facts hurt.',ef:{chance:25,dn:{spa:1},tgt:true}},deregulate:{n:'Deregulate',tp:'Libertarian',c:'status',pw:0,ac:100,pp:20,d:'+2 Speed.',ef:{up:{spe:2},self:true}},freeMkt:{n:'Free Market Force',tp:'Libertarian',c:'special',pw:85,ac:90,pp:10,d:'Invisible hand slaps.',ef:null},dontTread:{n:"Don't Tread On Me",tp:'Libertarian',c:'physical',pw:70,ac:100,pp:16,d:'Liberty bites.',ef:null,pri:1},solarBlast:{n:'Solar Blast',tp:'Green',c:'special',pw:90,ac:90,pp:10,d:'Solar power.',ef:null},recycRest:{n:'Recycle & Restore',tp:'Green',c:'status',pw:0,ac:100,pp:16,d:'Heals 33%.',ef:{heal:.33,self:true}},treeShield:{n:'Tree Hugger Shield',tp:'Green',c:'status',pw:0,ac:100,pp:20,d:'+1 Def SpDef.',ef:{up:{def:1,spd:1},self:true}},redist:{n:'Redistribute',tp:'Socialist',c:'special',pw:80,ac:100,pp:16,d:'-1 foe Atk.',ef:{dn:{atk:1},tgt:true}},unionStk:{n:'Union Strike',tp:'Socialist',c:'physical',pw:85,ac:90,pp:10,d:'Workers unite.',ef:null},classWar:{n:'Class Warfare',tp:'Socialist',c:'special',pw:95,ac:80,pp:8,d:'Rally the 99%.',ef:null},execOrder:{n:'Executive Order',tp:'Authoritarian',c:'special',pw:100,ac:85,pp:8,d:'Unchallengeable decree.',ef:null},propaganda:{n:'Propaganda Barrage',tp:'Authoritarian',c:'status',pw:0,ac:90,pp:16,d:'-2 foe SpAtk.',ef:{dn:{spa:2},tgt:true,confuse:20}},ironCurt:{n:'Iron Curtain',tp:'Authoritarian',c:'status',pw:0,ac:100,pp:16,d:'+2 Def SpDef.',ef:{up:{def:2,spd:2},self:true}},secretPol:{n:'Secret Police',tp:'Authoritarian',c:'physical',pw:90,ac:85,pp:10,d:'May paralyze.',ef:{chance:30,status:'paralysis'}},compromise:{n:'Compromise',tp:'Centrist',c:'status',pw:0,ac:100,pp:20,d:'Heals 25%, +1 Def.',ef:{heal:.25,up:{def:1},self:true},pri:-1},bipartisan:{n:'Bipartisan Beam',tp:'Centrist',c:'special',pw:75,ac:100,pp:16,d:'Both sides.',ef:null},modSlap:{n:'Moderate Slap',tp:'Centrist',c:'physical',pw:65,ac:100,pp:20,d:'Measured attack.',ef:null},rallyBase:{n:'Rally the Base',tp:'Populist',c:'status',pw:0,ac:100,pp:16,d:'+1 Atk SpAtk.',ef:{up:{atk:1,spa:1},self:true}},crowdSurge:{n:'Crowd Surge',tp:'Populist',c:'physical',pw:85,ac:90,pp:10,d:'Angry crowd.',ef:null},pitchfork:{n:'Pitchfork Fury',tp:'Populist',c:'physical',pw:70,ac:100,pp:16,d:'May flinch.',ef:{chance:20,flinch:true}},lobbyist:{n:'Lobbyist Strike',tp:'Corporate',c:'special',pw:80,ac:95,pp:16,d:'Money talks.',ef:null},goldPara:{n:'Golden Parachute',tp:'Corporate',c:'status',pw:0,ac:100,pp:10,d:'Heals 40%.',ef:{heal:.4,self:true}},hostile:{n:'Hostile Takeover',tp:'Corporate',c:'special',pw:95,ac:80,pp:8,d:'Ruthless.',ef:{chance:25,dn:{def:1},tgt:true}},uprising:{n:'Uprising',tp:'Revolutionary',c:'physical',pw:90,ac:85,pp:10,d:'Rise up!',ef:null},guillotine:{n:'Political Guillotine',tp:'Revolutionary',c:'physical',pw:110,ac:70,pp:8,d:'Devastating.',ef:null},manifesto:{n:'Manifesto',tp:'Revolutionary',c:'status',pw:0,ac:100,pp:16,d:'+2 SpAtk.',ef:{up:{spa:2},self:true}},obamahameha:{n:'Obamahameha',tp:'Democrat',c:'special',pw:120,ac:90,pp:8,d:'Legendary beam.',ef:null},yesWeCan:{n:'Yes We Can Cannon',tp:'Democrat',c:'special',pw:85,ac:100,pp:10,d:'+1 SpAtk.',ef:{up:{spa:1},self:true}},bidenBlast:{n:'Biden Blast',tp:'Democrat',c:'special',pw:95,ac:85,pp:8,d:'May paralyze.',ef:{chance:25,status:'paralysis',confuse:10}},noMalarkey:{n:'No Malarkey!',tp:'Centrist',c:'physical',pw:80,ac:100,pp:16,d:'Firm haymaker.',ef:null,pri:1},deportTele:{n:'Deportation Teleportation',tp:'Authoritarian',c:'special',pw:100,ac:90,pp:8,d:'Teleports foe OUT.',ef:{chance:40,dn:{spe:1},tgt:true}},artOfDeal:{n:'Art of the Deal',tp:'Corporate',c:'status',pw:0,ac:100,pp:10,d:'+2 Atk.',ef:{up:{atk:2},self:true}},bushLeague:{n:'Bush League Brawl',tp:'Republican',c:'physical',pw:90,ac:90,pp:10,d:'Texas brawl.',ef:null},missionAcc:{n:'Mission Accomplished',tp:'Republican',c:'status',pw:0,ac:100,pp:8,d:'+1 Atk Def Spe.',ef:{up:{atk:1,def:1,spe:1},self:true},pri:-1},friendly:{n:'Friendly Fire',tp:'Republican',c:'physical',pw:120,ac:70,pp:8,d:'25% recoil.',ef:{recoil:.25}},darkEnergy:{n:'Dark Energy Policy',tp:'Corporate',c:'special',pw:90,ac:90,pp:10,d:'Fossil fuel power.',ef:null},bernBurn:{n:'Bern Burn',tp:'Socialist',c:'special',pw:95,ac:90,pp:8,d:'35% burn.',ef:{chance:35,status:'burn'}},wallStrBst:{n:'Wall Street Buster',tp:'Socialist',c:'special',pw:80,ac:100,pp:10,d:'-1 foe SpAtk.',ef:{dn:{spa:1},tgt:true}},emailBlast:{n:'Email Blast',tp:'Democrat',c:'special',pw:85,ac:85,pp:10,d:'Confuse foes.',ef:{chance:30,dn:{spa:1},tgt:true}},deleteEv:{n:'Delete Evidence',tp:'Corporate',c:'status',pw:0,ac:100,pp:10,d:'+2 Speed.',ef:{up:{spe:2},self:true}},putinFist:{n:"Putin's Iron Fist",tp:'Authoritarian',c:'physical',pw:120,ac:85,pp:8,d:'May flinch.',ef:{chance:35,flinch:true}},nerveAgnt:{n:'Nerve Agent',tp:'Authoritarian',c:'status',pw:0,ac:85,pp:10,d:'Toxic attack.',ef:{status:'toxic'}},blitzkrieg:{n:'Blitzkrieg',tp:'Authoritarian',c:'physical',pw:130,ac:75,pp:5,d:'33% recoil.',ef:{recoil:.33}},aocClapbk:{n:'AOC Clapback',tp:'Socialist',c:'special',pw:80,ac:100,pp:16,d:'Twitter clapback.',ef:{chance:25,dn:{spa:1},tgt:true}},greenNewDl:{n:'Green New Deal',tp:'Green',c:'status',pw:0,ac:100,pp:5,d:'+1 all stats!',ef:{up:{atk:1,def:1,spa:1,spd:1,spe:1},self:true}},sarcClap:{n:'Sarcastic Clap',tp:'Democrat',c:'special',pw:75,ac:100,pp:16,d:'40% burn.',ef:{chance:40,status:'burn'}},speechRip:{n:'Speech Ripper',tp:'Democrat',c:'physical',pw:85,ac:95,pp:10,d:'Rips plans.',ef:null},nukOption:{n:'Nuclear Option',tp:'Authoritarian',c:'special',pw:150,ac:60,pp:5,d:'50% recoil.',ef:{recoil:.5}},cancunEsc:{n:'Cancun Escape',tp:'Republican',c:'status',pw:0,ac:100,pp:10,d:'Heals 50% -1 Def.',ef:{heal:.5,dn:{def:1},self:true},pri:1},turtlShell:{n:'Turtle Shell',tp:'Republican',c:'status',pw:0,ac:100,pp:10,d:'+2 Def SpDef.',ef:{up:{def:2,spd:2},self:true}},senBlock:{n:'Senate Block',tp:'Republican',c:'status',pw:0,ac:100,pp:10,d:'Foe -2 Speed.',ef:{dn:{spe:2},tgt:true}},kamLaugh:{n:'Kamala Cackle',tp:'Democrat',c:'special',pw:70,ac:100,pp:16,d:'Lowers foe SpAtk.',ef:{chance:30,dn:{spa:1},tgt:true,confuse:30}},prosSlam:{n:"Prosecutor's Slam",tp:'Democrat',c:'special',pw:90,ac:90,pp:10,d:'Cross-examines foe.',ef:null},shitpost:{n:'Shitpost Storm',tp:'Libertarian',c:'special',pw:75,ac:85,pp:10,d:'Chaotic tweets.',ef:{chance:30,dn:{spa:1},tgt:true}},lincolnAxe:{n:'Lincoln Axe',tp:'Republican',c:'physical',pw:110,ac:90,pp:8,d:'Four score hits.',ef:null},emancipate:{n:'Emancipation',tp:'Revolutionary',c:'special',pw:95,ac:100,pp:8,d:'Shatters chains.',ef:{dn:{def:1,spd:1},tgt:true}},moonShot:{n:'Moon Shot',tp:'Democrat',c:'special',pw:100,ac:95,pp:8,d:'To the moon!',ef:null},longWalk:{n:'Long Walk to Freedom',tp:'Revolutionary',c:'status',pw:0,ac:100,pp:10,d:'+1 Def SpDef Spe.',ef:{up:{def:1,spd:1,spe:1},self:true}},ubuntuStk:{n:'Ubuntu Strike',tp:'Centrist',c:'special',pw:90,ac:95,pp:10,d:'I am because we are.',ef:null},cheRevolt:{n:'Viva la Revolución!',tp:'Revolutionary',c:'special',pw:105,ac:85,pp:8,d:'+1 Atk.',ef:{up:{atk:1},self:true}},guerrilla:{n:'Guerrilla Tactics',tp:'Revolutionary',c:'physical',pw:80,ac:100,pp:10,d:'Jungle strike.',ef:null},merkelSt:{n:'The Merkel Stare',tp:'Centrist',c:'special',pw:70,ac:100,pp:16,d:'-1 Atk SpAtk foe.',ef:{dn:{atk:1,spa:1},tgt:true}},jinpingGrp:{n:'Jinping Iron Grip',tp:'Authoritarian',c:'physical',pw:100,ac:90,pp:8,d:'May paralyze.',ef:{chance:30,status:'paralysis'}},greatFwall:{n:'Great Firewall',tp:'Authoritarian',c:'status',pw:0,ac:100,pp:10,d:'Clears hazards.',ef:{clearHz:true,dn:{spa:1},tgt:true}},kimNuke:{n:'Kim Nuke Launch',tp:'Authoritarian',c:'special',pw:140,ac:60,pp:5,d:'40% recoil.',ef:{recoil:.4}},kimParade:{n:'Military Parade',tp:'Authoritarian',c:'status',pw:0,ac:100,pp:10,d:'+2 Atk.',ef:{up:{atk:2},self:true}},stalPurge:{n:'Stalinist Purge',tp:'Authoritarian',c:'special',pw:110,ac:80,pp:8,d:'May paralyze.',ef:{chance:20,status:'paralysis'}},fdrFire:{n:'New Deal Firepower',tp:'Socialist',c:'special',pw:90,ac:95,pp:10,d:'Economic might.',ef:null},fireside:{n:'Fireside Chat',tp:'Democrat',c:'status',pw:0,ac:100,pp:10,d:'+1 SpAtk SpDef.',ef:{up:{spa:1,spd:1},self:true}},lulaPwr:{n:'Povo Power',tp:'Socialist',c:'special',pw:85,ac:95,pp:10,d:'Power of people.',ef:null},jacShield:{n:'Empathy Shield',tp:'Green',c:'status',pw:0,ac:100,pp:10,d:'Heals 30%, +1 SpDef.',ef:{heal:.3,up:{spd:1},self:true}},popeHeal:{n:'Papal Blessing',tp:'Green',c:'status',pw:0,ac:100,pp:10,d:'Heals 50%, cures status.',ef:{heal:.5,cureStatus:true,self:true}},satyagraha:{n:'Satyagraha',tp:'Green',c:'status',pw:0,ac:100,pp:16,d:'+3 Defense.',ef:{up:{def:3},self:true}},mlkDream:{n:'I Have a Dream',tp:'Revolutionary',c:'special',pw:90,ac:100,pp:8,d:'Shatters prejudice.',ef:{dn:{spd:1},tgt:true}},reaganomx:{n:'Reaganomics',tp:'Corporate',c:'special',pw:85,ac:95,pp:10,d:'Trickle-down.',ef:null},ironLady:{n:'Iron Lady Policy',tp:'Corporate',c:'status',pw:0,ac:100,pp:10,d:'+2 Def.',ef:{up:{def:2},self:true}},policySpk:{n:'Policy Spikes',tp:'Corporate',c:'status',pw:0,ac:100,pp:16,d:'Entry hazard.',ef:{hz:'spikes'}},bezosBlast:{n:'Two-Day Delivery',tp:'Corporate',c:'special',pw:95,ac:95,pp:10,d:'Express pain.',ef:null},algoBeat:{n:'Algorithm Attack',tp:'Corporate',c:'special',pw:85,ac:100,pp:10,d:'Data devastation.',ef:null},sciAttack:{n:'Wissenschaft Attack',tp:'Green',c:'special',pw:85,ac:100,pp:10,d:'SCIENCE attacks.',ef:null},sorrySry:{n:'Sorry Not Sorry',tp:'Democrat',c:'status',pw:0,ac:100,pp:16,d:'Heals+SpAtk.',ef:{heal:.25,up:{spa:1},self:true}},trBoxing:{n:'Trudeau Boxing',tp:'Populist',c:'physical',pw:85,ac:90,pp:10,d:'Surprising hook.',ef:null},borisChg:{n:'Buffoon Barge',tp:'Populist',c:'physical',pw:80,ac:90,pp:10,d:'Chaotic charge.',ef:null},brexitBmb:{n:'Brexit Bomb',tp:'Republican',c:'special',pw:100,ac:75,pp:8,d:'20% recoil.',ef:{recoil:.2}},popeSmite:{n:'Papal Smite',tp:'Centrist',c:'special',pw:80,ac:100,pp:8,d:'Forgives then smites.',ef:null},mandelaFst:{n:'Freedom Fist',tp:'Revolutionary',c:'physical',pw:90,ac:100,pp:10,d:'27 years of anger.',ef:null},veniVidi:{n:'Veni Vidi Vici',tp:'Authoritarian',c:'physical',pw:100,ac:90,pp:8,d:'Came saw conquered.',ef:null},cleoCharm:{n:'Nile Charm',tp:'Corporate',c:'status',pw:0,ac:100,pp:16,d:'-2 foe SpAtk.',ef:{dn:{spa:2},tgt:true}},binderBsh:{n:'Binder Bash',tp:'Republican',c:'physical',pw:75,ac:100,pp:16,d:'Throws binder.',ef:null},posFlip:{n:'Position Flip',tp:'Centrist',c:'status',pw:0,ac:100,pp:10,d:'+1 Spe SpAtk.',ef:{up:{spe:1,spa:1},self:true}},jfkCharm:{n:'JFK Charm',tp:'Centrist',c:'status',pw:0,ac:100,pp:16,d:'-1 foe SpAtk.',ef:{dn:{spa:1},tgt:true}},nixonTrick:{n:'Tricky Dick',tp:'Authoritarian',c:'special',pw:80,ac:95,pp:10,d:'Not a crook.',ef:null},watergate:{n:'Watergate',tp:'Authoritarian',c:'status',pw:0,ac:90,pp:10,d:'-2 foe Def.',ef:{dn:{def:2},tgt:true}},inconvTrth:{n:'Inconvenient Truth',tp:'Green',c:'special',pw:90,ac:100,pp:8,d:'May burn.',ef:{chance:20,status:'burn'}},goreNet:{n:'Gore Internet',tp:'Green',c:'special',pw:70,ac:100,pp:16,d:'Invented internet.',ef:null},reagSmile:{n:'Morning in America',tp:'Republican',c:'special',pw:80,ac:100,pp:10,d:'+1 SpAtk.',ef:{up:{spa:1},self:true}},napDecree:{n:'Emperor Decree',tp:'Authoritarian',c:'special',pw:95,ac:90,pp:8,d:'-1 foe Def.',ef:{dn:{def:1},tgt:true}},maoLeap:{n:'Great Leap Forward',tp:'Revolutionary',c:'status',pw:0,ac:100,pp:8,d:'+2 Atk SpAtk.',ef:{up:{atk:2,spa:2},self:true}},thatcherIron:{n:'Iron Lady Strike',tp:'Republican',c:'physical',pw:90,ac:100,pp:10,d:'Not for turning.',ef:null},warrenPlan:{n:'I Have a Plan',tp:'Democrat',c:'status',pw:0,ac:100,pp:16,d:'+1 SpAtk SpDef.',ef:{up:{spa:1,spd:1},self:true}},randFree:{n:'Liberty Strike',tp:'Libertarian',c:'physical',pw:80,ac:100,pp:10,d:'Freedom strike.',ef:null},erdPurge:{n:'The Purge',tp:'Authoritarian',c:'special',pw:100,ac:80,pp:8,d:'Purges opposition.',ef:{dn:{atk:1,def:1,spa:1},tgt:true}},chavNat:{n:'Nationalize',tp:'Socialist',c:'special',pw:85,ac:90,pp:10,d:'Nationalizes.',ef:{dn:{spa:1},tgt:true}},churchRall:{n:'Blood Toil Tears',tp:'Populist',c:'status',pw:0,ac:100,pp:8,d:'+2 Atk +1 SpDef.',ef:{up:{atk:2,spd:1},self:true}},gandhiFast:{n:'Hunger Strike',tp:'Green',c:'status',pw:0,ac:100,pp:10,d:'+3 SpDef.',ef:{up:{spd:3},self:true}},bureaWeb:{n:'Bureaucracy Web',tp:'Corporate',c:'status',pw:0,ac:100,pp:16,d:'Slows switch-ins.',ef:{hz:'stickyWeb'}}};
+let BAT=null,scene,cam,renderer,clock,skyMat,pSp,eSp,hexP;
+let pBob=0,eBob=Math.PI,camG={x:0,y:3.8,z:13},camL={x:0,y:1.2,z:0},camS=.03,shk=0,introT=0;
 
+function init3D(){
+  const c=document.getElementById('c3d');
+  renderer=new THREE.WebGLRenderer({canvas:c,antialias:true});
+  renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+  scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x070b18,.015);
+  cam=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,250);cam.position.set(0,2.2,3.5);
+  clock=new THREE.Clock();
+  // Sky
+  const sG=new THREE.SphereGeometry(90,32,32);
+  skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{uT:{value:0}},
+    vertexShader:'varying vec3 vP;void main(){vP=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform float uT;varying vec3 vP;void main(){float y=normalize(vP).y;vec3 lo=vec3(.015,.02,.06);vec3 mid=vec3(.04,.03,.12);vec3 hi=vec3(.008,.008,.03);vec3 c=mix(lo,mid,smoothstep(-.1,.3,y));c=mix(c,hi,smoothstep(.3,.9,y));float a=sin(vP.x*.25+uT*.18)*cos(vP.z*.18+uT*.12);a=smoothstep(.3,.8,a)*smoothstep(.15,.5,y)*(1.-smoothstep(.5,.8,y));c+=vec3(.06,.15,.4)*a*.2;c+=vec3(.4,.1,.15)*smoothstep(-.3,-.05,y)*.08;gl_FragColor=vec4(c,1.);}'});
+  scene.add(new THREE.Mesh(sG,skyMat));
+  // Stars
+  const sN=400,stG=new THREE.BufferGeometry(),stP=new Float32Array(sN*3);
+  for(let i=0;i<sN;i++){const t=Math.random()*Math.PI*2,p=Math.acos(Math.random()*.85+.15),r=75;stP[i*3]=r*Math.sin(p)*Math.cos(t);stP[i*3+1]=r*Math.cos(p);stP[i*3+2]=r*Math.sin(p)*Math.sin(t);}
+  stG.setAttribute('position',new THREE.BufferAttribute(stP,3));
+  scene.add(new THREE.Points(stG,new THREE.PointsMaterial({color:0xffffff,size:.12,transparent:true,opacity:.75})));
+  // Hex platform
+  const hS=new THREE.Shape(),hR=6.5;
+  for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6,x=hR*Math.cos(a),z=hR*Math.sin(a);i===0?hS.moveTo(x,z):hS.lineTo(x,z);}hS.closePath();
+  const hG=new THREE.ExtrudeGeometry(hS,{depth:.7,bevelEnabled:true,bevelThickness:.1,bevelSize:.1,bevelSegments:4});hG.rotateX(-Math.PI/2);
+  hexP=new THREE.Mesh(hG,new THREE.MeshStandardMaterial({color:0x080e1e,metalness:.85,roughness:.18,emissive:0x0a1535,emissiveIntensity:.35}));
+  hexP.position.y=-.35;hexP.receiveShadow=true;scene.add(hexP);
+  // Rings
+  [[hR*.94,0x3b82f6,.55],[hR*.55,0xef4444,.3],[hR*.3,0x7c3aed,.2]].forEach(([r,co,op])=>{const rG=new THREE.TorusGeometry(r,.03,8,6);rG.rotateX(Math.PI/2);scene.add(new THREE.Mesh(rG,new THREE.MeshBasicMaterial({color:co,transparent:true,opacity:op})).translateY(.02));});
+  // Grid
+  const gM=new THREE.LineBasicMaterial({color:0x1a3058,transparent:true,opacity:.12});
+  for(let i=-5;i<=5;i++){scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(i,.025,-6),new THREE.Vector3(i,.025,6)]),gM));scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-6,.025,i),new THREE.Vector3(6,.025,i)]),gM));}
+  // Capitol
+  const cG=new THREE.Group();cG.position.set(0,-2.5,-45);
+  const bM=new THREE.MeshBasicMaterial({color:0x0c1828,transparent:true,opacity:.45});
+  cG.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(22,5,2.5),bM),{position:new THREE.Vector3(0,2.5,0)}));
+  cG.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(3.2,20,14,0,Math.PI*2,0,Math.PI/2),new THREE.MeshBasicMaterial({color:0x0f1f38,transparent:true,opacity:.45})),{position:new THREE.Vector3(0,5,0)}));
+  cG.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(.08,.28,4.5,8),new THREE.MeshBasicMaterial({color:0x152a48,transparent:true,opacity:.4})),{position:new THREE.Vector3(0,9.5,0)}));
+  [-13,13].forEach(x=>cG.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(9,4.2,2.2),bM),{position:new THREE.Vector3(x,2.1,0)})));
+  for(let i=-7;i<=7;i+=1.8)cG.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,5.2,8),new THREE.MeshBasicMaterial({color:0x132038,transparent:true,opacity:.3})),{position:new THREE.Vector3(i,2.6,1.4)}));
+  scene.add(cG);
+  // Sprites
+  pSp=mkSp('👤');pSp.position.set(-3.2,1.6,0);scene.add(pSp);
+  eSp=mkSp('👤');eSp.position.set(3.2,1.6,0);scene.add(eSp);
+  // Lights
+  scene.add(new THREE.AmbientLight(0x18244a,.45));
+  const kL=new THREE.DirectionalLight(0xffeedd,1.25);kL.position.set(5,14,9);kL.castShadow=true;kL.shadow.mapSize.set(1024,1024);kL.shadow.camera.near=1;kL.shadow.camera.far=35;kL.shadow.camera.left=-12;kL.shadow.camera.right=12;kL.shadow.camera.top=12;kL.shadow.camera.bottom=-12;scene.add(kL);
+  const fL=new THREE.DirectionalLight(0x4488ff,.5);fL.position.set(-6,9,-5);scene.add(fL);
+  scene.add(Object.assign(new THREE.PointLight(0xef4444,1.8,22),{position:new THREE.Vector3(-7,4.5,-2)}));
+  scene.add(Object.assign(new THREE.PointLight(0x3b82f6,1.8,22),{position:new THREE.Vector3(7,4.5,-2)}));
+  scene.add(Object.assign(new THREE.PointLight(0x3b82f6,.7,12),{position:new THREE.Vector3(0,-1.2,0)}));
+  [[-5,12,7],[5,12,7],[0,14,-5]].forEach(([x,y,z])=>{const sp=new THREE.SpotLight(0xffffff,.7,35,Math.PI/6,.5,1);sp.position.set(x,y,z);sp.target.position.set(0,0,0);scene.add(sp);scene.add(sp.target);});
+  // Dust
+  const dN=100,dG2=new THREE.BufferGeometry(),dP=new Float32Array(dN*3);for(let i=0;i<dN;i++){dP[i*3]=(Math.random()-.5)*24;dP[i*3+1]=Math.random()*10;dP[i*3+2]=(Math.random()-.5)*24;}dG2.setAttribute('position',new THREE.BufferAttribute(dP,3));scene.add(new THREE.Points(dG2,new THREE.PointsMaterial({color:0x5577aa,size:.04,transparent:true,opacity:.35})));
+  addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+}
+function mkSp(em){const cv=document.createElement('canvas');cv.width=256;cv.height=256;const cx=cv.getContext('2d');const g=cx.createRadialGradient(128,128,35,128,128,120);g.addColorStop(0,'rgba(255,255,255,.07)');g.addColorStop(1,'rgba(0,0,0,0)');cx.fillStyle=g;cx.fillRect(0,0,256,256);cx.font='130px serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(em,128,128);const t=new THREE.CanvasTexture(cv);t.needsUpdate=true;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false}));s.scale.set(3.2,3.2,1);s._em=em;s._cv=cv;s._cx=cx;return s;}
+function updSp(sp,em){if(sp._em===em)return;sp._em=em;const cx=sp._cx;cx.clearRect(0,0,256,256);const g=cx.createRadialGradient(128,128,35,128,128,120);g.addColorStop(0,'rgba(255,255,255,.07)');g.addColorStop(1,'rgba(0,0,0,0)');cx.fillStyle=g;cx.fillRect(0,0,256,256);cx.font='130px serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(em,128,128);sp.material.map.needsUpdate=true;}
+function camTo(x,y,z,lx,ly,lz,s=.04){camG={x,y,z};camL={x:lx,y:ly,z:lz};camS=s;}
+function camDef(){camTo(0,3.8,13,0,1.2,0,.03);}
+function camAtk(isP){isP?camTo(-4.5,3.2,8.5,-2.8,1.6,0,.09):camTo(4.5,3.2,8.5,2.8,1.6,0,.09);}
+function camZoom(isP){isP?camTo(-2,2.6,6,-3.2,1.5,0,.11):camTo(2,2.6,6,3.2,1.5,0,.11);}
 
-// Assign move IDs for animation lookup
-;(function(){Object.keys(M).forEach(k=>{if(M[k]&&!M[k].id)M[k].id=k;});})();
-const POLS=[
-  {id:'obama',n:'Barack Obama',e:'🇺🇸',tps:['Democrat'],bs:{hp:95,atk:60,def:70,spa:115,spd:85,spe:95},mvs:[M.obamahameha,M.yesWeCan,M.blueWave,M.socialNet],abl:'Hope and Change',itm:null},
-  {id:'trump',n:'Donald Trump',e:'🍊',tps:['Populist','Republican'],bs:{hp:100,atk:100,def:70,spa:85,spd:60,spe:80},mvs:[M.deportTele,M.artOfDeal,M.redWave,M.rallyBase],abl:'Mar-a-Lago Defense',itm:'MAGA Hat'},
-  {id:'biden',n:'Joe Biden',e:'🕶️',tps:['Democrat','Centrist'],bs:{hp:110,atk:55,def:90,spa:80,spd:90,spe:30},mvs:[M.bidenBlast,M.noMalarkey,M.socialNet,M.compromise],abl:'Dark Brandon',itm:'Aviator Sunglasses'},
-  {id:'hillary',n:'Hillary Clinton',e:'📧',tps:['Democrat','Corporate'],bs:{hp:85,atk:55,def:80,spa:100,spd:95,spe:75},mvs:[M.emailBlast,M.deleteEv,M.cancelC,M.socialNet],abl:'Vast Conspiracy',itm:null},
-  {id:'bernie',n:'Bernie Sanders',e:'✊',tps:['Socialist','Democrat'],bs:{hp:90,atk:55,def:70,spa:110,spd:75,spe:60},mvs:[M.bernBurn,M.wallStrBst,M.redist,M.classWar],abl:'Once Again Asking',itm:'Mittens'},
-  {id:'putin',n:'Vladimir Putin',e:'🐻',tps:['Authoritarian','Republican'],bs:{hp:100,atk:115,def:95,spa:90,spd:85,spe:70},mvs:[M.putinFist,M.nerveAgnt,M.secretPol,M.ironCurt],abl:'KGB Training',itm:null},
-  {id:'aoc',n:'Alexandria Ocasio-Cortez',e:'🌹',tps:['Socialist','Democrat'],bs:{hp:80,atk:60,def:65,spa:110,spd:80,spe:90},mvs:[M.aocClapbk,M.greenNewDl,M.classWar,M.manifesto],abl:'Twitter Finger',itm:null},
-  {id:'musk',n:'Elon Musk',e:'🚀',tps:['Libertarian','Corporate'],bs:{hp:80,atk:70,def:60,spa:115,spd:70,spe:100},mvs:[M.shitpost,M.freeMkt,M.deregulate,M.hostile],abl:'Free Speech Absolutist',itm:null},
-  {id:'lincoln',n:'Abraham Lincoln',e:'🎩',tps:['Republican','Revolutionary'],bs:{hp:95,atk:100,def:90,spa:85,spd:85,spe:60},mvs:[M.lincolnAxe,M.emancipate,M.redWave,M.uprising],abl:'Four Score Crits',itm:null},
-  {id:'pelosi',n:'Nancy Pelosi',e:'👏',tps:['Democrat'],bs:{hp:85,atk:70,def:85,spa:90,spd:95,spe:70},mvs:[M.sarcClap,M.speechRip,M.cancelC,M.policySpk],abl:'Clap Back',itm:null},
-  {id:'mcconnell',n:'Mitch McConnell',e:'🐢',tps:['Republican','Corporate'],bs:{hp:95,atk:50,def:120,spa:60,spd:110,spe:25},mvs:[M.turtlShell,M.senBlock,M.filibuster,M.policySpk],abl:'Turtle Defense',itm:null},
-  {id:'che',n:'Che Guevara',e:'🔴',tps:['Revolutionary','Socialist'],bs:{hp:80,atk:110,def:65,spa:80,spd:60,spe:100},mvs:[M.cheRevolt,M.guerrilla,M.classWar,M.uprising],abl:'T-Shirt Fame',itm:null},
-  {id:'gandhi',n:'Mahatma Gandhi',e:'🕊️',tps:['Green','Revolutionary'],bs:{hp:85,atk:40,def:100,spa:80,spd:120,spe:50},mvs:[M.satyagraha,M.gandhiFast,M.recycRest,M.solarBlast],abl:'Non-Violence',itm:null},
-  {id:'mandela',n:'Nelson Mandela',e:'✊',tps:['Revolutionary','Centrist'],bs:{hp:100,atk:70,def:100,spa:85,spd:100,spe:45},mvs:[M.longWalk,M.mandelaFst,M.ubuntuStk,M.uprising],abl:'Long Walk Endure',itm:null},
-  {id:'jfk',n:'John F. Kennedy',e:'🌙',tps:['Democrat','Centrist'],bs:{hp:80,atk:70,def:70,spa:100,spd:80,spe:100},mvs:[M.moonShot,M.jfkCharm,M.blueWave,M.bipartisan],abl:'Camelot Crits',itm:null},
-  {id:'napoleon',n:'Napoleon Bonaparte',e:'👑',tps:['Authoritarian','Revolutionary'],bs:{hp:85,atk:115,def:80,spa:75,spd:65,spe:90},mvs:[M.napDecree,M.veniVidi,M.execOrder,M.ironCurt],abl:'Emperor Complex',itm:null},
-];
+function animate(){
+  requestAnimationFrame(animate);const dt=clock.getDelta(),t=clock.getElapsedTime();introT+=dt;
+  const iP=Math.min(introT/2.8,1),iE=1-Math.pow(1-iP,3);
+  if(iP<1){cam.position.x=iE*camG.x;cam.position.y=2.2+iE*(camG.y-2.2);cam.position.z=3.5+iE*(camG.z-3.5);}
+  else{cam.position.x+=(camG.x-cam.position.x)*camS;cam.position.y+=(camG.y-cam.position.y)*camS;cam.position.z+=(camG.z-cam.position.z)*camS;}
+  cam.lookAt(cam.position.x*.3+camL.x*.7,camL.y,camL.z);
+  if(shk>.008){cam.position.x+=(Math.random()-.5)*shk;cam.position.y+=(Math.random()-.5)*shk*.4;shk*=.91;}
+  pBob+=dt*2.1;eBob+=dt*2.1;
+  if(pSp)pSp.position.y=1.6+Math.sin(pBob)*.14;if(eSp)eSp.position.y=1.6+Math.sin(eBob)*.14;
+  if(hexP)hexP.rotation.y=Math.sin(t*.08)*.015;if(skyMat)skyMat.uniforms.uT.value=t;
+  scene.children.forEach(c=>{if(c.isPoints&&c.geometry.attributes.position.count===100){const p=c.geometry.attributes.position.array;for(let i=0;i<100;i++){p[i*3+1]+=dt*.12;if(p[i*3+1]>10)p[i*3+1]=0;}c.geometry.attributes.position.needsUpdate=true;}});
+  renderer.render(scene,cam);
+}
 
+// ═══ BATTLE ENGINE ═══
+const dly=ms=>new Promise(r=>setTimeout(r,ms));
+function cHP(b){return Math.floor(((2*b+31+Math.floor(85/4))*50/100)+50+10);}
+function cSt(b){return Math.floor(((2*b+31+Math.floor(85/4))*50/100)+5);}
+function typeEff(mt,dt){let m=1;for(const d of dt){const r=TC[mt];if(r&&r[d]!==undefined)m*=r[d];}return m;}
+function effSt(f,s){const b=f.bs[s],st=Math.max(-6,Math.min(6,f.stg[s])),m=st>=0?(2+st)/2:2/(2+Math.abs(st));let v=Math.max(1,Math.floor(b*m));if(s==='spe'&&f.status==='paralysis')v=Math.floor(v*.5);return v;}
+function buildF(pol,isP){const s=pol.bs||{};const bs={atk:cSt(s.atk||60),def:cSt(s.def||60),spa:cSt(s.spa||60),spd:cSt(s.spd||60),spe:cSt(s.spe||60)};const mhp=cHP(s.hp||60);
+return{id:pol.id||'',n:pol.n||pol.name||'???',e:pol.e||pol.emoji||'👤',ttl:pol.ttl||pol.title||'',tps:[...(pol.tps||pol.types||['Centrist'])],abl:pol.abl||pol.ability||'',abld:pol.abld||'',itm:pol.itm||pol.item||null,isP,mhp,hp:mhp,status:null,txCnt:0,slpT:0,confused:false,confuseTurns:0,stg:{atk:0,def:0,spa:0,spd:0,spe:0},mvs:(pol.mvs||pol.moves||[]).map(m=>({n:m.n||m.name,tp:m.tp||m.type,c:m.c||m.category,pw:m.pw||m.power||0,ac:m.ac||m.accuracy||100,pp:m.pp||10,cpp:m.cpp!==undefined?m.cpp:m.pp||10,d:m.d||m.description||'',ef:m.ef||m.effect||null,pri:m.pri||0})),bs,fainted:false,flinched:false,_silenced:false,_endu:0,_rl:false,_ns:false,_firstMoved:false,lockedMove:null};}
 
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 2: BATTLE ENGINE (ported from politibattle.html)
-   ═══════════════════════════════════════════════════════════════════════ */
+function calcDmg(a,d,mv,w){if(mv.pw<=0)return{dmg:0,isCrit:false,eff:1};let as=mv.c==='physical'?effSt(a,'atk'):effSt(a,'spa'),ds=mv.c==='physical'?effSt(d,'def'):effSt(d,'spd');if(a.status==='burn'&&mv.c==='physical')as=Math.floor(as*.5);const stab=a.tps.includes(mv.tp)?1.5:1,eff=typeEff(mv.tp,d.tps);if(eff===0)return{dmg:0,isCrit:false,eff:0};const isCrit=Math.random()<.0417,cm=isCrit?1.5:1;let wm=1;if(w==='sunny'){if(mv.tp==='Green')wm=1.5;else if(mv.tp==='Democrat'&&mv.c==='special')wm=.5;}if(w==='rain'){if(mv.tp==='Democrat'&&mv.c==='special')wm=1.5;else if(mv.tp==='Republican')wm=.5;}let dm=Math.floor((((100/5+2)*mv.pw*as/ds)/50+2)*stab*eff*cm*wm);return{dmg:Math.max(1,Math.floor(dm*(.85+Math.random()*.15))),isCrit,eff};}
+function rawDmg(f,a){if(a>=f.hp&&f.hp>0){if(f.abl==='Long Walk Endure'&&f._endu<2){f._endu++;f.hp=1;blog('<span class="ls">🛡️ '+f.n+' endures!</span>');return 0;}if(f.abl==='Revolution Lives'&&!f._rl){f._rl=true;f.hp=1;blog('<span class="ls">🛡️ '+f.n+' endures!</span>');return 0;}}const r=Math.min(f.hp,a);f.hp=Math.max(0,f.hp-a);if(f.hp<=0){f.hp=0;f.fainted=true;}return r;}
+function healF(f,a){f.hp=Math.min(f.mhp,f.hp+a);}
+function stUp(f,s,v){const o=f.stg[s];f.stg[s]=Math.max(-6,Math.min(6,f.stg[s]+v));const d=f.stg[s]-o;if(!d)return;const nm={atk:'Atk',def:'Def',spa:'SpA',spd:'SpD',spe:'Spe'};blog(`<span class="ls">${d>0?'⬆️':'⬇️'} ${f.n}'s ${nm[s]} ${d>0?(d>1?'sharply rose':'rose'):(d<-1?'harshly fell':'fell')}!</span>`);}
+function statusChk(f){if(f.flinched){f.flinched=false;blog('<span class="ls">😰 '+f.n+' flinched!</span>');return false;}if(f.confused){f.confuseTurns--;if(f.confuseTurns<=0){f.confused=false;blog('<span class="lh">'+f.n+' snapped out of confusion!</span>');}else if(Math.random()<.33){const d=Math.floor(f.mhp/12);rawDmg(f,d);blog('<span class="ld">😵 '+f.n+' hurt itself! ('+d+')</span>');updHUD();return false;}}if(!f.status)return true;if(f.status==='sleep'){f.slpT--;if(f.slpT<=0){f.status=null;blog('<span class="lh">💤 '+f.n+' woke up!</span>');return true;}blog('<span class="ls">💤 '+f.n+' is asleep!</span>');return false;}if(f.status==='paralysis'&&Math.random()<.25){blog('<span class="ls">⚡ '+f.n+' is paralyzed!</span>');return false;}if(f.status==='freeze'){if(Math.random()<.2){f.status=null;blog('<span class="lh">❄️ '+f.n+' thawed!</span>');return true;}blog('<span class="ls">❄️ '+f.n+' is frozen!</span>');return false;}return true;}
 
-function cHP(b,lv=50){return Math.floor((2*b+31+Math.floor(85/4))*lv/100)+lv+10}
-function cSt(b,lv=50){return Math.floor(((2*b+31+Math.floor(85/4))*lv/100)+5)}
-function typeEff(mtp,dtps){let m=1;for(const dt of dtps){const r=TC[mtp];if(r&&r[dt]!==undefined)m*=r[dt];}return m;}
-function effSt(f,s){
-  const base=f.bs[s];const stg=Math.max(-6,Math.min(6,f.stg[s]));
-  const m=stg>=0?(2+stg)/2:2/(2+Math.abs(stg));
-  let v=Math.max(1,Math.floor(base*m));
-  if(s==='spe'&&f.status==='paralysis')v=Math.floor(v*.5);
-  return v;
-}
-function calcDmg(atk,def,mv,weather){
-  if(mv.pw<=0)return{dmg:0,isCrit:false,eff:1};
-  const lv=50;
-  let as=mv.c==='physical'?effSt(atk,'atk'):effSt(atk,'spa');
-  let ds=mv.c==='physical'?effSt(def,'def'):effSt(def,'spd');
-  if(atk.status==='burn'&&mv.c==='physical')as=Math.floor(as*.5);
-  if(def.abl==='Turtle Defense')ds=Math.floor(ds/.75);
-  const stab=atk.tps.includes(mv.tp)?1.5:1;
-  const eff=typeEff(mv.tp,def.tps);if(eff===0)return{dmg:0,isCrit:false,eff:0};
-  let critR=0.0417;
-  if(atk.abl==='KGB Training')critR+=.5;
-  if(atk.abl==='Camelot Crits')critR*=2;
-  if(atk.abl==='Veni Vidi Vici'&&!atk._firstMoved)critR=1;
-  const isCrit=Math.random()<critR;
-  const critMul=isCrit?(atk.abl==='Four Score Crits'?3:1.5):1;
-  let wm=1;
-  if(weather==='sunny'){if(mv.tp==='Green')wm=1.5;else if(mv.tp==='Democrat'&&mv.c==='special')wm=.5;}
-  if(weather==='rain'){if(mv.tp==='Democrat'&&mv.c==='special')wm=1.5;else if(mv.tp==='Republican')wm=.5;}
-  let ib=1;
-  if(atk.abl==='Twitter Finger'&&mv.c==='special')ib*=1.1;
-  if(atk.abl==='One Death Is a Tragedy'&&mv.c==='physical')ib*=1.2;
-  let dmg=Math.floor((((2*lv/5+2)*mv.pw*as/ds)/50+2)*stab*eff*critMul*wm*ib);
-  dmg=Math.max(1,Math.floor(dmg*(.85+Math.random()*.15)));
-  return{dmg,isCrit,eff};
-}
-function buildFighter(pol,isP){
-  const s=pol.bs;const mhp=cHP(s.hp);
-  const bs={atk:cSt(s.atk),def:cSt(s.def),spa:cSt(s.spa),spd:cSt(s.spd),spe:cSt(s.spe)};
-  return{id:pol.id,n:pol.n,e:pol.e,tps:[...pol.tps],abl:pol.abl,itm:pol.itm,
-    isP,mhp,hp:mhp,status:null,txCnt:0,slpT:0,stg:{atk:0,def:0,spa:0,spd:0,spe:0},
-    mvs:pol.mvs.map(m=>({...m,cpp:m.pp})),bs,fainted:false,_endu:0,_firstMoved:false,_rl:false,
-    confused:false,confuseTurns:0,flinched:false,lockedMove:null};
-}
-function rawDmg(f,amt,b){
-  if(amt>=f.hp&&f.hp>0){
-    if(f.abl==='Long Walk Endure'&&f._endu<2){f._endu++;f.hp=1;blog(`<span class="ls">🛡️ ${f.n} endures at 1 HP!</span>`);return 0;}
-  }
-  const prev=f.hp;f.hp=Math.max(0,f.hp-amt);if(f.hp===0)f.fainted=true;return prev-f.hp;
-}
-function healF(f,amt){f.hp=Math.min(f.mhp,f.hp+amt);f.fainted=false;}
-function stUp(f,s,n){
-  const prev=f.stg[s];f.stg[s]=Math.max(-6,Math.min(6,f.stg[s]+n));
-  if(f.stg[s]!==prev){
-    const nm={atk:'Attack',def:'Defense',spa:'Sp.Atk',spd:'Sp.Def',spe:'Speed'}[s]||s;
-    blog(`<span class="ls">📊 ${f.n}'s ${nm} ${n>0?(Math.abs(n)>=2?'sharply ':'')+'rose':(Math.abs(n)>=2?'sharply ':'')+'fell'}!</span>`);
-  }
-}
-async function statusCheck(f){
-  if(f.flinched){f.flinched=false;blog(`<span class="ls">😨 ${f.n} flinched!</span>`);await delay(500);return false;}
-  if(f.status==='freeze'){if(Math.random()<.2){f.status=null;blog(`<span class="ls">🔥 ${f.n} thawed!</span>`);}else{blog(`<span class="ls">🧊 ${f.n} is frozen!</span>`);await delay(600);return false;}}
-  if(f.status==='sleep'){f.slpT--;if(f.slpT<=0){f.status=null;blog(`<span class="ls">😴 ${f.n} woke up!</span>`);}else{blog(`<span class="ls">💤 ${f.n} is asleep!</span>`);await delay(600);return false;}}
-  if(f.status==='paralysis'&&Math.random()<.25){blog(`<span class="ls">⚡ ${f.n} is paralyzed!</span>`);await delay(600);return false;}
-  if(f.confused){
-    f.confuseTurns--;
-    if(f.confuseTurns<=0){f.confused=false;blog(`<span class="ls">😵 ${f.n} snapped out!</span>`);}
-    else{blog(`<span class="ls">😵 ${f.n} is confused!</span>`);
-      if(Math.random()<.33){const sd=Math.max(1,Math.floor((40*(f.bs.atk/Math.max(1,f.bs.def)))/4));rawDmg(f,sd);blog(`<span class="ld">💥 Hurt itself! (${sd})</span>`);await delay(600);return false;}
-    }
-  }
-  return true;
-}
-async function applyEf(atk,def,m){
-  const e=m.ef;if(!e)return;
-  if(e.heal&&e.self){const amt=Math.floor(atk.mhp*e.heal);healF(atk,amt);blog(`<span class="lh">💊 ${atk.n} restored ${amt} HP!</span>`);}
-  if(e.up&&e.self)Object.entries(e.up).forEach(([s,v])=>stUp(atk,s,v));
-  if(e.dn&&e.tgt)Object.entries(e.dn).forEach(([s,v])=>stUp(def,s,-v));
-  const chance=e.chance||100;
-  if(e.status&&!def.status&&Math.random()*100<chance){
-    def.status=e.status;if(e.status==='sleep')def.slpT=1+Math.floor(Math.random()*3);
-    if(e.status==='toxic')def.txCnt=0;
-    blog(`<span class="ls">🔴 ${def.n} is now ${e.status.toUpperCase()}!</span>`);
-  }
-  if(e.confuse&&!def.confused&&Math.random()*100<e.confuse){
-    def.confused=true;def.confuseTurns=2+Math.floor(Math.random()*4);
-    blog(`<span class="ls">😵 ${def.n} became confused!</span>`);
-  }
-  if(e.hz){const arr=atk.isP?BAT.aHz:BAT.pHz;if(!arr.includes(e.hz)){arr.push(e.hz);blog(`<span class="ls">🗺️ Hazard set!</span>`);}}
-  if(e.weather){BAT.weather=e.weather;BAT.wT=5;blog(`<span class="ls">${{sunny:'☀️ Sun!',rain:'🌧️ Rain!',sandstorm:'🌪️ Sandstorm!',hail:'❄️ Hail!'}[e.weather]}</span>`);updateWeatherBadge();}
-  if(e.clearHz){const arr=atk.isP?BAT.pHz:BAT.aHz;arr.length=0;blog(`<span class="ls">🧹 Hazards cleared!</span>`);}
-  if(e.cureStatus&&e.self){atk.status=null;blog(`<span class="lh">✨ ${atk.n} cured!</span>`);}
-  if(e.flinch&&Math.random()*100<(e.chance||100))def.flinched=true;
-  if(e.recoil){const rd=Math.floor(atk.mhp*e.recoil);rawDmg(atk,rd);blog(`<span class="ld">💢 ${atk.n} took ${rd} recoil!</span>`);}
-}
-function hazDmg(f,hz){hz.forEach(h=>{
-  if(h==='stealthRock'){const d=Math.floor(f.mhp/8);rawDmg(f,d);blog(`<span class="ld">⛰️ Scandal Stones! (${d})</span>`);}
-  if(h==='spikes'){const d=Math.floor(f.mhp/10);rawDmg(f,d);blog(`<span class="ld">🗡️ Spikes! (${d})</span>`);}
-  if(h==='stickyWeb')stUp(f,'spe',-1);
-});}
-function eotFx(f){
-  if(!f||f.fainted)return;
-  if(f.status==='burn'){const d=Math.floor(f.mhp/16);rawDmg(f,d);blog(`<span class="ld">🔥 Burn! (${d})</span>`);}
-  if(f.status==='poison'){const d=Math.floor(f.mhp/8);rawDmg(f,d);blog(`<span class="ld">☠️ Poison! (${d})</span>`);}
-  if(f.status==='toxic'){f.txCnt++;const d=Math.floor(f.mhp/16*f.txCnt);rawDmg(f,d);blog(`<span class="ld">💀 Toxic! (${d})</span>`);}
-  if(f.abl==='New Deal HP'){healF(f,Math.floor(f.mhp/8));}
-  if(f.abl==="Sorry Not Sorry"){healF(f,Math.floor(f.mhp*.1));}
-}
-function entryAbl(f,foe){
-  if(!f.abl)return;
-  if(f.abl==='Hope and Change')stUp(f,'spa',1);
-  else if(f.abl==='Social Credit'&&foe)stUp(foe,'atk',-1);
-  else if(f.abl==='Great Leap'){stUp(f,'atk',1);stUp(f,'spa',1);}
-  else if(f.abl==='Flip-Flopper')stUp(f,'spa',1);
-  else if(f.abl==='Morning in America'){BAT.weather='sunny';BAT.wT=5;blog('<span class="ls">☀️ Morning in America!</span>');updateWeatherBadge();}
-}
+function blog(m){const l=document.getElementById('blog'),p=document.createElement('p');p.innerHTML=m;l.appendChild(p);l.scrollTop=l.scrollHeight;}
+function spDmg(t,c,l){const e=document.createElement('div');e.className='dmgfl '+c;e.textContent=t;e.style.fontSize=c==='cr'?'1.5rem':'1.15rem';e.style.left=l?'22%':'72%';e.style.top='33%';document.body.appendChild(e);setTimeout(()=>e.remove(),1250);}
+function spCrit(){const e=document.createElement('div');e.className='critb';e.textContent='★ CRITICAL HIT! ★';document.body.appendChild(e);setTimeout(()=>e.remove(),1050);}
+function spKO(){const e=document.createElement('div');e.className='koex';e.textContent='K.O.!';document.body.appendChild(e);setTimeout(()=>e.remove(),1350);}
+
+async function applyEf(a,d,m,isP){const e=m.ef;if(!e)return;
+if(e.heal&&e.self){const am=Math.floor(a.mhp*e.heal);healF(a,am);blog('<span class="lh">💊 '+a.n+' restored '+am+' HP!</span>');spDmg('+'+am,'hl',isP);}
+if(e.up&&e.self)Object.entries(e.up).forEach(([s,v])=>stUp(a,s,v));
+if(e.dn&&e.tgt)Object.entries(e.dn).forEach(([s,v])=>stUp(d,s,-v));
+if(e.dn&&e.self&&!e.tgt)Object.entries(e.dn).forEach(([s,v])=>stUp(a,s,-v));
+if(e.statBoost){if(e.self)Object.entries(e.statBoost).forEach(([s,v])=>stUp(a,s,v));else{const ch=e.chance||100;if(Math.random()*100<ch)Object.entries(e.statBoost).forEach(([s,v])=>stUp(d,s,v));}}
+if(e.chance&&e.dn&&!e.self&&!e.tgt&&Math.random()*100<e.chance)Object.entries(e.dn).forEach(([s,v])=>stUp(d,s,-v));
+const ch=e.chance||100;
+if(e.status&&!d.status&&Math.random()*100<ch){d.status=e.status;if(e.status==='sleep')d.slpT=1+Math.floor(Math.random()*3);if(e.status==='toxic')d.txCnt=0;blog('<span class="ls">🔴 '+d.n+' is now '+d.status.toUpperCase()+'!</span>');}
+if(e.confuse&&!d.confused&&Math.random()*100<(typeof e.confuse==='number'?e.confuse:100)){d.confused=true;d.confuseTurns=2+Math.floor(Math.random()*4);blog('<span class="ls">😵 '+d.n+' became confused!</span>');}
+if(e.hz){const arr=isP?BAT.aHz:BAT.pHz;if(!arr.includes(e.hz)){arr.push(e.hz);blog('<span class="ls">🗺️ '+(e.hz==='stealthRock'?'Scandal Stones':'Spikes')+' set!</span>');}}
+if(e.weather){BAT.weather=e.weather;BAT.wT=5;const wn={sunny:'☀️ Sun!',rain:'🌧️ Rain!',sandstorm:'🌪️ Sandstorm!',hail:'❄️ Hail!'};blog('<span class="ls">'+wn[e.weather]+'</span>');updW();}
+if(e.clearHz){(isP?BAT.pHz:BAT.aHz).length=0;blog('<span class="ls">🧹 Hazards cleared!</span>');}
+if(e.cureStatus&&e.self){a.status=null;a.confused=false;blog('<span class="lh">✨ '+a.n+' cured!</span>');}
+if(e.selfConfuse){a.confused=true;a.confuseTurns=3;}
+if(e.costHp&&e.self){rawDmg(a,Math.floor(a.mhp*e.costHp));}
+if(e.silence&&e.tgt)d._silenced=true;
+updHUD();}
+
+function hazDmg(f,hz){hz.forEach(h=>{if(h==='stealthRock'){const d=Math.floor(f.mhp/8);rawDmg(f,d);blog('<span class="ld">⛰️ Stones hit '+f.n+'! ('+d+')</span>');}if(h==='spikes'){const d=Math.floor(f.mhp/10);rawDmg(f,d);blog('<span class="ld">🗡️ Spikes hit '+f.n+'! ('+d+')</span>');}if(h==='stickyWeb')stUp(f,'spe',-1);});}
+
+async function animLunge(sp,isP){const ox=sp.position.x,tx=isP?ox+2.2:ox-2.2,st=performance.now();await new Promise(res=>{(function s(n){const p=Math.min((n-st)/220,1);sp.position.x=ox+(tx-ox)*Math.sin(p*Math.PI);sp.scale.set(3.2+Math.sin(p*Math.PI)*.35,3.2+Math.sin(p*Math.PI)*.35,1);p<1?requestAnimationFrame(s):(sp.position.x=ox,sp.scale.set(3.2,3.2,1),res());})(performance.now());});}
+async function animHit(sp){sp.scale.set(2.8,3.6,1);await dly(80);sp.scale.set(3.2,3.2,1);const ox=sp.position.x;sp.position.x=ox+.15;await dly(30);sp.position.x=ox-.15;await dly(30);sp.position.x=ox;}
+
 async function execMove(atk,def,idx,isP){
-  const m={...atk.mvs[idx]};atk.mvs[idx].cpp=Math.max(0,atk.mvs[idx].cpp-1);
-  blog(`<span class="li">⚡ ${atk.n} used <strong>${m.n}</strong>!</span>`);
-  if(Math.random()*100>m.ac){blog(`<span class="ls">😮 But it missed!</span>`);await delay(400);return;}
-  // Run 3D attack animation
-  await animateAttack(isP,m);
-  if(m.c==='status'){await delay(300);await applyEf(atk,def,m);updateAllHP();return;}
-  await delay(150);
+  if(atk._silenced){const m=atk.mvs[idx];if(m&&m.c!=='status'){const si=atk.mvs.findIndex(m2=>m2.cpp>0&&m2.c==='status');if(si>=0)idx=si;else{blog('<span class="ls">🤐 '+atk.n+' silenced!</span>');atk._silenced=false;return;}}atk._silenced=false;}
+  if(atk.lockedMove!==null&&atk.mvs[atk.lockedMove]?.cpp>0)idx=atk.lockedMove;
+  const m=atk.mvs[idx];if(!m)return;m.cpp=Math.max(0,m.cpp-1);
+  blog('<span class="li">⚡ '+atk.n+' used <strong>'+m.n+'</strong>!</span>');
+  camAtk(isP);await dly(350);
+  if(Math.random()*100>m.ac){blog('<span class="ls">😮 Missed!</span>');spDmg('Miss!','ms',!isP);await dly(400);camDef();return;}
+  await animLunge(isP?pSp:eSp,isP);
+  if(m.c==='status'){await dly(200);await applyEf(atk,def,m,isP);await dly(250);camDef();return;}
   const{dmg,isCrit,eff}=calcDmg(atk,def,m,BAT.weather);
-  if(eff===0){blog(`<span class="ls">🛡️ No effect!</span>`);await delay(400);return;}
-  if(isCrit)blog(`<span class="lc">💥 Critical hit!</span>`);
-  if(eff>1)blog(`<span class="le">🔥 Super effective! (${eff}x)</span>`);
-  else if(eff<1)blog(`<span class="ls">🛡️ Not very effective...</span>`);
-  // Defender recoil in 3D
-  shakeDefender(!isP);
-  if(isCrit){spawnCritBanner();triggerCameraShake();}
-  const realDmg=rawDmg(def,dmg);
-  blog(`<span class="ld">Dealt ${realDmg} dmg (${Math.round(realDmg/def.mhp*100)}%)</span>`);
-  spawnDmgFloat(dmg,isCrit?'crit':eff>1?'se':eff<1?'resist':'',!isP);
-  await delay(300);
-  await applyEf(atk,def,m);
-  if(def.abl==='Clap Back'&&m.c==='physical'){const cd=Math.floor(dmg*.3);rawDmg(atk,cd);blog(`<span class="ld">👏 Clap Back! ${cd}!</span>`);}
-  if(atk.abl==='Once Again Asking'){healF(atk,Math.floor(realDmg*.1));}
-  atk._firstMoved=true;
-  updateAllHP();
-  if(def.fainted){
-    blog(`<span class="ld">💀 ${def.n} KO'd!</span>`);
-    await animateKO(!isP);
-    await delay(800);
-    handleKO(def,atk,isP);
-    return;
-  }
-}
-function handleKO(def,atk,isP){
-  BAT.kosDealt=(BAT.kosDealt||0)+(isP?1:0);
-  if(!isP){
-    const nx=BAT.aTeam.findIndex((f,i)=>i>BAT.aIdx&&!f.fainted);
-    if(nx>=0){BAT.aIdx=nx;blog(`<span class="ls">🔄 ${BAT.aTeam[nx].n} enters!</span>`);hazDmg(BAT.aTeam[nx],BAT.aHz);entryAbl(BAT.aTeam[nx],BAT.pTeam[BAT.pIdx]);switchIn3D(false);updateAll();}
-    else endBattle(true);
-  } else {
-    const nx=BAT.pTeam.findIndex((f,i)=>i>BAT.pIdx&&!f.fainted);
-    if(nx>=0){BAT.pIdx=nx;blog(`<span class="ls">🔄 Go, ${BAT.pTeam[nx].n}!</span>`);hazDmg(BAT.pTeam[nx],BAT.pHz);entryAbl(BAT.pTeam[nx],BAT.aTeam[BAT.aIdx]);switchIn3D(true);updateAll();}
-    else endBattle(false);
-  }
-}
-async function aiTurn(){
-  const ef=BAT.aTeam[BAT.aIdx],pf=BAT.pTeam[BAT.pIdx];
-  if(ef.fainted){endTurn();return;}
-  if(!await statusCheck(ef)){endTurn();return;}
-  const avail=ef.mvs.map((m,i)=>({m,i})).filter(x=>x.m.cpp>0);
-  if(!avail.length){endTurn();return;}
-  let best=-Infinity,bestIdx=0;
-  avail.forEach(({m,i})=>{
-    let sc=0;
-    if(m.pw>0){const eff=typeEff(m.tp,pf.tps);if(eff===0)return;sc=m.pw*eff;if(ef.tps.includes(m.tp))sc*=1.5;sc*=(m.c==='physical'?ef.bs.atk/Math.max(1,pf.bs.def):ef.bs.spa/Math.max(1,pf.bs.spd));}
-    else{sc=30;if(m.ef?.up)sc+=35;if(m.ef?.status&&!pf.status)sc+=28;if(m.ef?.heal&&ef.hp<ef.mhp*.45)sc+=45;}
-    if(sc>best){best=sc;bestIdx=i;}
-  });
-  await execMove(ef,pf,bestIdx,false);
-  updateAllHP();
-}
-function endTurn(){
-  if(BAT.over)return;BAT.turn++;
-  document.getElementById('turn-counter').textContent=`Turn ${BAT.turn}`;
-  if(BAT.weather){BAT.wT--;if(BAT.wT<=0){blog('<span class="ls">🌤️ Weather cleared!</span>');BAT.weather=null;updateWeatherBadge();}}
-  eotFx(BAT.pTeam[BAT.pIdx]);eotFx(BAT.aTeam[BAT.aIdx]);
-  const pf=BAT.pTeam[BAT.pIdx],ef=BAT.aTeam[BAT.aIdx];
-  if(pf.fainted){const nx=BAT.pTeam.findIndex((f,i)=>i>BAT.pIdx&&!f.fainted);if(nx>=0){BAT.pIdx=nx;switchIn3D(true);updateAll();}else{endBattle(false);return;}}
-  if(ef.fainted){const nx=BAT.aTeam.findIndex((f,i)=>i>BAT.aIdx&&!f.fainted);if(nx>=0){BAT.aIdx=nx;switchIn3D(false);updateAll();}else{endBattle(true);return;}}
-  updateAll();BAT.busy=false;resetTimer();
-}
-function endBattle(won){
-  stopTimer();BAT.over=true;
-  const ov=document.getElementById('end-overlay');
-  document.getElementById('end-emoji').textContent=won?'🏆':'💀';
-  document.getElementById('end-title').textContent=won?'VICTORY!':'DEFEATED!';
-  document.getElementById('end-sub').textContent=won?'Your team crushed the opposition!':'The opposition won.';
-  if(won)triggerVictoryAnimation();
-  setTimeout(()=>ov.classList.add('active'),1200);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 3: GLOBAL BATTLE STATE & INIT
-   ═══════════════════════════════════════════════════════════════════════ */
-
-let BAT = null;
-let TIMER_INT = null, TIMER_SECS = 60;
-let switchOpen = false;
-let muted = false;
-
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function normalizeFighter(f) {
-  // Ensure all fields arena's battle engine expects are present
-  if (f.confused === undefined) f.confused = false;
-  if (f.confuseTurns === undefined) f.confuseTurns = 0;
-  if (f.flinched === undefined) f.flinched = false;
-  if (f.lockedMove === undefined) f.lockedMove = null;
-  if (f._endu === undefined) f._endu = 0;
-  if (f._firstMoved === undefined) f._firstMoved = false;
-  if (f._rl === undefined) f._rl = false;
-  if (f.stg === undefined) f.stg = {atk:0,def:0,spa:0,spd:0,spe:0};
-  if (!f.bs) f.bs = {atk:100,def:100,spa:100,spd:100,spe:100};
-  // Ensure each move has cpp (current pp)
-  if (f.mvs) f.mvs.forEach(m => { if (m.cpp === undefined) m.cpp = m.pp || 16; });
-  return f;
-}
-
-function initBattle() {
-  // Try loading from sessionStorage
-  let state = null;
-  try { state = JSON.parse(sessionStorage.getItem('politiBattleState')); } catch(e) {}
-  // Clear so a refresh starts a fresh random battle
-  try { sessionStorage.removeItem('politiBattleState'); } catch(e) {}
-
-  if (state && state.pTeam && state.pTeam.length > 0) {
-    BAT = {
-      pTeam: state.pTeam.map(normalizeFighter),
-      aTeam: state.aTeam.map(normalizeFighter),
-      pIdx: state.pIdx || 0, aIdx: state.aIdx || 0,
-      weather: state.weather || null, wT: state.wT || 0,
-      turn: state.turn || 1, pHz: state.pHz || [], aHz: state.aHz || [],
-      busy: false, over: false, kosDealt: 0
-    };
-  } else {
-    // Generate random demo battle
-    const shuffled = [...POLS].sort(() => Math.random() - .5);
-    const pRoster = shuffled.slice(0, 3).map(p => buildFighter(p, true));
-    const aRoster = shuffled.slice(3, 6).map(p => buildFighter(p, false));
-    BAT = {
-      pTeam: pRoster, aTeam: aRoster,
-      pIdx: 0, aIdx: 0, weather: null, wT: 0,
-      turn: 1, pHz: [], aHz: [], busy: false, over: false, kosDealt: 0
-    };
-  }
-
-  entryAbl(BAT.pTeam[0], BAT.aTeam[0]);
-  entryAbl(BAT.aTeam[0], BAT.pTeam[0]);
-  blog(`<span class="li">⚔️ ${BAT.pTeam[0].n} vs ${BAT.aTeam[0].n}!</span>`);
-  updateAll();
-  startTimer();
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 4: HUD / UI FUNCTIONS
-   ═══════════════════════════════════════════════════════════════════════ */
-
-function blog(msg) {
-  const lg = document.getElementById('battle-log');
-  const p = document.createElement('p'); p.innerHTML = msg;
-  lg.appendChild(p); lg.scrollTop = lg.scrollHeight;
-  // Keep max 8 messages
-  while (lg.children.length > 8) lg.removeChild(lg.firstChild);
-}
-
-function updateAllHP() {
-  const pf = BAT.pTeam[BAT.pIdx], ef = BAT.aTeam[BAT.aIdx];
-  updateHP('p', pf); updateHP('e', ef);
-}
-
-function updateHP(prefix, f) {
-  const fill = document.getElementById(`${prefix}-hp-fill`);
-  const text = document.getElementById(`${prefix}-hp-text`);
-  const chips = document.getElementById(`${prefix}-chips`);
-  if (!fill) return;
-  const pct = Math.max(0, (f.hp / f.mhp) * 100);
-  fill.style.width = pct + '%';
-  fill.className = 'hp-bar-fill' + (pct < 25 ? ' red' : pct < 50 ? ' yellow' : '');
-  text.textContent = `${f.hp}/${f.mhp}`;
-  let ch = '';
-  if (f.status) ch += `<span class="status-chip ${f.status}">${f.status.toUpperCase()}</span>`;
-  if (f.confused) ch += `<span class="status-chip" style="background:rgba(234,179,8,.25);color:#fde047">CONFUSED</span>`;
-  if (f.itm) ch += `<span class="status-chip item">🎒${f.itm}</span>`;
-  chips.innerHTML = ch;
-}
-
-function updateAll() {
-  if (!BAT) return;
-  const pf = BAT.pTeam[BAT.pIdx], ef = BAT.aTeam[BAT.aIdx];
-  document.getElementById('p-name').textContent = pf.n;
-  document.getElementById('e-name').textContent = ef.n;
-  document.getElementById('p-lv').textContent = `Lv.50 | ${pf.abl || ''}`;
-  document.getElementById('e-lv').textContent = `Lv.50 | ${ef.abl || ''}`;
-  document.getElementById('p-types').innerHTML = pf.tps.map(t => `<span class="type-badge ${t}">${t.charAt(0)}</span>`).join('');
-  document.getElementById('e-types').innerHTML = ef.tps.map(t => `<span class="type-badge ${t}">${t.charAt(0)}</span>`).join('');
-  updateAllHP();
-  renderMoves(pf);
-  renderSwitch();
-  updateWeatherBadge();
-  document.getElementById('turn-counter').textContent = `Turn ${BAT.turn}`;
-  // Update 3D fighter meshes
-  updateFighterMeshes();
-}
-
-function renderMoves(f) {
-  const panel = document.getElementById('move-panel');
-  panel.innerHTML = '';
-  f.mvs.forEach((m, i) => {
-    const noPP = m.cpp <= 0;
-    const btn = document.createElement('button');
-    btn.className = 'move-btn';
-    btn.disabled = noPP || BAT.busy || BAT.over;
-    const pct = Math.round((m.cpp / m.pp) * 100);
-    const ppCol = pct > 50 ? '#22c55e' : pct > 20 ? '#eab308' : '#ef4444';
-    // Tint background by type
-    const tints = {Republican:'rgba(239,68,68,.08)',Democrat:'rgba(59,130,246,.08)',Libertarian:'rgba(234,179,8,.08)',Green:'rgba(34,197,94,.08)',Socialist:'rgba(236,72,153,.08)',Authoritarian:'rgba(124,58,237,.08)',Centrist:'rgba(148,163,184,.06)',Populist:'rgba(249,115,22,.08)',Corporate:'rgba(71,85,105,.08)',Revolutionary:'rgba(220,38,38,.08)'};
-    btn.style.background = tints[m.tp] || 'rgba(8,10,20,.92)';
-    btn.innerHTML = `
-      <div class="mv-top">
-        <span class="mv-name">${m.n}</span>
-        <span class="mv-pp" style="color:${noPP?'#ef4444':''}">PP ${m.cpp}/${m.pp}</span>
-      </div>
-      <div class="mv-meta">
-        <span class="type-badge ${m.tp}">${m.tp}</span>
-        <span class="mv-cat ${m.c}">${m.c}</span>
-        ${m.pw > 0 ? `<span class="mv-stat">PWR ${m.pw}</span>` : ''}
-        <span class="mv-stat">ACC ${m.ac}%</span>
-      </div>
-      <div class="pp-bar"><div class="pp-fill" style="width:${pct}%;background:${ppCol}"></div></div>`;
-    if (!noPP) btn.onclick = () => playerMove(i);
-    panel.appendChild(btn);
-  });
-}
-
-function renderSwitch() {
-  const panel = document.getElementById('switch-panel');
-  panel.innerHTML = '';
-  BAT.pTeam.forEach((f, i) => {
-    if (i === BAT.pIdx) return;
-    const btn = document.createElement('button');
-    btn.className = 'sw-btn'; btn.disabled = f.fainted;
-    const pct = Math.max(0, f.hp / f.mhp * 100);
-    const col = pct > 50 ? '#22c55e' : pct > 25 ? '#eab308' : '#ef4444';
-    btn.innerHTML = `
-      <div class="sw-emoji">${f.e}</div>
-      <div class="sw-name" style="color:${f.fainted?'#ef4444':'#fff'}">${f.n}</div>
-      <div class="sw-hp-bar"><div class="sw-hp-fill" style="width:${pct}%;background:${col}"></div></div>`;
-    btn.onclick = () => playerSwitch(i);
-    panel.appendChild(btn);
-  });
-}
-
-function toggleSwitch() {
-  switchOpen = !switchOpen;
-  const sp = document.getElementById('switch-panel');
-  const mp = document.getElementById('move-panel');
-  const btn = document.getElementById('switch-toggle');
-  if (switchOpen) { sp.classList.add('open'); mp.style.display = 'none'; btn.textContent = '⚔️ Fight'; }
-  else { sp.classList.remove('open'); mp.style.display = ''; btn.textContent = '🔄 Switch'; }
-}
-
-function showItem() {
-  if (!BAT) return;
-  const pf = BAT.pTeam[BAT.pIdx];
-  blog(pf.itm ? `<span class="ls">🎒 ${pf.n} holds ${pf.itm}</span>` : `<span class="ls">No held item!</span>`);
-}
-
-function forfeit() { if (BAT && !BAT.over) endBattle(false); }
-
-function updateWeatherBadge() {
-  const badge = document.getElementById('weather-badge');
-  if (!BAT || !BAT.weather) { badge.style.display = 'none'; return; }
-  const names = {sunny:'☀️ Harsh Sun', rain:'🌧️ Heavy Rain', sandstorm:'🌪️ Sandstorm', hail:'❄️ Hailstorm'};
-  badge.textContent = names[BAT.weather] || BAT.weather;
-  badge.style.display = '';
-  updatePlatformGlow();
-}
-
-/* ── Timer ── */
-function startTimer() {
-  stopTimer(); TIMER_SECS = 60; updateTimerUI();
-  TIMER_INT = setInterval(() => {
-    if (!BAT || BAT.busy || BAT.over) return;
-    TIMER_SECS--; updateTimerUI();
-    if (TIMER_SECS <= 0) { stopTimer(); autoMove(); }
-  }, 1000);
-}
-function stopTimer() { if (TIMER_INT) { clearInterval(TIMER_INT); TIMER_INT = null; } }
-function resetTimer() { stopTimer(); startTimer(); }
-function updateTimerUI() {
-  const num = document.getElementById('timer-num');
-  const bar = document.getElementById('timer-fill');
-  num.textContent = TIMER_SECS;
-  const pct = (TIMER_SECS / 60) * 100;
-  bar.style.width = pct + '%';
-  num.className = 'timer-num' + (TIMER_SECS <= 10 ? ' urgent' : '');
-  bar.className = 'timer-bar-fill' + (TIMER_SECS <= 10 ? ' red' : TIMER_SECS <= 25 ? ' yellow' : '');
-}
-function autoMove() {
-  if (!BAT || BAT.busy || BAT.over) return;
-  const pf = BAT.pTeam[BAT.pIdx];
-  const avail = pf.mvs.map((m, i) => ({m, i})).filter(x => x.m.cpp > 0);
-  if (avail.length) playerMove(avail[Math.floor(Math.random() * avail.length)].i);
-}
-
-/* ── Player Actions ── */
-async function playerMove(idx) {
-  if (!BAT || BAT.busy || BAT.over) return;
-  BAT.busy = true; stopTimer();
-  if (switchOpen) toggleSwitch();
-  const pf = BAT.pTeam[BAT.pIdx], ef = BAT.aTeam[BAT.aIdx];
-  if (pf.fainted) return;
-  if (!await statusCheck(pf)) { await delay(500); await doAiTurn(); return; }
-  await execMove(pf, ef, idx, true);
-  updateAllHP();
-  if (!BAT.over && !ef.fainted) { await delay(600); await doAiTurn(); }
-  else if (!BAT.over) endTurn();
-}
-async function playerSwitch(tIdx) {
-  if (!BAT || BAT.busy || BAT.over) return;
-  BAT.busy = true; if (switchOpen) toggleSwitch();
-  const old = BAT.pTeam[BAT.pIdx];
-  old.confused = false; old.flinched = false; old.lockedMove = null;
-  BAT.pIdx = tIdx;
-  const nf = BAT.pTeam[tIdx];
-  blog(`<span class="li">🔄 Go, ${nf.n}!</span>`);
-  hazDmg(nf, BAT.pHz); entryAbl(nf, BAT.aTeam[BAT.aIdx]);
-  switchIn3D(true);
-  updateAll();
-  await delay(600); await doAiTurn();
-}
-async function doAiTurn() {
-  if (BAT.over) return;
-  await delay(500);
-  await aiTurn();
-  updateAllHP();
-  if (!BAT.over) endTurn();
-}
-
-/* ── Sound ── */
-function toggleMute() {
-  muted = !muted;
-  document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
-}
-function setVolume(v) { /* placeholder for audio */ }
-
-/* ── Keyboard ── */
-document.addEventListener('keydown', e => {
-  if (!BAT || BAT.busy || BAT.over) return;
-  if (['1','2','3','4'].includes(e.key)) { playerMove(parseInt(e.key) - 1); return; }
-  if (e.key.toLowerCase() === 's') toggleSwitch();
-});
-
-/* ── Damage floaters ── */
-function spawnDmgFloat(val, cls, onEnemy) {
-  const d = document.createElement('div');
-  d.className = `dmg-float ${cls}`;
-  d.style.left = (onEnemy ? 70 : 25) + Math.random() * 5 + '%';
-  d.style.top = (25 + Math.random() * 15) + '%';
-  d.textContent = cls === 'miss' ? 'MISS!' : val;
-  document.body.appendChild(d);
-  setTimeout(() => d.remove(), 1200);
-}
-function spawnCritBanner() {
-  const d = document.createElement('div');
-  d.className = 'crit-banner';
-  d.textContent = 'CRITICAL HIT!';
-  document.body.appendChild(d);
-  setTimeout(() => d.remove(), 1100);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 5: THREE.JS 3D SCENE
-   ═══════════════════════════════════════════════════════════════════════ */
-
-let scene, camera, renderer, clock;
-let playerGroup, enemyGroup, playerFace, enemyFace;
-let platformMesh, glowRing, starPoints;
-let cameraState = { phase: 'intro', startTime: 0, shaking: false, shakeEnd: 0 };
-let playerBaseY = 0.5, enemyBaseY = 0.5;
-let capitolPlane;
-let particleSystems = [];
-
-function getTypeColor(type) {
-  const colors = {
-    Republican: 0xef4444, Democrat: 0x3b82f6, Libertarian: 0xeab308,
-    Green: 0x22c55e, Socialist: 0xec4899, Authoritarian: 0x7c3aed,
-    Centrist: 0x94a3b8, Populist: 0xf97316, Corporate: 0x475569,
-    Revolutionary: 0xdc2626
-  };
-  return colors[type] || 0x6366f1;
-}
-
-function init3D() {
-  const container = document.getElementById('arena-canvas');
-  scene = new THREE.Scene();
-  clock = new THREE.Clock();
-
-  // ── Camera ──
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-  camera.position.set(0, 2, 3); // Start close
-  cameraState.phase = 'intro';
-  cameraState.startTime = clock.getElapsedTime();
-
-  // ── Renderer ──
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
-  container.appendChild(renderer.domElement);
-
-  // ── Lighting ──
-  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-  scene.add(ambient);
-
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  dirLight.position.set(5, 10, 5);
-  dirLight.castShadow = true;
-  dirLight.shadow.mapSize.width = 1024;
-  dirLight.shadow.mapSize.height = 1024;
-  dirLight.shadow.camera.near = 0.5;
-  dirLight.shadow.camera.far = 30;
-  dirLight.shadow.camera.left = -8;
-  dirLight.shadow.camera.right = 8;
-  dirLight.shadow.camera.top = 8;
-  dirLight.shadow.camera.bottom = -8;
-  scene.add(dirLight);
-
-  const redPoint = new THREE.PointLight(0xef4444, 0.8, 15);
-  redPoint.position.set(-4, 2, 2);
-  scene.add(redPoint);
-
-  const bluePoint = new THREE.PointLight(0x3b82f6, 0.8, 15);
-  bluePoint.position.set(4, 2, 2);
-  scene.add(bluePoint);
-
-  const hemi = new THREE.HemisphereLight(0x1a1a3e, 0x0a0a15, 0.6);
-  scene.add(hemi);
-
-  // ── Skybox (inverted sphere with vertex colours) ──
-  const skyGeo = new THREE.SphereGeometry(80, 32, 32);
-  const skyColors = [];
-  const positions = skyGeo.attributes.position;
-  for (let i = 0; i < positions.count; i++) {
-    const y = positions.getY(i);
-    const t = (y + 80) / 160; // 0 bottom, 1 top
-    const r = 0.024 + t * 0.02;
-    const g = 0.051 + t * 0.035;
-    const b = 0.1 + t * 0.06;
-    skyColors.push(r, g, b);
-  }
-  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(skyColors, 3));
-  const skyMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
-  const sky = new THREE.Mesh(skyGeo, skyMat);
-  scene.add(sky);
-
-  // ── Stars ──
-  const starGeo = new THREE.BufferGeometry();
-  const starPositions = [];
-  const starOpacities = [];
-  for (let i = 0; i < 200; i++) {
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.random() * Math.PI * 0.6; // top half mostly
-    const r = 60 + Math.random() * 15;
-    starPositions.push(
-      r * Math.sin(phi) * Math.cos(theta),
-      r * Math.cos(phi),
-      r * Math.sin(phi) * Math.sin(theta)
-    );
-    starOpacities.push(Math.random());
-  }
-  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
-  starGeo.setAttribute('opacity', new THREE.Float32BufferAttribute(starOpacities, 1));
-  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.3, transparent: true, opacity: 0.8, sizeAttenuation: true });
-  starPoints = new THREE.Points(starGeo, starMat);
-  scene.add(starPoints);
-
-  // ── Platform (hexagonal) ──
-  const platGeo = new THREE.CylinderGeometry(4, 4, 0.3, 6);
-  const platMat = new THREE.MeshStandardMaterial({
-    color: 0x1e2035, roughness: 0.6, metalness: 0.3
-  });
-  platformMesh = new THREE.Mesh(platGeo, platMat);
-  platformMesh.receiveShadow = true;
-  platformMesh.position.y = -1.05;
-  scene.add(platformMesh);
-
-  // ── Glow ring ──
-  const ringGeo = new THREE.TorusGeometry(4.1, 0.05, 8, 48);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.6 });
-  glowRing = new THREE.Mesh(ringGeo, ringMat);
-  glowRing.rotation.x = Math.PI / 2;
-  glowRing.position.y = -0.88;
-  scene.add(glowRing);
-
-  // ── Grid lines on platform ──
-  createHexGrid();
-
-  // ── Capitol silhouette ──
-  createCapitolSilhouette();
-
-  // ── Create fighters ──
-  if (BAT) {
-    playerGroup = createFighterMesh(BAT.pTeam[BAT.pIdx], true);
-    enemyGroup = createFighterMesh(BAT.aTeam[BAT.aIdx], false);
-    scene.add(playerGroup);
-    scene.add(enemyGroup);
-  }
-
-  // ── Window resize ──
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  animate();
-}
-
-function createHexGrid() {
-  const gridMat = new THREE.LineBasicMaterial({ color: 0x2244aa, transparent: true, opacity: 0.15 });
-  const points = [];
-  // Simple hex pattern
-  for (let x = -3.5; x <= 3.5; x += 0.8) {
-    for (let z = -3.5; z <= 3.5; z += 0.8) {
-      if (Math.sqrt(x*x + z*z) > 3.8) continue;
-      const offset = (Math.round(z / 0.8) % 2) * 0.4;
-      const cx = x + offset;
-      const s = 0.35;
-      for (let a = 0; a < 6; a++) {
-        const a1 = (Math.PI / 3) * a;
-        const a2 = (Math.PI / 3) * (a + 1);
-        points.push(new THREE.Vector3(cx + s * Math.cos(a1), -0.89, z + s * Math.sin(a1)));
-        points.push(new THREE.Vector3(cx + s * Math.cos(a2), -0.89, z + s * Math.sin(a2)));
-      }
-    }
-  }
-  const gridGeo = new THREE.BufferGeometry().setFromPoints(points);
-  const grid = new THREE.LineSegments(gridGeo, gridMat);
-  scene.add(grid);
-}
-
-function createCapitolSilhouette() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512; canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, 512, 256);
-  ctx.fillStyle = 'rgba(255,255,255,1)';
-  // Simple Capitol outline
-  ctx.fillRect(100, 180, 312, 50);   // base
-  ctx.fillRect(130, 130, 252, 70);   // middle
-  ctx.fillRect(175, 75, 162, 75);    // upper
-  // Dome
-  ctx.beginPath();
-  ctx.ellipse(256, 75, 55, 40, 0, Math.PI, 0);
-  ctx.fill();
-  // Spire
-  ctx.fillRect(252, 20, 8, 35);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.12, side: THREE.DoubleSide });
-  const plane = new THREE.PlaneGeometry(20, 10);
-  capitolPlane = new THREE.Mesh(plane, mat);
-  capitolPlane.position.set(0, 3, -30);
-  scene.add(capitolPlane);
-}
-
-function createFighterMesh(fighter, isPlayer) {
-  const group = new THREE.Group();
-
-  // Main sphere body
-  const geo = new THREE.SphereGeometry(0.9, 32, 32);
-  const typeCol = getTypeColor(fighter.tps[0]);
-  const mat = new THREE.MeshStandardMaterial({
-    color: typeCol, roughness: 0.3, metalness: 0.4,
-    emissive: typeCol, emissiveIntensity: 0.15
-  });
-  const sphere = new THREE.Mesh(geo, mat);
-  sphere.castShadow = true;
-  group.add(sphere);
-
-  // Emoji face on canvas texture
-  const fCanvas = document.createElement('canvas');
-  fCanvas.width = 256; fCanvas.height = 256;
-  const fCtx = fCanvas.getContext('2d');
-  fCtx.clearRect(0, 0, 256, 256);
-  fCtx.font = '140px serif';
-  fCtx.textAlign = 'center';
-  fCtx.textBaseline = 'middle';
-  fCtx.fillText(fighter.e, 128, 128);
-  const fTex = new THREE.CanvasTexture(fCanvas);
-  const faceMat = new THREE.MeshBasicMaterial({ map: fTex, transparent: true });
-  const facePlane = new THREE.PlaneGeometry(1.4, 1.4);
-  const face = new THREE.Mesh(facePlane, faceMat);
-  face.position.z = 0.91;
-  face.userData.isFace = true;
-  group.add(face);
-
-  // Shadow disc
-  const shadowGeo = new THREE.CircleGeometry(0.7, 32);
-  const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4 });
-  const shadow = new THREE.Mesh(shadowGeo, shadowMat);
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = -1.05;
-  group.add(shadow);
-
-  // Position
-  group.position.set(isPlayer ? -3 : 3, 0.5, isPlayer ? 1 : -0.5);
-  if (!isPlayer) group.scale.setScalar(0.82);
-
-  // Store references
-  if (isPlayer) { playerFace = face; }
-  else { enemyFace = face; }
-
-  return group;
-}
-
-function updateFighterMeshes() {
-  if (!BAT || !scene) return;
-  const pf = BAT.pTeam[BAT.pIdx], ef = BAT.aTeam[BAT.aIdx];
-
-  // Remove old groups and recreate
-  if (playerGroup) scene.remove(playerGroup);
-  if (enemyGroup) scene.remove(enemyGroup);
-
-  playerGroup = createFighterMesh(pf, true);
-  enemyGroup = createFighterMesh(ef, false);
-  scene.add(playerGroup);
-  scene.add(enemyGroup);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 6: ANIMATION LOOP
-   ═══════════════════════════════════════════════════════════════════════ */
-
-function animate() {
-  requestAnimationFrame(animate);
-  const time = clock.getElapsedTime();
-  const dt = clock.getDelta();
-
-  // ── Camera movements ──
-  if (cameraState.phase === 'intro') {
-    const elapsed = time - cameraState.startTime;
-    const t = Math.min(elapsed / 2.0, 1.0);
-    camera.position.z = 3 + t * 5; // 3 -> 8
-    camera.position.y = 2 + t * 0.5;
-    if (t >= 1.0) cameraState.phase = 'idle';
-  }
-  else if (cameraState.phase === 'idle') {
-    // Gentle bob
-    camera.position.y = 2.5 + Math.sin(time * 0.8) * 0.05;
-    // Smooth camera X recovery
-    camera.position.x += (0 - camera.position.x) * 0.03;
-    camera.position.z += (8 - camera.position.z) * 0.03;
-  }
-  else if (cameraState.phase === 'playerAttack') {
-    camera.position.x += (-1 - camera.position.x) * 0.08;
-    if (Math.abs(camera.position.x + 1) < 0.05) cameraState.phase = 'idle';
-  }
-  else if (cameraState.phase === 'enemyAttack') {
-    camera.position.x += (1 - camera.position.x) * 0.08;
-    if (Math.abs(camera.position.x - 1) < 0.05) cameraState.phase = 'idle';
-  }
-  else if (cameraState.phase === 'ko') {
-    camera.position.z += (6 - camera.position.z) * 0.05;
-    if (time - cameraState.startTime > 1.5) cameraState.phase = 'idle';
-  }
-
-  // Camera shake
-  if (cameraState.shaking && time < cameraState.shakeEnd) {
-    camera.position.x += (Math.random() - 0.5) * 0.3;
-    camera.position.y += (Math.random() - 0.5) * 0.15;
-  }
-
-  camera.lookAt(0, 0.5, 0);
-
-  // ── Fighter idle bob ──
-  if (playerGroup) {
-    playerGroup.position.y = playerBaseY + Math.sin(time * 2) * 0.08;
-  }
-  if (enemyGroup) {
-    enemyGroup.position.y = enemyBaseY + Math.sin(time * 2 + 1.5) * 0.08;
-  }
-
-  // ── Face billboarding ──
-  if (playerFace) playerFace.quaternion.copy(camera.quaternion);
-  if (enemyFace) enemyFace.quaternion.copy(camera.quaternion);
-
-  // ── Star twinkling ──
-  if (starPoints) {
-    const opArr = starPoints.geometry.attributes.opacity;
-    if (opArr) {
-      for (let i = 0; i < opArr.count; i++) {
-        opArr.array[i] = 0.3 + Math.sin(time * 1.5 + i * 0.7) * 0.5;
-      }
-      opArr.needsUpdate = true;
-    }
-    starPoints.material.opacity = 0.7 + Math.sin(time * 0.3) * 0.15;
-  }
-
-  // ── Glow ring pulse ──
-  if (glowRing) {
-    glowRing.material.opacity = 0.4 + Math.sin(time * 2) * 0.15;
-  }
-
-  // ── Particle systems update ──
-  updateParticles(time);
-
-  renderer.render(scene, camera);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 7: ATTACK & KO ANIMATIONS
-   ═══════════════════════════════════════════════════════════════════════ */
-
-async function animateAttack(isPlayer, move) {
-  const attacker = isPlayer ? playerGroup : enemyGroup;
-  const defender = isPlayer ? enemyGroup : playerGroup;
-  if (!attacker || !defender) return;
-
-  // Camera shift
-  cameraState.phase = isPlayer ? 'playerAttack' : 'enemyAttack';
-
-  // Flash glow ring to move type
-  const moveColor = getTypeColor(move.tp);
-  if (glowRing) {
-    glowRing.material.color.setHex(moveColor);
-    setTimeout(() => glowRing.material.color.setHex(0x3b82f6), 600);
-  }
-
-  // Lunge attacker toward defender
-  const origX = attacker.position.x;
-  const dir = isPlayer ? 1.5 : -1.5;
-  const steps = 10;
-
-  // Forward lunge (200ms)
-  for (let i = 0; i < steps; i++) {
-    attacker.position.x = origX + dir * (i / steps);
-    await delay(20);
-  }
-  // Back (200ms)
-  for (let i = steps; i >= 0; i--) {
-    attacker.position.x = origX + dir * (i / steps);
-    await delay(20);
-  }
-  attacker.position.x = origX;
-
-  // Dispatch to per-move signature animation
-  const moveId = move ? (move.id || Object.keys(M).find(k => M[k] === move) || '') : '';
-  await playMoveAnimation(moveId, attacker, defender, move);
-}
-
-function shakeDefender(isEnemy) {
-  const mesh = isEnemy ? enemyGroup : playerGroup;
-  if (!mesh) return;
-  const orig = mesh.position.clone();
-  let shakes = 0;
-  const int = setInterval(() => {
-    if (shakes >= 8) { clearInterval(int); mesh.position.copy(orig); return; }
-    mesh.position.x = orig.x + (Math.random() - 0.5) * 0.3;
-    mesh.position.z = orig.z + (Math.random() - 0.5) * 0.15;
-    shakes++;
-  }, 40);
-
-  // Flash white (emissive spike)
-  const sphere = mesh.children[0];
-  if (sphere && sphere.material) {
-    const origEmissive = sphere.material.emissiveIntensity;
-    sphere.material.emissiveIntensity = 2.0;
-    setTimeout(() => { sphere.material.emissiveIntensity = origEmissive; }, 300);
-  }
-}
-
-function triggerCameraShake() {
-  const time = clock.getElapsedTime();
-  cameraState.shaking = true;
-  cameraState.shakeEnd = time + 0.4;
-  setTimeout(() => { cameraState.shaking = false; }, 420);
-}
-
-async function animateKO(isEnemy) {
-  const mesh = isEnemy ? enemyGroup : playerGroup;
-  if (!mesh) return;
-
-  cameraState.phase = 'ko';
-  cameraState.startTime = clock.getElapsedTime();
-
-  // Spawn massive explosion particles
-  spawnParticles(mesh.position.clone(), 0xff4444, 80, 3, 5);
-
-  // KO text
-  const ko = document.createElement('div');
-  ko.className = 'ko-text';
-  ko.style.left = (isEnemy ? 65 : 25) + '%';
-  ko.style.top = '40%';
-  ko.textContent = 'KO!';
-  document.body.appendChild(ko);
-  setTimeout(() => ko.remove(), 1400);
-
-  // Spin and shrink
-  const duration = 600;
-  const startTime = performance.now();
-  return new Promise(resolve => {
-    function shrink(now) {
-      const t = Math.min((now - startTime) / duration, 1);
-      mesh.rotation.y = t * Math.PI * 4;
-      mesh.scale.setScalar(1 - t);
-      if (t < 1) requestAnimationFrame(shrink);
-      else { scene.remove(mesh); resolve(); }
-    }
-    requestAnimationFrame(shrink);
-  });
-}
-
-function switchIn3D(isPlayer) {
-  // Remove old mesh and create new one
-  if (isPlayer && playerGroup) scene.remove(playerGroup);
-  if (!isPlayer && enemyGroup) scene.remove(enemyGroup);
-
-  const f = isPlayer ? BAT.pTeam[BAT.pIdx] : BAT.aTeam[BAT.aIdx];
-  const group = createFighterMesh(f, isPlayer);
-
-  // Start off-screen
-  group.position.x = isPlayer ? -8 : 8;
-  group.scale.setScalar(0.01);
-
-  scene.add(group);
-  if (isPlayer) playerGroup = group;
-  else enemyGroup = group;
-
-  // Slide in animation
-  const targetX = isPlayer ? -3 : 3;
-  const targetScale = isPlayer ? 1 : 0.82;
-  const startTime = performance.now();
-  function slideIn(now) {
-    const t = Math.min((now - startTime) / 600, 1);
-    const ease = 1 - Math.pow(1 - t, 3); // ease out cubic
-    group.position.x = (isPlayer ? -8 : 8) + (targetX - (isPlayer ? -8 : 8)) * ease;
-    group.scale.setScalar(0.01 + (targetScale - 0.01) * ease);
-    if (t < 1) requestAnimationFrame(slideIn);
-  }
-  requestAnimationFrame(slideIn);
-}
-
-function triggerVictoryAnimation() {
-  if (!playerGroup) return;
-  // Bounce 3 times
-  let bounces = 0;
-  const bounceInt = setInterval(() => {
-    if (bounces >= 6) { clearInterval(bounceInt); return; }
-    playerGroup.position.y = bounces % 2 === 0 ? playerBaseY + 0.8 : playerBaseY;
-    bounces++;
-  }, 200);
-
-  // Gold particle rain
-  for (let i = 0; i < 5; i++) {
-    setTimeout(() => {
-      spawnParticles(
-        new THREE.Vector3((Math.random() - 0.5) * 6, 3, (Math.random() - 0.5) * 4),
-        0xf59e0b, 20, 3, 1
-      );
-    }, i * 300);
-  }
-}
-
-function updatePlatformGlow() {
-  if (!glowRing || !BAT) return;
-  const wColors = {sunny: 0xf59e0b, rain: 0x3b82f6, sandstorm: 0xeab308, hail: 0x93c5fd};
-  glowRing.material.color.setHex(wColors[BAT.weather] || 0x3b82f6);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 8: PARTICLE SYSTEM
-   ═══════════════════════════════════════════════════════════════════════ */
-
-function spawnParticles(position, color, count, spread, speed) {
-  const geo = new THREE.BufferGeometry();
-  const positions = [];
-  const velocities = [];
-
-  for (let i = 0; i < count; i++) {
-    positions.push(position.x, position.y, position.z);
-    velocities.push(
-      (Math.random() - 0.5) * spread * speed,
-      Math.random() * speed * 1.5,
-      (Math.random() - 0.5) * spread * speed
-    );
-  }
-
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-
-  const mat = new THREE.PointsMaterial({
-    color: color, size: 0.12, transparent: true, opacity: 1,
-    sizeAttenuation: true
-  });
-
-  const points = new THREE.Points(geo, mat);
-  scene.add(points);
-
-  particleSystems.push({
-    points, velocities,
-    startTime: clock.getElapsedTime(),
-    duration: 0.8
-  });
-}
-
-function updateParticles(time) {
-  for (let i = particleSystems.length - 1; i >= 0; i--) {
-    const ps = particleSystems[i];
-    const elapsed = time - ps.startTime;
-    const t = elapsed / ps.duration;
-
-    if (t >= 1) {
-      scene.remove(ps.points);
-      ps.points.geometry.dispose();
-      ps.points.material.dispose();
-      particleSystems.splice(i, 1);
-      continue;
-    }
-
-    // Update positions
-    const pos = ps.points.geometry.attributes.position;
-    const count = pos.count;
-    for (let j = 0; j < count; j++) {
-      pos.array[j * 3] += ps.velocities[j * 3] * 0.016;
-      pos.array[j * 3 + 1] += ps.velocities[j * 3 + 1] * 0.016 - 0.01; // gravity
-      pos.array[j * 3 + 2] += ps.velocities[j * 3 + 2] * 0.016;
-    }
-    pos.needsUpdate = true;
-
-    // Fade out
-    ps.points.material.opacity = 1 - t;
-  }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 9: ENHANCED VISUAL EFFECTS
-   ═══════════════════════════════════════════════════════════════════════ */
-
-// ── Type-specific particle effects ──
-function spawnMoveParticles(position, move, isCrit) {
-  const color = getTypeColor(move.tp);
-  if (isCrit) {
-    spawnParticles(position, 0xfbbf24, 40, 2.5, 4);
-    spawnParticles(position, 0xffffff, 15, 1.5, 6);
-  } else if (move.c === 'physical') {
-    spawnParticles(position, 0xf97316, 20, 0.8, 4);
-    spawnParticles(position, color, 10, 0.5, 3);
-  } else if (move.c === 'special') {
-    spawnParticles(position, color, 30, 2.0, 2.5);
-  } else {
-    spawnParticles(position, 0xaaaaaa, 15, 1.5, 0.8);
-    spawnParticles(position, 0xffffff, 8, 1.0, 0.5);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  CHUNK 3 — PER-MOVE SIGNATURE ANIMATIONS
-// ══════════════════════════════════════════════════════════════════
-
-// Helper: create a beam (elongated box) from attacker to defender
-function createBeam(startPos, endPos, color, thickness=0.06, duration=600) {
-  const dir = new THREE.Vector3().subVectors(endPos, startPos);
-  const len = dir.length();
-  const mid = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
-  const geo = new THREE.CylinderGeometry(thickness, thickness, len, 8);
-  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 });
-  const beam = new THREE.Mesh(geo, mat);
-  beam.position.copy(mid);
-  beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize());
-  scene.add(beam);
-  // Fade out
-  const start = performance.now();
-  const fade = () => {
-    const t = (performance.now()-start)/duration;
-    if(t>=1){scene.remove(beam);beam.geometry.dispose();beam.material.dispose();return;}
-    beam.material.opacity = 0.9*(1-t);
-    requestAnimationFrame(fade);
-  };
-  requestAnimationFrame(fade);
-  return beam;
-}
-
-// Helper: screen flash overlay
-function screenFlash(color='#ffffff', duration=300) {
-  const el = document.createElement('div');
-  el.style.cssText = `position:fixed;inset:0;background:${color};opacity:0.7;pointer-events:none;z-index:999;transition:opacity ${duration}ms ease-out`;
-  document.body.appendChild(el);
-  requestAnimationFrame(()=>{ el.style.opacity='0'; });
-  setTimeout(()=>el.remove(), duration+50);
-}
-
-// Helper: spawn a ring shockwave expanding outward on the platform
-function spawnShockwave(position, color, duration=600) {
-  const geo = new THREE.RingGeometry(0.1, 0.3, 32);
-  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-  const ring = new THREE.Mesh(geo, mat);
-  ring.position.copy(position);
-  ring.rotation.x = -Math.PI/2;
-  scene.add(ring);
-  const start = performance.now();
-  const grow = () => {
-    const t = (performance.now()-start)/duration;
-    if(t>=1){scene.remove(ring);ring.geometry.dispose();ring.material.dispose();return;}
-    const s = 1 + t*8;
-    ring.scale.set(s,s,s);
-    ring.material.opacity = 0.8*(1-t);
-    requestAnimationFrame(grow);
-  };
-  requestAnimationFrame(grow);
-}
-
-// Helper: lightning bolt (jagged line from above to target)
-function spawnLightningBolt(targetPos, color=0xfde047, duration=400) {
-  const points = [];
-  const startY = 5;
-  const segments = 8;
-  for(let i=0;i<=segments;i++) {
-    const t = i/segments;
-    const jitter = (i>0&&i<segments)?0.4:0;
-    points.push(new THREE.Vector3(
-      targetPos.x + (Math.random()-0.5)*jitter,
-      startY - t*(startY-targetPos.y) + (Math.random()-0.5)*jitter,
-      targetPos.z + (Math.random()-0.5)*jitter
-    ));
-  }
-  const geo = new THREE.BufferGeometry().setFromPoints(points);
-  const mat = new THREE.LineBasicMaterial({ color, linewidth: 2, transparent: true, opacity: 1 });
-  const bolt = new THREE.Line(geo, mat);
-  scene.add(bolt);
-  const start = performance.now();
-  const fade = () => {
-    const t = (performance.now()-start)/duration;
-    if(t>=1){scene.remove(bolt);bolt.geometry.dispose();bolt.material.dispose();return;}
-    bolt.material.opacity = 1-t;
-    requestAnimationFrame(fade);
-  };
-  requestAnimationFrame(fade);
-}
-
-// Helper: orbit ring around a fighter
-function spawnOrbitRing(targetMesh, color, duration=800) {
-  const geo = new THREE.TorusGeometry(1.2, 0.04, 8, 48);
-  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8 });
-  const ring = new THREE.Mesh(geo, mat);
-  ring.position.copy(targetMesh.position);
-  scene.add(ring);
-  const start = performance.now();
-  const spin = () => {
-    const t = (performance.now()-start)/duration;
-    if(t>=1){scene.remove(ring);ring.geometry.dispose();ring.material.dispose();return;}
-    ring.rotation.x += 0.1;
-    ring.rotation.z += 0.07;
-    ring.material.opacity = 0.8*(1-t*0.8);
-    ring.scale.setScalar(1+t*0.5);
-    requestAnimationFrame(spin);
-  };
-  requestAnimationFrame(spin);
-}
-
-// Helper: portal swirl (rings that grow then implode)
-function spawnPortal(position, color, duration=1000) {
-  const rings = [];
-  for(let i=0;i<4;i++) {
-    const geo = new THREE.TorusGeometry(0.3+i*0.2, 0.04, 8, 32);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9-i*0.15 });
-    const ring = new THREE.Mesh(geo, mat);
-    ring.position.copy(position);
-    ring.rotation.x = Math.PI/2;
-    scene.add(rings[i]=ring);
-  }
-  const start = performance.now();
-  const animate = () => {
-    const t = (performance.now()-start)/duration;
-    if(t>=1){rings.forEach(r=>{scene.remove(r);r.geometry.dispose();r.material.dispose();});return;}
-    rings.forEach((r,i)=>{
-      r.rotation.z = t*Math.PI*4*(i%2===0?1:-1);
-      const pulse = t<0.5?(t*2):(1-(t-0.5)*2);
-      r.scale.setScalar(0.5+pulse*1.5);
-      r.material.opacity = (0.9-i*0.15)*pulse;
-    });
-    requestAnimationFrame(animate);
-  };
-  requestAnimationFrame(animate);
-}
-
-// Helper: fire column rising from ground
-function spawnFireColumn(position, duration=800) {
-  const count = 30;
-  for(let i=0;i<count;i++) {
-    const offset = new THREE.Vector3((Math.random()-0.5)*0.8, 0, (Math.random()-0.5)*0.8);
-    const firePos = position.clone().add(offset);
-    const color = Math.random()<0.5 ? 0xef4444 : 0xf97316;
-    setTimeout(()=>spawnParticles(firePos, color, 5, 0.3, 2+Math.random()*2), i*20);
-  }
-}
-
-// Helper: money/envelope rain
-function spawnProjectileRain(fromPos, toPos, color, count=8, emoji='') {
-  for(let i=0;i<count;i++) {
-    setTimeout(()=>{
-      const spread = (Math.random()-0.5)*1.5;
-      const mid = new THREE.Vector3().lerpVectors(fromPos, toPos, 0.5);
-      mid.y += 1+Math.random();
-      mid.x += spread;
-      createBeam(fromPos, toPos, color, 0.04, 300);
-    }, i*60);
-  }
-}
-
-// ═══ MOVE-SPECIFIC ANIMATION DISPATCH ═══
-const MOVE_ANIMS = {
-  // ── DEMOCRAT ──
-  obamahameha: async (atk, def) => {
-    // Blue/gold charging energy then beam
-    spawnOrbitRing(atk, 0x3b82f6, 400);
-    await delay(300);
-    spawnParticles(atk.position.clone(), 0x3b82f6, 20, 0.5, 2);
-    await delay(200);
-    createBeam(atk.position.clone(), def.position.clone(), 0xfbbf24, 0.12, 700);
-    createBeam(atk.position.clone(), def.position.clone(), 0x3b82f6, 0.08, 700);
-    spawnParticles(def.position.clone(), 0xfbbf24, 40, 2, 4);
-    spawnShockwave(def.position.clone(), 0x3b82f6, 600);
-    screenFlash('rgba(59,130,246,0.4)', 400);
-  },
-  yesWeCan: async (atk, def) => {
-    spawnOrbitRing(atk, 0x3b82f6, 500);
-    spawnParticles(atk.position.clone(), 0x3b82f6, 25, 1, 3);
-    await delay(200);
-    createBeam(atk.position.clone(), def.position.clone(), 0x3b82f6, 0.09, 500);
-    spawnParticles(def.position.clone(), 0x3b82f6, 30, 1.5, 3);
-  },
-  bidenBlast: async (atk, def) => {
-    // Chaotic purple explosion
-    screenFlash('rgba(124,58,237,0.3)', 200);
-    spawnParticles(def.position.clone(), 0xa855f7, 30, 2, 3);
-    spawnParticles(def.position.clone(), 0xffffff, 15, 1.5, 4);
-    spawnShockwave(def.position.clone(), 0xa855f7, 500);
-    await delay(100);
-    spawnParticles(def.position.clone(), 0xa855f7, 20, 3, 2);
-  },
-  sarcClap: async (atk, def) => {
-    // Golden sparkle clap wave
-    spawnShockwave(atk.position.clone(), 0xfbbf24, 600);
-    spawnParticles(def.position.clone(), 0xfbbf24, 25, 1.5, 2);
-    spawnParticles(def.position.clone(), 0xef4444, 15, 1, 3);
-  },
-  blueWave: async (atk, def) => {
-    // Blue wave sweeps across
-    for(let i=0;i<5;i++) {
-      setTimeout(()=>{
-        const p = new THREE.Vector3().lerpVectors(atk.position, def.position, i/4);
-        spawnParticles(p, 0x3b82f6, 10, 0.5, 2);
-      }, i*100);
-    }
-    spawnShockwave(def.position.clone(), 0x3b82f6, 500);
-  },
-  kamLaugh: async (atk, def) => {
-    // Laugh wave ripple
-    for(let i=0;i<3;i++) {
-      setTimeout(()=>spawnShockwave(atk.position.clone(), 0xa855f7, 700), i*150);
-    }
-    spawnParticles(def.position.clone(), 0xa855f7, 20, 2, 2);
-  },
-  moonShot: async (atk, def) => {
-    // Missile arc upward then down
-    const mid = new THREE.Vector3().lerpVectors(atk.position, def.position, 0.5);
-    mid.y += 3;
-    createBeam(atk.position.clone(), mid, 0xfbbf24, 0.06, 300);
-    await delay(300);
-    createBeam(mid, def.position.clone(), 0xfbbf24, 0.06, 300);
-    spawnParticles(def.position.clone(), 0xfbbf24, 40, 2.5, 4);
-    spawnShockwave(def.position.clone(), 0xfbbf24, 600);
-  },
-  // ── REPUBLICAN ──
-  deportTele: async (atk, def) => {
-    // Spiral portal opens under defender, they sink in
-    spawnPortal(def.position.clone(), 0x22c55e, 1000);
-    spawnParticles(def.position.clone(), 0x22c55e, 20, 1, 2);
-    await delay(400);
-    // Defender sinks
-    const origY = def.position.y;
-    for(let i=0;i<15;i++) {
-      def.position.y = origY - i*0.1;
-      await delay(30);
-    }
-    await delay(200);
-    for(let i=15;i>=0;i--) {
-      def.position.y = origY - i*0.1;
-      await delay(20);
-    }
-    def.position.y = origY;
-    screenFlash('rgba(34,197,94,0.3)', 300);
-  },
-  friendly: async (atk, def) => {
-    // Shotgun blast - red flash, attacker recoils
-    screenFlash('rgba(239,68,68,0.5)', 200);
-    spawnParticles(def.position.clone(), 0xef4444, 40, 2, 5);
-    spawnShockwave(def.position.clone(), 0xef4444, 400);
-    // Attacker recoils backward
-    const origX = atk.position.x;
-    const dir = atk.position.x < 0 ? -1 : 1;
-    for(let i=0;i<8;i++) { atk.position.x = origX + dir*i*0.1; await delay(20); }
-    for(let i=8;i>=0;i--) { atk.position.x = origX + dir*i*0.1; await delay(20); }
-    atk.position.x = origX;
-  },
-  lincolnAxe: async (atk, def) => {
-    // Axe swing - dramatic arc
-    spawnParticles(atk.position.clone(), 0x94a3b8, 10, 0.5, 3);
-    await delay(200);
-    spawnParticles(def.position.clone(), 0xef4444, 30, 1.5, 4);
-    spawnShockwave(def.position.clone(), 0x94a3b8, 400);
-    screenFlash('rgba(148,163,184,0.3)', 200);
-  },
-  redWave: async (atk, def) => {
-    for(let i=0;i<4;i++) {
-      setTimeout(()=>{
-        const p = new THREE.Vector3().lerpVectors(atk.position, def.position, i/3);
-        spawnParticles(p, 0xef4444, 10, 0.5, 2);
-      }, i*80);
-    }
-    spawnShockwave(def.position.clone(), 0xef4444, 500);
-  },
-  // ── AUTHORITARIAN ──
-  blitzkrieg: async (atk, def) => {
-    // 3 sequential lightning bolts
-    screenFlash('rgba(253,224,71,0.4)', 100);
-    for(let i=0;i<3;i++) {
-      setTimeout(()=>{
-        const offset = new THREE.Vector3((Math.random()-0.5)*1.5, 0, (Math.random()-0.5)*1);
-        spawnLightningBolt(def.position.clone().add(offset), 0xfde047, 400);
-        spawnParticles(def.position.clone().add(offset), 0xfde047, 15, 0.8, 3);
-      }, i*180);
-    }
-    await delay(540);
-    spawnShockwave(def.position.clone(), 0xfde047, 500);
-  },
-  putinFist: async (atk, def) => {
-    // Screen crack + red shockwave
-    screenFlash('rgba(239,68,68,0.6)', 150);
-    spawnShockwave(def.position.clone(), 0xef4444, 400);
-    spawnParticles(def.position.clone(), 0xef4444, 50, 2.5, 5);
-    spawnParticles(def.position.clone(), 0xffffff, 20, 1.5, 6);
-  },
-  nukOption: async (atk, def) => {
-    // Missile arc + MASSIVE white flash + shockwave
-    const mid = new THREE.Vector3().lerpVectors(atk.position, def.position, 0.5);
-    mid.y += 4;
-    createBeam(atk.position.clone(), mid, 0xffffff, 0.08, 500);
-    await delay(400);
-    createBeam(mid, def.position.clone(), 0xff4444, 0.1, 300);
-    await delay(200);
-    screenFlash('#ffffff', 600);
-    spawnParticles(def.position.clone(), 0xffffff, 80, 4, 6);
-    spawnParticles(def.position.clone(), 0xef4444, 50, 3, 5);
-    spawnShockwave(def.position.clone(), 0xffffff, 800);
-    spawnShockwave(def.position.clone(), 0xef4444, 1000);
-  },
-  execOrder: async (atk, def) => {
-    spawnParticles(atk.position.clone(), 0x7c3aed, 15, 0.8, 2);
-    createBeam(atk.position.clone(), def.position.clone(), 0x7c3aed, 0.07, 400);
-    spawnParticles(def.position.clone(), 0x7c3aed, 25, 1.5, 3);
-  },
-  propaganda: async (atk, def) => {
-    // Dark mist floods from sides
-    for(let i=0;i<20;i++) {
-      setTimeout(()=>{
-        const p = new THREE.Vector3(-4+i*0.4+Math.random(), 0.5+Math.random()*2, (Math.random()-0.5)*4);
-        spawnParticles(p, 0x7c3aed, 3, 0.3, 0.5);
-      }, i*60);
-    }
-    spawnShockwave(def.position.clone(), 0x7c3aed, 600);
-  },
-  nerveAgnt: async (atk, def) => {
-    // Toxic green mist
-    spawnParticles(def.position.clone(), 0x22c55e, 30, 2, 1);
-    spawnParticles(def.position.clone(), 0xa855f7, 15, 1.5, 0.8);
-    spawnShockwave(def.position.clone(), 0x22c55e, 700);
-  },
-  // ── SOCIALIST ──
-  bernBurn: async (atk, def) => {
-    // Fire rising from ground under defender
-    spawnFireColumn(def.position.clone(), 800);
-    await delay(200);
-    spawnParticles(def.position.clone(), 0xef4444, 30, 1.5, 3);
-    spawnParticles(def.position.clone(), 0xf97316, 20, 1, 4);
-    screenFlash('rgba(239,68,68,0.3)', 300);
-  },
-  classWar: async (atk, def) => {
-    spawnParticles(atk.position.clone(), 0xec4899, 20, 0.8, 3);
-    createBeam(atk.position.clone(), def.position.clone(), 0xec4899, 0.09, 500);
-    spawnShockwave(def.position.clone(), 0xec4899, 500);
-    spawnParticles(def.position.clone(), 0xec4899, 30, 2, 3);
-  },
-  // ── GREEN ──
-  solarBlast: async (atk, def) => {
-    // Sun beam
-    screenFlash('rgba(234,179,8,0.3)', 300);
-    spawnParticles(atk.position.clone(), 0xfde047, 15, 0.5, 2);
-    await delay(200);
-    createBeam(atk.position.clone(), def.position.clone(), 0xfde047, 0.1, 500);
-    spawnParticles(def.position.clone(), 0xfde047, 35, 2, 3);
-    spawnShockwave(def.position.clone(), 0xfde047, 500);
-  },
-  greenNewDl: async (atk, def) => {
-    // Vines + flowers burst from ground
-    spawnFireColumn(atk.position.clone(), 600);  // reuse with green
-    spawnParticles(atk.position.clone(), 0x22c55e, 40, 2, 2);
-    spawnOrbitRing(atk, 0x22c55e, 600);
-    spawnShockwave(atk.position.clone(), 0x22c55e, 700);
-  },
-  // ── CORPORATE ──
-  lobbyist: async (atk, def) => {
-    // Money projectiles flying
-    spawnProjectileRain(atk.position.clone(), def.position.clone(), 0xfbbf24, 8);
-    await delay(300);
-    spawnParticles(def.position.clone(), 0xfbbf24, 25, 1.5, 3);
-  },
-  hostile: async (atk, def) => {
-    createBeam(atk.position.clone(), def.position.clone(), 0x475569, 0.1, 400);
-    spawnShockwave(def.position.clone(), 0x475569, 400);
-    spawnParticles(def.position.clone(), 0xfbbf24, 25, 2, 3);
-  },
-  // ── POPULIST ──
-  crowdSurge: async (atk, def) => {
-    // Wave of orange particles rushing across
-    for(let i=0;i<6;i++) {
-      setTimeout(()=>{
-        const p = new THREE.Vector3().lerpVectors(atk.position, def.position, i/5);
-        spawnParticles(p, 0xf97316, 8, 0.4, 2);
-      }, i*70);
-    }
-    spawnShockwave(def.position.clone(), 0xf97316, 500);
-  },
-  // ── CENTRIST ──
-  bipartisan: async (atk, def) => {
-    // Blue and red beams together
-    createBeam(atk.position.clone(), def.position.clone(), 0x3b82f6, 0.06, 500);
-    createBeam(atk.position.clone(), def.position.clone(), 0xef4444, 0.06, 500);
-    spawnParticles(def.position.clone(), 0x94a3b8, 20, 1.5, 3);
-  },
-  // ── REVOLUTIONARY ──
-  uprising: async (atk, def) => {
-    spawnParticles(atk.position.clone(), 0xdc2626, 20, 1, 3);
-    spawnShockwave(atk.position.clone(), 0xdc2626, 400);
-    await delay(200);
-    createBeam(atk.position.clone(), def.position.clone(), 0xdc2626, 0.08, 400);
-    spawnParticles(def.position.clone(), 0xdc2626, 30, 2, 4);
-  },
-  guillotine: async (atk, def) => {
-    screenFlash('rgba(220,38,38,0.5)', 200);
-    spawnParticles(def.position.clone(), 0xdc2626, 50, 2.5, 5);
-    spawnShockwave(def.position.clone(), 0xdc2626, 500);
-    spawnShockwave(def.position.clone(), 0xffffff, 700);
-  },
-  // ── LIBERTARIAN ──
-  freeMkt: async (atk, def) => {
-    spawnParticles(atk.position.clone(), 0xeab308, 15, 0.8, 2);
-    createBeam(atk.position.clone(), def.position.clone(), 0xeab308, 0.07, 400);
-    spawnParticles(def.position.clone(), 0xeab308, 25, 1.5, 3);
-  },
-  shitpost: async (atk, def) => {
-    // Chaotic random particles everywhere
-    for(let i=0;i<10;i++) {
-      setTimeout(()=>{
-        const rand = new THREE.Vector3((Math.random()-0.5)*6, Math.random()*3, (Math.random()-0.5)*4);
-        spawnParticles(rand, 0xeab308, 5, 0.5, 2);
-      }, i*50);
-    }
-    spawnParticles(def.position.clone(), 0xeab308, 20, 2, 3);
-  },
-  // ── CATCHALL for moves without specific anim ──
-  _default: async (atk, def, move) => {
-    const color = getTypeColor(move ? move.tp : 'Centrist');
-    spawnParticles(def.position.clone(), color, 25, 1.8, 3);
-    spawnShockwave(def.position.clone(), color, 400);
-  }
-};
-
-// ═══ DISPATCH FUNCTION ═══
-async function playMoveAnimation(moveId, attackerMesh, defenderMesh, move) {
-  const anim = MOVE_ANIMS[moveId] || MOVE_ANIMS._default;
-  try {
-    await anim(attackerMesh, defenderMesh, move);
-  } catch(e) {
-    // fallback to default if specific anim errors
-    await MOVE_ANIMS._default(attackerMesh, defenderMesh, move);
-  }
-}
-
-// ── KO explosion with type colour ──
-
-function spawnKOExplosion(position, typeColor) {
-  spawnParticles(position, typeColor, 80, 3.0, 5);
-  spawnParticles(position, 0xff4444, 40, 2.0, 4);
-  spawnParticles(position, 0xffffff, 20, 1.5, 6);
-}
-
-// ── Weather visual effects in 3D ──
-function updateWeatherVisuals(time) {
-  if (!BAT || !BAT.weather) return;
-  if (BAT.weather === 'sunny') {
-    if (glowRing) glowRing.material.opacity = 0.5 + Math.sin(time * 3) * 0.2;
-  } else if (BAT.weather === 'rain') {
-    if (Math.random() < 0.03) {
-      const rainPos = new THREE.Vector3((Math.random() - 0.5) * 8, 4, (Math.random() - 0.5) * 6);
-      spawnParticles(rainPos, 0x93c5fd, 3, 0.2, 8);
-    }
-  } else if (BAT.weather === 'hail') {
-    if (Math.random() < 0.02) {
-      const hailPos = new THREE.Vector3((Math.random() - 0.5) * 8, 4, (Math.random() - 0.5) * 6);
-      spawnParticles(hailPos, 0xbfdbfe, 2, 0.3, 6);
-    }
-  } else if (BAT.weather === 'sandstorm') {
-    if (Math.random() < 0.04) {
-      const sandPos = new THREE.Vector3(-6, Math.random() * 2, (Math.random() - 0.5) * 6);
-      spawnParticles(sandPos, 0xeab308, 4, 0.5, 3);
-    }
-  }
-}
-
-// ── Status visual effects on fighters ──
-function updateStatusVisuals(time) {
-  if (!BAT) return;
-  applyStatusToMesh(playerGroup, BAT.pTeam[BAT.pIdx], time, true);
-  applyStatusToMesh(enemyGroup, BAT.aTeam[BAT.aIdx], time, false);
-}
-
-function applyStatusToMesh(group, fighter, time, isPlayer) {
-  if (!group || !fighter) return;
-  const sphere = group.children[0];
-  if (!sphere || !sphere.material) return;
-  const baseScale = isPlayer ? 1 : 0.82;
-
-  if (fighter.status === 'burn') {
-    sphere.material.emissiveIntensity = 0.3 + Math.sin(time * 4) * 0.15;
-    sphere.material.emissive.setHex(0xef4444);
-  } else if (fighter.status === 'freeze') {
-    sphere.material.emissiveIntensity = 0.4;
-    sphere.material.emissive.setHex(0x93c5fd);
-    group.scale.x = group.scale.z = baseScale * (1 + Math.sin(time * 0.5) * 0.02);
-  } else if (fighter.status === 'paralysis') {
-    sphere.material.emissiveIntensity = 0.2 + Math.random() * 0.3;
-    sphere.material.emissive.setHex(0xeab308);
-  } else if (fighter.status === 'poison' || fighter.status === 'toxic') {
-    sphere.material.emissiveIntensity = 0.25 + Math.sin(time * 3) * 0.1;
-    sphere.material.emissive.setHex(0xa855f7);
-  } else if (fighter.status === 'sleep') {
-    sphere.material.emissiveIntensity = 0.05;
-  } else {
-    const tc = getTypeColor(fighter.tps[0]);
-    sphere.material.emissive.setHex(tc);
-    sphere.material.emissiveIntensity = 0.15;
-  }
-
-  if (fighter.fainted) {
-    sphere.material.opacity = 0.3;
-    sphere.material.transparent = true;
-  } else {
-    sphere.material.opacity = 1.0;
-    sphere.material.transparent = false;
-  }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 10: DAMAGE RANGE TOOLTIP ON HOVER
-   ═══════════════════════════════════════════════════════════════════════ */
-
-function calcDmgRange(atk, def, m, weather) {
-  if (!m.pw || m.pw === 0) return null;
-  const eff = typeEff(m.tp, def.tps);
-  if (eff === 0) return { eff: 0 };
-  const stab = atk.tps.includes(m.tp) ? 1.5 : 1;
-  const atkStat = m.c === 'physical' ? effSt(atk, 'atk') : effSt(atk, 'spa');
-  const defStat = m.c === 'physical' ? effSt(def, 'def') : effSt(def, 'spd');
-  const base = Math.floor((Math.floor(0.4 * m.pw * atkStat / defStat) + 2) * eff * stab);
-  const minDmg = Math.floor(base * 0.85);
-  const maxDmg = base;
-  const minPct = Math.round(minDmg / def.mhp * 100);
-  const maxPct = Math.round(maxDmg / def.mhp * 100);
-  return { minDmg, maxDmg, minPct, maxPct, eff, isKO: minDmg >= def.hp };
-}
-
-function addMoveTooltips() {
-  const btns = document.querySelectorAll('.move-btn');
-  btns.forEach((btn, i) => {
-    btn.addEventListener('mouseenter', (e) => {
-      if (!BAT) return;
-      const pf = BAT.pTeam[BAT.pIdx], ef = BAT.aTeam[BAT.aIdx];
-      const m = pf.mvs[i];
-      if (!m || m.cpp <= 0) return;
-      const range = calcDmgRange(pf, ef, m, BAT.weather);
-      if (!range) return;
-
-      let tooltip = document.getElementById('dmg-tooltip');
-      if (!tooltip) {
-        tooltip = document.createElement('div');
-        tooltip.id = 'dmg-tooltip';
-        tooltip.style.cssText = 'position:fixed;pointer-events:none;z-index:998;background:rgba(12,16,22,.95);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:9px 12px;box-shadow:0 12px 40px rgba(0,0,0,.8);backdrop-filter:blur(10px);min-width:140px;font-family:Inter,sans-serif;';
-        document.body.appendChild(tooltip);
-      }
-
-      if (range.eff === 0) {
-        tooltip.innerHTML = '<div style="font-size:.7rem;font-weight:700;color:#94a3b8">No effect!</div>';
-      } else {
-        const effTxt = range.eff >= 2 ? 'Super effective!' : range.eff < 1 ? 'Not very effective...' : 'Normal';
-        const effCol = range.eff >= 2 ? '#fca5a5' : range.eff < 1 ? '#93c5fd' : '#94a3b8';
-        tooltip.innerHTML = `
-          <div style="font-family:Orbitron,monospace;font-size:.9rem;font-weight:700;color:#fff">${range.minDmg}–${range.maxDmg}</div>
-          <div style="font-size:.62rem;color:#64748b">(${range.minPct}–${range.maxPct}% of foe HP)</div>
-          <div style="font-size:.65rem;font-weight:700;color:${effCol};margin-top:2px">${range.eff}x — ${effTxt}</div>
-          ${range.isKO ? '<div style="font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:6px;background:rgba(239,68,68,.25);color:#fca5a5;border:1px solid rgba(239,68,68,.3);display:inline-block;margin-top:3px">KO RANGE!</div>' : ''}`;
-      }
-      tooltip.style.display = 'block';
-      tooltip.style.left = (e.clientX + 12) + 'px';
-      tooltip.style.top = (e.clientY - 80) + 'px';
-    });
-    btn.addEventListener('mousemove', (e) => {
-      const tooltip = document.getElementById('dmg-tooltip');
-      if (tooltip) { tooltip.style.left = (e.clientX + 12) + 'px'; tooltip.style.top = (e.clientY - 80) + 'px'; }
-    });
-    btn.addEventListener('mouseleave', () => {
-      const tooltip = document.getElementById('dmg-tooltip');
-      if (tooltip) tooltip.style.display = 'none';
-    });
-  });
-}
-
-// Patch renderMoves to add tooltips after rendering
-const _origRenderMoves = renderMoves;
-renderMoves = function(f) {
-  _origRenderMoves(f);
-  requestAnimationFrame(addMoveTooltips);
-};
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 11: ENHANCED ANIMATION LOOP
-   ═══════════════════════════════════════════════════════════════════════ */
-
-// Override animate with enhanced version that includes weather & status
-const _origAnimateRef = animate;
-animate = function animateEnhanced() {
-  requestAnimationFrame(animateEnhanced);
-  const time = clock.getElapsedTime();
-
-  // ── Camera ──
-  if (cameraState.phase === 'intro') {
-    const elapsed = time - cameraState.startTime;
-    const t = Math.min(elapsed / 2.0, 1.0);
-    camera.position.z = 3 + t * 5;
-    camera.position.y = 2 + t * 0.5;
-    if (t >= 1.0) cameraState.phase = 'idle';
-  } else if (cameraState.phase === 'idle') {
-    camera.position.y = 2.5 + Math.sin(time * 0.8) * 0.05;
-    camera.position.x += (0 - camera.position.x) * 0.03;
-    camera.position.z += (8 - camera.position.z) * 0.03;
-  } else if (cameraState.phase === 'playerAttack') {
-    camera.position.x += (-1 - camera.position.x) * 0.08;
-    if (Math.abs(camera.position.x + 1) < 0.05) cameraState.phase = 'idle';
-  } else if (cameraState.phase === 'enemyAttack') {
-    camera.position.x += (1 - camera.position.x) * 0.08;
-    if (Math.abs(camera.position.x - 1) < 0.05) cameraState.phase = 'idle';
-  } else if (cameraState.phase === 'ko') {
-    camera.position.z += (6 - camera.position.z) * 0.05;
-    if (time - cameraState.startTime > 1.5) cameraState.phase = 'idle';
-  }
-
-  // Camera shake
-  if (cameraState.shaking && time < cameraState.shakeEnd) {
-    camera.position.x += (Math.random() - 0.5) * 0.3;
-    camera.position.y += (Math.random() - 0.5) * 0.15;
-  }
-
-  camera.lookAt(0, 0.5, 0);
-
-  // ── Fighter idle bob ──
-  if (playerGroup && BAT && BAT.pTeam[BAT.pIdx] && !BAT.pTeam[BAT.pIdx].fainted) {
-    const sleepMod = BAT.pTeam[BAT.pIdx].status === 'sleep' ? 0.3 : 1;
-    playerGroup.position.y = playerBaseY + Math.sin(time * 2 * sleepMod) * 0.08;
-  }
-  if (enemyGroup && BAT && BAT.aTeam[BAT.aIdx] && !BAT.aTeam[BAT.aIdx].fainted) {
-    const sleepMod = BAT.aTeam[BAT.aIdx].status === 'sleep' ? 0.3 : 1;
-    enemyGroup.position.y = enemyBaseY + Math.sin(time * 2 * sleepMod + 1.5) * 0.08;
-  }
-
-  // Face billboarding
-  if (playerFace) playerFace.quaternion.copy(camera.quaternion);
-  if (enemyFace) enemyFace.quaternion.copy(camera.quaternion);
-
-  // Star twinkling
-  if (starPoints) {
-    const opArr = starPoints.geometry.attributes.opacity;
-    if (opArr) {
-      for (let i = 0; i < opArr.count; i++) {
-        opArr.array[i] = 0.3 + Math.sin(time * 1.5 + i * 0.7) * 0.5;
-      }
-      opArr.needsUpdate = true;
-    }
-    starPoints.material.opacity = 0.7 + Math.sin(time * 0.3) * 0.15;
-  }
-
-  // Glow ring pulse
-  if (glowRing) { glowRing.material.opacity = 0.4 + Math.sin(time * 2) * 0.15; }
-
-  // Weather visuals (rain/snow/sand particles)
-  updateWeatherVisuals(time);
-
-  // Status visuals (burn glow, freeze tint, etc.)
-  updateStatusVisuals(time);
-
-  // Particle systems update
-  updateParticles(time);
-
-  renderer.render(scene, camera);
-};
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION 12: INITIALIZATION
-   ═══════════════════════════════════════════════════════════════════════ */
-
-document.addEventListener('DOMContentLoaded', () => {
-  initBattle();
-  init3D();
-});
-
+  if(eff===0){blog('<span class="ls">🛡️ No effect!</span>');await dly(400);camDef();return;}
+  if(dmg>def.mhp*.22||isCrit){camZoom(!isP);await dly(180);}
+  const rd=rawDmg(def,dmg);blog('<span class="ld">💥 '+rd+' dmg ('+Math.round(rd/def.mhp*100)+'%)</span>');
+  spDmg(dmg,isCrit?'cr':eff>1?'sp':eff<1?'rs':'',!isP);await animHit(isP?eSp:pSp);
+  if(isCrit){spCrit();shk=.45;blog('<span class="lc">★ Critical hit!</span>');}
+  if(eff>1)blog('<span class="le">🔥 Super effective! ('+eff+'x)</span>');else if(eff<1&&eff>0)blog('<span class="ls">🛡️ Not very effective...</span>');
+  if(m.ef?.flinch&&Math.random()*100<(m.ef.chance||100))def.flinched=true;
+  if(m.ef?.recoil){const rc=Math.floor(rd*m.ef.recoil);rawDmg(atk,rc);blog('<span class="ld">💢 '+atk.n+' recoil! ('+rc+')</span>');}
+  atk._firstMoved=true;updHUD();
+  if(def.fainted){shk=.65;spKO();blog('<span class="ld">💀 '+def.n+' KO\'d!</span>');await dly(900);await handleKO(def,isP);camDef();return;}
+  await applyEf(atk,def,m,isP);updHUD();await dly(200);camDef();}
+
+async function handleKO(f,isP){const b=BAT;
+  if(isP){const nx=b.aTeam.findIndex((t,i)=>i!==b.aIdx&&!t.fainted);if(nx>=0){b.aIdx=nx;blog('<span class="li">'+b.aTeam[nx].n+' enters!</span>');updSp(eSp,b.aTeam[nx].e);hazDmg(b.aTeam[nx],b.aHz);}else{endB(true);return;}}
+  else{const nx=b.pTeam.findIndex((t,i)=>i!==b.pIdx&&!t.fainted);if(nx>=0){b.pIdx=nx;blog('<span class="li">Go, '+b.pTeam[nx].n+'!</span>');updSp(pSp,b.pTeam[nx].e);hazDmg(b.pTeam[nx],b.pHz);}else{endB(false);return;}}updHUD();}
+
+function eotFx(f){if(!f||f.fainted)return;
+  if(f.status==='burn'){const d=Math.floor(f.mhp/16);rawDmg(f,d);blog('<span class="ld">🔥 '+f.n+' burn! ('+d+')</span>');}
+  if(f.status==='poison'){const d=Math.floor(f.mhp/8);rawDmg(f,d);blog('<span class="ld">☠️ '+f.n+' poison! ('+d+')</span>');}
+  if(f.status==='toxic'){f.txCnt++;const d=Math.floor(f.mhp/16*f.txCnt);rawDmg(f,d);blog('<span class="ld">💀 '+f.n+' toxic! ('+d+')</span>');}
+  if(f.abl==='New Deal HP')healF(f,Math.floor(f.mhp/8));
+  if(f.abl==='Sorry Not Sorry')healF(f,Math.floor(f.mhp*.1));
+  if(f.abl==='En Marche'&&f.stg.spe<3)stUp(f,'spe',1);
+  if(f.abl==='Never Surrender'&&f.hp<f.mhp*.5&&!f._ns){f._ns=true;stUp(f,'atk',1);}}
+
+async function aiTurn(){const b=BAT,ef=b.aTeam[b.aIdx],pf=b.pTeam[b.pIdx];if(ef.fainted)return;
+  if(!statusChk(ef)){updHUD();return;}
+  if(ef.hp<ef.mhp*.2&&Math.random()<.3){const nx=b.aTeam.findIndex((t,i)=>i!==b.aIdx&&!t.fainted&&t.hp>t.mhp*.4);if(nx>=0){blog('<span class="li">🔄 '+ef.n+' → '+b.aTeam[nx].n+'!</span>');b.aIdx=nx;updSp(eSp,b.aTeam[nx].e);hazDmg(b.aTeam[nx],b.aHz);updHUD();return;}}
+  if(ef.mvs.every(m=>m.cpp<=0)){blog('<span class="ld">😤 '+ef.n+' Struggle!</span>');await animLunge(eSp,false);const sd=Math.floor(50*ef.bs.atk/pf.bs.def*.4+2);rawDmg(pf,sd);spDmg(sd,'',true);await animHit(pSp);rawDmg(ef,Math.floor(ef.mhp*.25));updHUD();if(pf.fainted){shk=.55;spKO();await dly(800);await handleKO(pf,false);}if(ef.fainted){shk=.55;spKO();await dly(800);await handleKO(ef,true);}return;}
+  let best=-Infinity,bi=0;ef.mvs.forEach((mv,i)=>{if(mv.cpp<=0)return;let sc=0;if(mv.pw>0){const e=typeEff(mv.tp,pf.tps);if(e===0)return;sc=mv.pw*e;if(ef.tps.includes(mv.tp))sc*=1.5;sc*=mv.c==='physical'?(ef.bs.atk/Math.max(1,pf.bs.def)):(ef.bs.spa/Math.max(1,pf.bs.spd));}else{sc=25;if(mv.ef?.heal&&ef.hp<ef.mhp*.45)sc+=50;if(mv.ef?.status&&!pf.status)sc+=30;if(mv.ef?.up||mv.ef?.statBoost)sc+=35;if(mv.ef?.hz)sc+=30;}if(sc>best){best=sc;bi=i;}});
+  await execMove(ef,pf,bi,false);}
+
+async function playerMove(idx){if(!BAT||BAT.over||BAT.busy)return;BAT.busy=true;
+  const b=BAT,pf=b.pTeam[b.pIdx],ef=b.aTeam[b.aIdx];
+  if(!statusChk(pf)){updHUD();await dly(500);await aiTurn();endT();return;}
+  const pS=effSt(pf,'spe')+(pf.mvs[idx]?.pri||0)*10000,eS=effSt(ef,'spe');
+  if(pS>=eS){await execMove(pf,ef,idx,true);if(!BAT.over&&!ef.fainted){await dly(500);await aiTurn();}}
+  else{await aiTurn();if(!BAT.over&&!pf.fainted){await dly(500);await execMove(pf,ef,idx,true);}}
+  if(!BAT.over)endT();}
+
+function endT(){if(BAT.over)return;BAT.turn++;
+  if(BAT.weather){BAT.wT--;if(BAT.wT<=0){blog('<span class="ls">🌤️ Weather cleared!</span>');BAT.weather=null;updW();}}
+  const pf=BAT.pTeam[BAT.pIdx],ef=BAT.aTeam[BAT.aIdx];eotFx(pf);eotFx(ef);
+  if(pf.fainted){const nx=BAT.pTeam.findIndex((t,i)=>i!==BAT.pIdx&&!t.fainted);if(nx>=0){BAT.pIdx=nx;updSp(pSp,BAT.pTeam[nx].e);hazDmg(BAT.pTeam[nx],BAT.pHz);}else{endB(false);return;}}
+  if(ef.fainted){const nx=BAT.aTeam.findIndex((t,i)=>i!==BAT.aIdx&&!t.fainted);if(nx>=0){BAT.aIdx=nx;updSp(eSp,BAT.aTeam[nx].e);hazDmg(BAT.aTeam[nx],BAT.aHz);}else{endB(true);return;}}
+  updHUD();BAT.busy=false;}
+
+function endB(won){BAT.over=true;BAT.busy=false;
+  document.getElementById('vi').textContent=won?'🏆':'💀';document.getElementById('vt').textContent=won?'VICTORY!':'DEFEATED!';document.getElementById('vt').style.color=won?'#fbbf24':'#ef4444';document.getElementById('vs2').textContent=won?'Your team crushed the opposition!':'The opposition won this round.';setTimeout(()=>document.getElementById('vov').classList.add('on'),1200);}
+
+function updW(){const w=document.getElementById('wbdg');if(!BAT||!BAT.weather){w.style.display='none';return;}const nm={sunny:'☀️ Sun',rain:'🌧️ Rain',sandstorm:'🌪️ Sand',hail:'❄️ Hail'};w.textContent=nm[BAT.weather]||BAT.weather;w.style.display='';w.style.background='rgba(0,0,0,.5)';}
+
+let swO=false;function togSw(){swO=!swO;document.getElementById('swp').classList.toggle('on',swO);document.getElementById('mgrid').style.display=swO?'none':'';}
+async function switchTo(i){if(!BAT||BAT.over||BAT.busy||i===BAT.pIdx||BAT.pTeam[i].fainted)return;BAT.busy=true;blog('<span class="li">🔄 '+BAT.pTeam[BAT.pIdx].n+' → '+BAT.pTeam[i].n+'!</span>');BAT.pIdx=i;updSp(pSp,BAT.pTeam[i].e);hazDmg(BAT.pTeam[i],BAT.pHz);swO=false;document.getElementById('swp').classList.remove('on');document.getElementById('mgrid').style.display='';updHUD();await dly(500);await aiTurn();if(!BAT.over)endT();}
+
+function updHUD(){if(!BAT)return;const pf=BAT.pTeam[BAT.pIdx],ef=BAT.aTeam[BAT.aIdx];
+  document.getElementById('pn').textContent=pf.n;document.getElementById('ps').textContent='Lv.50'+(pf.abl?' • '+pf.abl:'');
+  document.getElementById('pt').innerHTML=pf.tps.map(t=>'<span class="tp tp-'+t+'">'+t+'</span>').join('');
+  const pp=Math.max(0,(pf.hp/pf.mhp)*100);const pF=document.getElementById('phf');pF.style.width=pp+'%';pF.className='hpf'+(pp<25?' r':pp<50?' y':'');
+  document.getElementById('pht').textContent=pf.hp+' / '+pf.mhp;document.getElementById('php').textContent=Math.round(pp)+'%';
+  let pS='';if(pf.status)pS+='<span class="sch '+pf.status+'">'+pf.status+'</span>';if(pf.confused)pS+='<span class="sch confused">confused</span>';document.getElementById('psc').innerHTML=pS;
+  document.getElementById('en').textContent=ef.n;document.getElementById('es').textContent='Lv.50'+(ef.abl?' • '+ef.abl:'');
+  document.getElementById('et').innerHTML=ef.tps.map(t=>'<span class="tp tp-'+t+'">'+t+'</span>').join('');
+  const ep=Math.max(0,(ef.hp/ef.mhp)*100);const eF=document.getElementById('ehf');eF.style.width=ep+'%';eF.className='hpf'+(ep<25?' r':ep<50?' y':'');
+  document.getElementById('eht').textContent=ef.hp+' / '+ef.mhp;document.getElementById('ehp').textContent=Math.round(ep)+'%';
+  let eS='';if(ef.status)eS+='<span class="sch '+ef.status+'">'+ef.status+'</span>';if(ef.confused)eS+='<span class="sch confused">confused</span>';document.getElementById('esc').innerHTML=eS;
+  document.getElementById('tnc').textContent='Turn '+BAT.turn;updW();rMoves(pf);rSw();updSp(pSp,pf.e);updSp(eSp,ef.e);}
+
+function rMoves(f){const g=document.getElementById('mgrid');g.innerHTML='';
+  if(f.mvs.every(m=>m.cpp<=0)){const b=document.createElement('button');b.className='mb';b.innerHTML='<div class="mbt"><span class="mbn">😤 Struggle</span><span class="mbpp" style="color:#f87171">0 PP</span></div><div class="mbm"><span class="mc physical">physical</span><span class="mpw">PWR 50</span></div>';b.onclick=()=>playerMove(0);g.appendChild(b);return;}
+  f.mvs.forEach((m,i)=>{const b=document.createElement('button');b.className='mb';b.disabled=m.cpp<=0||BAT.busy||BAT.over;
+    const ppP=m.pp>0?(m.cpp/m.pp)*100:0,ppC=ppP>50?(TPCSS[m.tp]||'#22c55e'):ppP>25?'#eab308':'#ef4444';
+    b.style.borderColor=(TPCSS[m.tp]||'#555')+'30';
+    b.innerHTML='<div class="mbt"><span class="mbn">'+m.n+'</span><span class="mbpp">'+m.cpp+'/'+m.pp+'</span></div><div class="mbm"><span class="tp tp-'+m.tp+'" style="font-size:.46rem;padding:0 4px">'+m.tp+'</span><span class="mc '+m.c+'">'+m.c+'</span>'+(m.pw>0?'<span class="mpw">PWR '+m.pw+'</span>':'')+(m.ac<100?'<span class="mpw">ACC '+m.ac+'%</span>':'')+'</div><div class="ppb"><div class="ppf" style="width:'+ppP+'%;background:'+ppC+'"></div></div>';
+    b.onclick=()=>playerMove(i);g.appendChild(b);});}
+
+function rSw(){const p=document.getElementById('swp');p.innerHTML='';BAT.pTeam.forEach((f,i)=>{const b=document.createElement('button');b.className='swb';b.disabled=f.fainted||i===BAT.pIdx;const hp=Math.max(0,(f.hp/f.mhp)*100),hc=hp<25?'#ef4444':hp<50?'#eab308':'#22c55e';b.innerHTML='<span class="swe">'+f.e+'</span><span class="swn">'+f.n+'</span><div class="swhp"><div class="swhpf" style="width:'+hp+'%;background:'+hc+'"></div></div><span style="font-size:.46rem;color:var(--muted)">'+(f.fainted?'💀':Math.round(hp)+'%')+'</span>';b.onclick=()=>switchTo(i);p.appendChild(b);});}
+
+function entryAbl(f,foe){if(!f.abl)return;
+  if(f.abl==='Hope and Change')stUp(f,'spa',1);else if(f.abl==='Mar-a-Lago Defense')f.stg={atk:0,def:0,spa:0,spd:0,spe:0};
+  else if(f.abl==='Morning in America'){BAT.weather='sunny';BAT.wT=5;blog('<span class="ls">☀️ Morning in America!</span>');updW();}
+  else if(f.abl==='Social Credit'&&foe)stUp(foe,'atk',-1);else if(f.abl==='Great Leap'){stUp(f,'atk',1);stUp(f,'spa',1);}
+  else if(f.abl==='Flip-Flopper')stUp(f,'spa',1);else if(f.abl==='Algorithm'&&foe)blog('<span class="ls">🤖 '+f.n+' knows '+foe.n+"'s moves!</span>");
+  else if(f.abl==='Blitz Speed')stUp(f,'spe',1);else if(f.abl==='Emperor Complex')stUp(f,'atk',1);}
+
+function demoR(){return{pTeam:[
+{id:'obama',n:'Barack Obama',e:'🇺🇸',ttl:'44th President',tps:['Democrat'],bs:{hp:95,atk:60,def:70,spa:115,spd:85,spe:95},abl:'Hope and Change',abld:'',itm:null,fl:'',mvs:[{n:'Obamahameha',tp:'Democrat',c:'special',pw:120,ac:90,pp:8,ef:null},{n:'Yes We Can Cannon',tp:'Democrat',c:'special',pw:85,ac:100,pp:10,ef:{up:{spa:1},self:true}},{n:'Blue Wave',tp:'Democrat',c:'special',pw:70,ac:100,pp:16,ef:null},{n:'Social Safety Net',tp:'Democrat',c:'status',pw:0,ac:100,pp:10,ef:{heal:.5,self:true}}]},
+{id:'bernie',n:'Bernie Sanders',e:'✊',ttl:'Vermont Senator',tps:['Socialist','Democrat'],bs:{hp:90,atk:55,def:70,spa:110,spd:75,spe:60},abl:'Once Again Asking',abld:'',itm:'Mittens',fl:'',mvs:[{n:'Bern Burn',tp:'Socialist',c:'special',pw:95,ac:90,pp:8,ef:{chance:35,status:'burn'}},{n:'Wall Street Buster',tp:'Socialist',c:'special',pw:80,ac:100,pp:10,ef:{dn:{spa:1},tgt:true}},{n:'Redistribute',tp:'Socialist',c:'special',pw:80,ac:100,pp:16,ef:{dn:{atk:1},tgt:true}},{n:'Class Warfare',tp:'Socialist',c:'special',pw:95,ac:80,pp:8,ef:null}]},
+{id:'aoc',n:'AOC',e:'🌹',ttl:'The Squad',tps:['Socialist','Green'],bs:{hp:80,atk:60,def:65,spa:110,spd:80,spe:90},abl:'Twitter Finger',abld:'',itm:null,fl:'',mvs:[{n:'AOC Clapback',tp:'Socialist',c:'special',pw:80,ac:100,pp:16,ef:{chance:25,dn:{spa:1},tgt:true}},{n:'Green New Deal',tp:'Green',c:'status',pw:0,ac:100,pp:5,ef:{up:{atk:1,def:1,spa:1,spd:1,spe:1},self:true}},{n:'Class Warfare',tp:'Socialist',c:'special',pw:95,ac:80,pp:8,ef:null},{n:'Solar Blast',tp:'Green',c:'special',pw:90,ac:90,pp:10,ef:null}]}],
+aTeam:[
+{id:'trump',n:'Donald Trump',e:'🍊',ttl:'47th President',tps:['Populist','Republican'],bs:{hp:100,atk:100,def:70,spa:85,spd:60,spe:80},abl:'Mar-a-Lago Defense',abld:'',itm:'MAGA Hat',fl:'',mvs:[{n:'Deportation Teleportation',tp:'Authoritarian',c:'special',pw:100,ac:90,pp:8,ef:{chance:40,dn:{spe:1},tgt:true}},{n:'Art of the Deal',tp:'Corporate',c:'status',pw:0,ac:100,pp:10,ef:{up:{atk:2},self:true}},{n:'Red Wave',tp:'Republican',c:'special',pw:70,ac:100,pp:16,ef:null},{n:'Rally the Base',tp:'Populist',c:'status',pw:0,ac:100,pp:16,ef:{up:{atk:1,spa:1},self:true}}]},
+{id:'putin',n:'Vladimir Putin',e:'🐻',ttl:'President of Russia',tps:['Authoritarian','Republican'],bs:{hp:100,atk:115,def:95,spa:90,spd:85,spe:70},abl:'KGB Training',abld:'',itm:'Polonium Tea',fl:'',mvs:[{n:"Putin's Iron Fist",tp:'Authoritarian',c:'physical',pw:120,ac:85,pp:8,ef:{chance:35,flinch:true}},{n:'Nerve Agent',tp:'Authoritarian',c:'status',pw:0,ac:85,pp:10,ef:{status:'toxic'}},{n:'Secret Police',tp:'Authoritarian',c:'physical',pw:90,ac:85,pp:10,ef:{chance:30,status:'paralysis'}},{n:'Iron Curtain',tp:'Authoritarian',c:'status',pw:0,ac:100,pp:16,ef:{up:{def:2,spd:2},self:true}}]},
+{id:'musk',n:'Elon Musk',e:'🚀',ttl:'DOGE Director',tps:['Libertarian','Corporate'],bs:{hp:80,atk:70,def:60,spa:115,spd:70,spe:100},abl:'Free Speech Absolutist',abld:'',itm:'Twitter Shares',fl:'',mvs:[{n:'Shitpost Storm',tp:'Libertarian',c:'special',pw:75,ac:85,pp:10,ef:{chance:30,dn:{spa:1},tgt:true}},{n:'Free Market Force',tp:'Libertarian',c:'special',pw:85,ac:90,pp:10,ef:null},{n:'Deregulate',tp:'Libertarian',c:'status',pw:0,ac:100,pp:20,ef:{up:{spe:2},self:true}},{n:'Hostile Takeover',tp:'Corporate',c:'special',pw:95,ac:80,pp:8,ef:{chance:25,dn:{def:1},tgt:true}}]}]};}
+
+function init(){init3D();animate();let st;try{const r=sessionStorage.getItem('politiBattleState');st=r?JSON.parse(r):null;}catch(e){}
+  if(st?.pTeam?.length&&st?.aTeam?.length){
+    if(st.pTeam[0].mhp){BAT={pTeam:st.pTeam,aTeam:st.aTeam,pIdx:st.pIdx||0,aIdx:st.aIdx||0,weather:st.weather||null,wT:st.wT||0,turn:st.turn||1,busy:false,over:false,pHz:st.pHz||[],aHz:st.aHz||[],kosDealt:0};
+      [...BAT.pTeam,...BAT.aTeam].forEach(f=>{if(!f.stg)f.stg={atk:0,def:0,spa:0,spd:0,spe:0};if(f.confused===undefined)f.confused=false;if(f.confuseTurns===undefined)f.confuseTurns=0;if(f.flinched===undefined)f.flinched=false;if(f._silenced===undefined)f._silenced=false;if(f.lockedMove===undefined)f.lockedMove=null;f.mvs=(f.mvs||[]).map(m=>({...m,cpp:m.cpp!==undefined?m.cpp:m.pp||10}));});}
+    else{BAT={pTeam:st.pTeam.map(p=>buildF(p,true)),aTeam:st.aTeam.map(p=>buildF(p,false)),pIdx:0,aIdx:0,weather:null,wT:0,turn:1,busy:false,over:false,pHz:[],aHz:[],kosDealt:0};}}
+  else{const d=demoR();BAT={pTeam:d.pTeam.map(p=>buildF(p,true)),aTeam:d.aTeam.map(p=>buildF(p,false)),pIdx:0,aIdx:0,weather:null,wT:0,turn:1,busy:false,over:false,pHz:[],aHz:[],kosDealt:0};}
+  updSp(pSp,BAT.pTeam[BAT.pIdx].e);updSp(eSp,BAT.aTeam[BAT.aIdx].e);
+  entryAbl(BAT.pTeam[BAT.pIdx],BAT.aTeam[BAT.aIdx]);entryAbl(BAT.aTeam[BAT.aIdx],BAT.pTeam[BAT.pIdx]);
+  camDef();updHUD();blog('<span class="li">⚔️ BATTLE START!</span>');blog('<span class="li">'+BAT.pTeam[BAT.pIdx].n+' vs '+BAT.aTeam[BAT.aIdx].n+'!</span>');blog('<span class="ls">🎯 Choose your move!</span>');}
+addEventListener('DOMContentLoaded',init);
 </script>
 </body>
 </html>
