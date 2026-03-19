@@ -1601,14 +1601,16 @@ function showMod(p){
 function launch(pRoster,aRoster){launchBattle(pRoster,aRoster);}
 function launchBattle(pRoster,aRoster){
   REPLAY_LOG=[];
-  const b={pTeam:pRoster.map(p=>buildFighter(p,true)),aTeam:aRoster.map(p=>buildFighter(p,false)),pIdx:0,aIdx:0,weather:null,wT:0,turn:1,busy:false,pHz:[],aHz:[],over:false,kosDealt:0};
-  BAT=b;ss('battleScreen');
-  initArena();buildStars();setupEnemyTooltip();
-  entryAbl(b,b.pTeam[0],b.aTeam[0]);entryAbl(b,b.aTeam[0],b.pTeam[0]);
-  render();startTimer();SFX.playFanfare();
-  rlog(`<span class="li">⚔️ BATTLE START: ${b.pTeam[0].n} vs ${b.aTeam[0].n}!</span>`);
-  blog(b,`<span class="li">⚔️ ${b.pTeam[0].n} vs ${b.aTeam[0].n}!</span>`);
-  blog(b,`<span class="ls">🎯 Choose your move!</span>`);
+  const pTeam=pRoster.map(p=>buildFighter(p,true));
+  const aTeam=aRoster.map(p=>buildFighter(p,false));
+  // Save battle state to sessionStorage then open 3D Arena
+  try {
+    sessionStorage.setItem('politiBattleState', JSON.stringify({
+      pTeam, aTeam, pIdx:0, aIdx:0, weather:null, wT:0,
+      turn:1, pHz:[], aHz:[]
+    }));
+  } catch(e) { console.warn('sessionStorage save failed', e); }
+  window.location.href = '/arena';
 }
 function entryAbl(b,f,foe){
   if(!f.abl)return;

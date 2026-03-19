@@ -638,14 +638,33 @@ let muted = false;
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+function normalizeFighter(f) {
+  // Ensure all fields arena's battle engine expects are present
+  if (f.confused === undefined) f.confused = false;
+  if (f.confuseTurns === undefined) f.confuseTurns = 0;
+  if (f.flinched === undefined) f.flinched = false;
+  if (f.lockedMove === undefined) f.lockedMove = null;
+  if (f._endu === undefined) f._endu = 0;
+  if (f._firstMoved === undefined) f._firstMoved = false;
+  if (f._rl === undefined) f._rl = false;
+  if (f.stg === undefined) f.stg = {atk:0,def:0,spa:0,spd:0,spe:0};
+  if (!f.bs) f.bs = {atk:100,def:100,spa:100,spd:100,spe:100};
+  // Ensure each move has cpp (current pp)
+  if (f.mvs) f.mvs.forEach(m => { if (m.cpp === undefined) m.cpp = m.pp || 16; });
+  return f;
+}
+
 function initBattle() {
   // Try loading from sessionStorage
   let state = null;
   try { state = JSON.parse(sessionStorage.getItem('politiBattleState')); } catch(e) {}
+  // Clear so a refresh starts a fresh random battle
+  try { sessionStorage.removeItem('politiBattleState'); } catch(e) {}
 
   if (state && state.pTeam && state.pTeam.length > 0) {
     BAT = {
-      pTeam: state.pTeam, aTeam: state.aTeam,
+      pTeam: state.pTeam.map(normalizeFighter),
+      aTeam: state.aTeam.map(normalizeFighter),
       pIdx: state.pIdx || 0, aIdx: state.aIdx || 0,
       weather: state.weather || null, wT: state.wT || 0,
       turn: state.turn || 1, pHz: state.pHz || [], aHz: state.aHz || [],
