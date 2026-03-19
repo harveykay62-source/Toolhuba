@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- PolitiBattle Module — Online Multiplayer Lobby — loaded via /politibattle-multi and /game/:code routes -->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="PolitiBattle Online — Challenge friends to a political battle">
+  <meta name="author" content="ToolHub AI">
+  <meta property="og:site_name" content="ToolHub AI">
+  <meta name="theme-color" content="#6366f1">
+  <title>PolitiBattle Online — ToolHub AI</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🌐</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- ── Site Header ── -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a class="logo" href="/politibattle" aria-label="Back to PolitiBattle">
+        <span class="logo-icon">🏛️</span>
+        <span class="logo-text">Politi<span class="logo-ai">Battle</span></span>
+      </a>
+      <nav class="header-nav">
+        <a class="header-nav-btn" href="/politibattle">← Main Menu</a>
+        <a class="header-nav-btn" href="/arena">⚔️ Solo Battle</a>
+        <a class="header-nav-btn" href="/politibattle-multi"
+           style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(16,185,129,.1));border:1px solid rgba(99,102,241,.3)">
+          🌐 Online
+        </a>
+      </nav>
+      <div class="header-actions">
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main multiplayer UI — filled by future chunk ── -->
+  <main id="multi-root" class="main-content">
+    <!-- Lobby, team-select, battle UI all injected here by politibattle-multi.js -->
+  </main>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- ── Socket.io (MUST load before game scripts) ── -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- ── Scripts: only what politibattle-multi.html needs ── -->
+  <script src="/js/pb-data.js"></script>
+  <script src="/js/pb-engine.js"></script>
+  <script src="/js/pb-mechanics.js"></script>
+  <script src="/js/pb-sound.js"></script>
+  <script src="/js/pb-animations.js"></script>
+  <script src="/js/pb-ui.js"></script>
+  <script src="/js/politibattle-multi.js"></script>
+
+</body>
+</html>

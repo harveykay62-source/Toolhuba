@@ -2,100 +2,166 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Multiplayer Quizzes | ToolHub AI</title>
+<title>Multiplayer Quizzes — Classic & Gold Quest | ToolHub AI</title>
+<meta name="description" content="Play live multiplayer quizzes with friends or students. Classic mode for schools, Gold Quest with chests and strategy for everyone.">
+<link rel="canonical" href="https://toolhuba.onrender.com/multiplayer">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/multiplayer.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#090e1a;font-family:'Inter',sans-serif;overflow-x:hidden;color:#e2e8f0}
-.mp-nav{background:rgba(15,23,42,.88);backdrop-filter:blur(16px);padding:14px 26px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:100}
-.mp-nav a{color:#64748b;text-decoration:none;font-size:.86rem;padding:6px 12px;border-radius:9px;transition:all .2s;font-weight:500}
+*{box-sizing:border-box}
+body{margin:0;background:#090e1a;font-family:'Inter',sans-serif;overflow-x:hidden}
+
+.mp-nav{background:rgba(15,23,42,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:16px 28px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:100}
+.mp-nav a{color:#64748b;text-decoration:none;font-size:.88rem;padding:7px 14px;border-radius:10px;transition:all .2s;font-weight:500}
 .mp-nav a:hover{background:rgba(255,255,255,.06);color:#e2e8f0}
-.mp-nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1rem;text-decoration:none;margin-right:auto}
-.hero{text-align:center;padding:90px 24px 60px;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,102,241,.12),transparent 60%),radial-gradient(ellipse 60% 50% at 20% 100%,rgba(16,185,129,.08),transparent 50%),#090e1a;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.hero-icon{width:76px;height:76px;border-radius:22px;background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(16,185,129,.2));border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:2.3rem;margin-bottom:26px;box-shadow:0 0 55px rgba(99,102,241,.15)}
-.hero h1{font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:900;margin-bottom:12px;background:linear-gradient(135deg,#e2e8f0,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.03em}
-.hero .sub{font-size:1.1rem;color:#64748b;max-width:460px;margin:0 auto 48px;line-height:1.7}
-.actions{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
-.act-btn{display:flex;flex-direction:column;align-items:center;gap:13px;padding:32px 44px;border-radius:20px;cursor:pointer;transition:all .25s;border:1px solid rgba(255,255,255,.08);min-width:230px;position:relative;overflow:hidden;text-decoration:none}
-.act-btn::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;border-radius:20px}
-.act-btn:hover{transform:translateY(-4px)}.act-btn:hover::before{opacity:1}
-.act-btn.setup{background:rgba(99,102,241,.08)}.act-btn.setup::before{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.12))}.act-btn.setup:hover{border-color:rgba(99,102,241,.3);box-shadow:0 20px 60px rgba(99,102,241,.15)}
-.act-btn.join{background:rgba(16,185,129,.08)}.act-btn.join::before{background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(52,211,153,.12))}.act-btn.join:hover{border-color:rgba(16,185,129,.3);box-shadow:0 20px 60px rgba(16,185,129,.15)}
-.act-icon{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;position:relative;z-index:1}
-.act-btn.setup .act-icon{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2)}
-.act-btn.join .act-icon{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.2)}
-.act-label{font-size:1.1rem;font-weight:700;color:#fff;position:relative;z-index:1}
-.act-desc{font-size:.83rem;color:#64748b;position:relative;z-index:1}
-/* Join section */
-.join-section{margin-top:50px;display:none;animation:slideUp .32s ease-out}
-.join-section.visible{display:block}
-.join-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:34px 30px;max-width:400px;margin:0 auto;backdrop-filter:blur(8px)}
-.join-card h3{color:#fff;font-size:1.15rem;font-weight:700;margin-bottom:5px}
-.join-card p{color:#64748b;font-size:.88rem;margin-bottom:22px}
-.join-input-row{display:flex;gap:9px}
-.join-input-row input{flex:1;padding:13px 16px;border-radius:11px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:1.15rem;letter-spacing:.12em;text-transform:uppercase;text-align:center;font-weight:600;transition:border-color .2s;font-family:'Inter',sans-serif;outline:none}
-.join-input-row input::placeholder{letter-spacing:0;text-transform:none;font-weight:400;font-size:.92rem;color:#475569}
-.join-input-row input:focus{border-color:#6366f1;background:rgba(99,102,241,.06)}
-.join-input-row button{padding:13px 22px;border-radius:11px;border:none;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-weight:700;font-size:.92rem;cursor:pointer;transition:opacity .2s;white-space:nowrap}
-.join-input-row button:hover{opacity:.85}
-#joinErr{color:#f87171;margin-top:9px;font-size:.82rem;text-align:center;min-height:20px}
-#joinSuccess{color:#4ade80;margin-top:9px;font-size:.82rem;text-align:center;min-height:20px;display:none}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
-footer{background:rgba(15,23,42,.6);border-top:1px solid rgba(255,255,255,.04);padding:22px 20px;text-align:center}
-footer a{color:#475569;text-decoration:none;margin:0 11px;font-size:.8rem;transition:color .14s}
-footer a:hover{color:#94a3b8}
-.copy{color:#1e293b;font-size:.73rem;margin-top:10px}
-@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-@media(max-width:520px){.actions{flex-direction:column;align-items:center}.act-btn{min-width:270px;padding:26px 34px}}
+.mp-nav .logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;margin-right:auto}
+.mp-nav .logo span{font-size:1.25rem}
+
+.mp-hero{
+  text-align:center;padding:100px 24px 60px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,102,241,.12) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 50% at 20% 100%,rgba(16,185,129,.08) 0%,transparent 50%),
+             #090e1a;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative
+}
+.mp-hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='.6' fill='rgba(148,163,184,0.06)'/%3E%3C/svg%3E");
+  pointer-events:none
+}
+.mp-hero-icon{
+  width:80px;height:80px;border-radius:24px;
+  background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(16,185,129,.2));
+  border:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.5rem;margin-bottom:28px;
+  box-shadow:0 0 60px rgba(99,102,241,.15)
+}
+.mp-hero h1{
+  font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:900;margin-bottom:14px;
+  background:linear-gradient(135deg,#e2e8f0 0%,#94a3b8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:-.03em;line-height:1.1
+}
+.mp-hero .subtitle{
+  font-size:1.15rem;color:#64748b;max-width:480px;margin:0 auto 52px;line-height:1.7;font-weight:400
+}
+
+.mp-actions{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;position:relative;z-index:1}
+.mp-action-btn{
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  padding:36px 48px;border-radius:20px;cursor:pointer;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  text-decoration:none;border:1px solid rgba(255,255,255,.08);
+  min-width:240px;position:relative;overflow:hidden
+}
+.mp-action-btn::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;border-radius:20px
+}
+.mp-action-btn:hover{transform:translateY(-4px)}
+.mp-action-btn:hover::before{opacity:1}
+.mp-action-btn:active{transform:translateY(-2px)}
+.mp-action-btn.setup{background:rgba(99,102,241,.08)}
+.mp-action-btn.setup::before{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.12))}
+.mp-action-btn.setup:hover{border-color:rgba(99,102,241,.3);box-shadow:0 20px 60px rgba(99,102,241,.15),0 0 0 1px rgba(99,102,241,.15)}
+.mp-action-btn.join{background:rgba(16,185,129,.08)}
+.mp-action-btn.join::before{background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(52,211,153,.12))}
+.mp-action-btn.join:hover{border-color:rgba(16,185,129,.3);box-shadow:0 20px 60px rgba(16,185,129,.15),0 0 0 1px rgba(16,185,129,.15)}
+.mp-action-icon{
+  width:56px;height:56px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem;position:relative;z-index:1
+}
+.mp-action-btn.setup .mp-action-icon{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2)}
+.mp-action-btn.join .mp-action-icon{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.2)}
+.mp-action-label{font-size:1.15rem;font-weight:700;color:#fff;position:relative;z-index:1}
+.mp-action-desc{font-size:.85rem;color:#64748b;position:relative;z-index:1;font-weight:400}
+
+.mp-join-inline{margin-top:56px;position:relative;z-index:1;display:none;animation:slideUp .35s ease-out}
+.mp-join-inline.visible{display:block}
+.mp-join-card{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;padding:36px 32px;max-width:420px;margin:0 auto;
+  backdrop-filter:blur(8px)
+}
+.mp-join-card h3{color:#fff;font-size:1.2rem;font-weight:700;margin-bottom:6px}
+.mp-join-card p{color:#64748b;font-size:.9rem;margin-bottom:24px}
+.join-input-group{display:flex;gap:10px}
+.join-input-group input{
+  flex:1;padding:14px 18px;border-radius:12px;
+  border:1.5px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);color:#fff;font-size:1.2rem;
+  letter-spacing:.12em;text-transform:uppercase;text-align:center;
+  font-weight:600;transition:border-color .2s;font-family:'Inter',sans-serif
+}
+.join-input-group input::placeholder{letter-spacing:0;text-transform:none;font-weight:400;font-size:.95rem;color:#475569}
+.join-input-group input:focus{outline:none;border-color:#6366f1;background:rgba(99,102,241,.06)}
+.join-input-group button{
+  padding:14px 24px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;
+  font-weight:700;font-size:.95rem;cursor:pointer;transition:opacity .2s;white-space:nowrap
+}
+.join-input-group button:hover{opacity:.85}
+#joinError{color:#f87171;margin-top:10px;font-size:.85rem;text-align:center}
+
+.mp-footer{background:rgba(15,23,42,.6);border-top:1px solid rgba(255,255,255,.04);padding:24px 20px;text-align:center}
+.mp-footer a{color:#475569;text-decoration:none;margin:0 12px;font-size:.82rem;transition:color .15s}
+.mp-footer a:hover{color:#94a3b8}
+.mp-footer .copy{color:#1e293b;font-size:.75rem;margin-top:12px}
+
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@media(max-width:520px){
+  .mp-actions{flex-direction:column;align-items:center}
+  .mp-action-btn{min-width:280px;padding:28px 36px}
+  .mp-hero{padding:60px 16px 40px}
+}
 </style>
 </head>
 <body>
+
 <nav class="mp-nav">
   <a href="/" class="logo"><span>⚡</span> ToolHub AI</a>
   <a href="/">🔧 Tools</a>
   <a href="/quizzes">🎓 Quizzes</a>
   <a href="/privacy">🔒 Privacy</a>
-  <a href="/politibattle" style="color:#fca5a5;font-weight:600">🏛️ PolitiBattle</a>
 </nav>
 
-<div class="hero">
-  <div class="hero-icon">🎮</div>
+<div class="mp-hero">
+  <div class="mp-hero-icon">🎮</div>
   <h1>Multiplayer</h1>
-  <p class="sub">Challenge friends or students in live quiz battles. Set up your own game or jump into one with a code.</p>
+  <p class="subtitle">Challenge friends or students in live quiz battles. Set up your own game or jump into one.</p>
 
-  <div class="actions">
-    <div class="act-btn setup" onclick="goSetup()">
-      <div class="act-icon">🚀</div>
-      <div class="act-label">Setup a Game</div>
-      <div class="act-desc">Choose mode, pick a quiz, invite players</div>
+  <div class="mp-actions">
+    <div class="mp-action-btn setup" onclick="goSetup()">
+      <div class="mp-action-icon">🚀</div>
+      <div class="mp-action-label">Setup a Game</div>
+      <div class="mp-action-desc">Choose mode, pick a quiz, invite players</div>
     </div>
-    <div class="act-btn join" onclick="showJoin()">
-      <div class="act-icon">🎯</div>
-      <div class="act-label">Join a Game</div>
-      <div class="act-desc">Enter a code to jump into a live game</div>
+    <div class="mp-action-btn join" onclick="showJoin()">
+      <div class="mp-action-icon">🎯</div>
+      <div class="mp-action-label">Join a Game</div>
+      <div class="mp-action-desc">Enter a code to jump into a live game</div>
     </div>
   </div>
 
-  <div class="join-section" id="joinSection">
-    <div class="join-card">
+  <div class="mp-join-inline" id="joinSection">
+    <div class="mp-join-card">
       <h3>Enter Game Code</h3>
       <p>Type the 6-character code your host shared with you.</p>
-      <div class="join-input-row">
-        <input id="codeInput" type="text" maxlength="6" placeholder="ABC123"
-          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
-          onkeydown="if(event.key==='Enter')doJoin()">
-        <button id="joinBtn" onclick="doJoin()">Join →</button>
+      <div class="join-input-group">
+        <input id="joinCodeInput" type="text" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
+        <button onclick="doJoin()">Join →</button>
       </div>
-      <div id="joinErr"></div>
-      <div id="joinSuccess"></div>
+      <div id="joinError"></div>
     </div>
   </div>
 </div>
 
-<footer>
+<footer class="mp-footer">
   <div><a href="/">🏠 Home</a><a href="/quizzes">🎓 Quizzes</a><a href="/privacy">🔒 Privacy</a></div>
   <div class="copy">© 2025 ToolHub AI — Free AI Tools &amp; Quizzes</div>
 </footer>
@@ -103,77 +169,41 @@ footer a:hover{color:#94a3b8}
 <script>
 async function goSetup() {
   try {
-    const res = await fetch('/api/init').then(r => r.json()).catch(() => null);
-    if (res && !res?.session?.loggedIn) {
+    const init = await fetch('/api/init').then(r=>r.json());
+    if (!init.session.loggedIn) {
       window.location.href = '/login?redirect=/host-game';
       return;
     }
     window.location.href = '/host-game';
   } catch(e) {
-    window.location.href = '/host-game';
+    alert('Could not connect. Please try again.');
   }
 }
 
 function showJoin() {
   const sec = document.getElementById('joinSection');
-  const isVisible = sec.classList.contains('visible');
   sec.classList.toggle('visible');
-  if (!isVisible) {
-    setTimeout(() => document.getElementById('codeInput').focus(), 120);
+  if (sec.classList.contains('visible')) {
+    setTimeout(() => document.getElementById('joinCodeInput').focus(), 100);
   }
-  // clear any previous errors
-  document.getElementById('joinErr').textContent = '';
-  document.getElementById('joinSuccess').style.display = 'none';
 }
 
 async function doJoin() {
-  const codeInput = document.getElementById('codeInput');
-  const errEl = document.getElementById('joinErr');
-  const successEl = document.getElementById('joinSuccess');
-  const btn = document.getElementById('joinBtn');
-  const code = codeInput.value.trim().toUpperCase();
-
-  errEl.textContent = '';
-  successEl.style.display = 'none';
-
-  if (code.length < 4) {
-    errEl.textContent = 'Please enter a valid game code (at least 4 characters).';
-    return;
-  }
-
-  // Show loading state
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Joining...';
-
+  const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if (code.length < 4) { document.getElementById('joinError').textContent = 'Please enter a valid game code.'; return; }
+  document.getElementById('joinError').textContent = '';
   try {
     const r = await fetch('/api/multiplayer/validate-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code })
-    });
-
-    const data = await r.json();
-
-    if (!r.ok || data.error) {
-      errEl.textContent = data.error || 'Invalid game code. Please check and try again.';
-      btn.disabled = false;
-      btn.textContent = 'Join →';
-      return;
-    }
-
-    // Success — navigate to the game
-    successEl.textContent = '✓ Code valid! Joining game...';
-    successEl.style.display = 'block';
-    setTimeout(() => {
-      window.location.href = '/join-game?code=' + encodeURIComponent(code);
-    }, 400);
-
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code})
+    }).then(r=>r.json());
+    if (r.error) { document.getElementById('joinError').textContent = r.error; return; }
+    window.location.href = '/join-game?code=' + code;
   } catch(e) {
-    errEl.textContent = 'Network error. Please check your connection and try again.';
-    btn.disabled = false;
-    btn.textContent = 'Join →';
+    document.getElementById('joinError').textContent = 'Network error. Please try again.';
   }
 }
+
+document.getElementById('joinCodeInput').addEventListener('keydown', e => { if (e.key === 'Enter') doJoin(); });
 </script>
 </body>
 </html>

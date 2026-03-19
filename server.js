@@ -57,7 +57,6 @@ io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 require('./lib/socketHandler')(io);
-require('./lib/battleSocket')(io);
 app.set('io', io); // make io available in routes if needed
 
 // ── Analytics tracking middleware ─────────────────────────────────────────────
@@ -76,7 +75,8 @@ app.use('/api',                 require('./routes/dashboard'));
 app.use('/api/quiz',            require('./routes/quiz'));
 app.use('/api/admin/analytics', analytics.router);
 app.use('/api/multiplayer',     require('./routes/multiplayer'));
-app.use('/api/politibattle',    require('./routes/politibattle'));
+app.use('/',                    require('./routes/politibattle'));
+require('./lib/battleSocket')(io);
 
 // ── /api/init ─────────────────────────────────────────────────────────────────
 app.get('/api/init', async (req, res) => {
@@ -162,7 +162,6 @@ app.get('/host-game',    (req, res) => res.sendFile(path.join(__dirname, 'public
 app.get('/join-game',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'join-game.html')));
 app.get('/game-room',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'game-room.html')));
 app.get('/leaderboard',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
-app.get('/politibattle', (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
 app.get('/privacy',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
 
 // ── Teacher dashboard ─────────────────────────────────────────────────────────
