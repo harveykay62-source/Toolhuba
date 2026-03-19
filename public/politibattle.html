@@ -346,6 +346,7 @@ footer a:hover{color:#94a3b8}
   <div class="h-acts">
     <div class="hb a" onclick="goTeam()"><div class="hbi">⚔️</div><div class="hbl">Build &amp; Battle</div><div class="hbd">Pick your team · Fight the AI</div></div>
     <div class="hb b" onclick="doRandom()"><div class="hbi">🎲</div><div class="hbl">Random Battle</div><div class="hbd">Instant action · Random teams</div></div>
+    <div class="hb" style="background:rgba(34,197,94,.08)" onclick="window.location.href='/politibattle-multi'"><div class="hbi" style="position:relative;z-index:1">🌐</div><div class="hbl" style="position:relative;z-index:1">Online Battle</div><div class="hbd" style="position:relative;z-index:1">Fight real players</div></div>
     <div class="hb" style="background:rgba(168,85,247,.08)" onclick="launch3DArena()"><div class="hbi" style="position:relative;z-index:1">🌐</div><div class="hbl" style="position:relative;z-index:1">3D Arena</div><div class="hbd" style="position:relative;z-index:1">Three.js · Full 3D battle</div></div>
     <div class="hb c" onclick="goDex()"><div class="hbi">📖</div><div class="hbl">PolitiDex</div><div class="hbd">Browse all 50 politicians</div></div>
     <div class="hb" style="background:rgba(99,102,241,.08)" onclick="openTypeChart()"><div class="hbi" style="position:relative;z-index:1">📊</div><div class="hbl" style="position:relative;z-index:1">Type Chart</div><div class="hbd" style="position:relative;z-index:1">10×10 effectiveness grid</div></div>
@@ -2184,38 +2185,8 @@ function updateFighterVisuals(b){
   };
   pe.style.filter=gf(pf);ee.style.filter=gf(ef);
 }
-function updateFighterVisuals(b){
-  if(!b)return;
-  const pf=b.pTeam[b.pIdx],ef=b.aTeam[b.aIdx];
-  const pe=document.getElementById('pf3d'),ee=document.getElementById('ef3d');
-  if(!pe||!ee)return;
-  const getFilter=f=>{
-    if(f.status==='freeze')return 'brightness(1.3) saturate(0.2) sepia(0.8) hue-rotate(180deg)';
-    if(f.status==='burn')return 'sepia(0.4) saturate(2.5) hue-rotate(-15deg) brightness(1.1)';
-    if(f.status==='paralysis')return 'sepia(0.5) hue-rotate(35deg) brightness(1.2)';
-    if(f.status==='poison'||f.status==='toxic')return 'hue-rotate(255deg) saturate(1.8)';
-    if(f.confused)return 'hue-rotate(180deg) saturate(1.5)';
-    return 'drop-shadow(0 8px 26px rgba(0,0,0,.7))';
-  };
-  pe.style.filter=getFilter(pf);
-  ee.style.filter=getFilter(ef);
-}
-function updateFighterVisuals(b){
-  if(!b)return;
-  const pf=b.pTeam[b.pIdx],ef=b.aTeam[b.aIdx];
-  const pe=document.getElementById('pf3d'),ee=document.getElementById('ef3d');
-  if(!pe||!ee)return;
-  const gf=f=>{
-    if(!f||f.fainted)return'opacity(0.35)';
-    if(f.status==='freeze')return'brightness(1.3) saturate(0.2) sepia(0.8) hue-rotate(180deg)';
-    if(f.status==='burn')return'sepia(0.4) saturate(2.5) hue-rotate(-15deg) brightness(1.1)';
-    if(f.status==='paralysis')return'sepia(0.5) hue-rotate(35deg) brightness(1.2)';
-    if(f.status==='poison'||f.status==='toxic')return'hue-rotate(255deg) saturate(1.8)';
-    if(f.confused)return'hue-rotate(180deg) saturate(1.5)';
-    return'drop-shadow(0 8px 26px rgba(0,0,0,.7))';
-  };
-  pe.style.filter=gf(pf);ee.style.filter=gf(ef);
-}
+
+
 
 // ═══ TYPE CHART MODAL ═══
 
