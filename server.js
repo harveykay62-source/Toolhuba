@@ -163,7 +163,8 @@ app.get('/join-game',    (req, res) => res.sendFile(path.join(__dirname, 'public
 app.get('/game-room',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'game-room.html')));
 app.get('/leaderboard',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
 app.get('/politibattle', (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle.html')));
-app.get('/arena',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'arena.html')));
+app.get('/politibattle-multi', (req, res) => res.sendFile(path.join(__dirname, 'public', 'politibattle-multi.html')));
+app.get('/arena', (req, res) => res.sendFile(path.join(__dirname, 'public', 'arena.html')));
 app.get('/privacy',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
 
 // ── Teacher dashboard ─────────────────────────────────────────────────────────
