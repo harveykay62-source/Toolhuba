@@ -63,10 +63,10 @@
     .timer-label{font-family:'Orbitron',sans-serif;font-size:.65rem;color:#f87171;margin-top:2px}
 
     /* ── Teams area ── */
-    #teams-area{flex:1;display:flex;min-height:0;padding:0 12px;gap:0;align-items:flex-start}
+    #teams-area{flex:1;display:flex;min-height:0;padding:0 12px;gap:0;overflow:hidden}
 
     /* Team column */
-    .team-col{flex:1;display:flex;flex-direction:column;padding:8px;height:fit-content}
+    .team-col{flex:1;display:flex;flex-direction:column;padding:8px;min-height:0;overflow:hidden}
     .team-label{font-family:'Bebas Neue',sans-serif;font-size:clamp(.9rem,1.8vw,1.2rem);letter-spacing:3px;text-align:center;margin-bottom:6px;flex-shrink:0}
     .team-label.player-label{color:var(--blue)}
     .team-label.ai-label{color:var(--red)}
@@ -88,7 +88,7 @@
     .card-hp{font-family:'Orbitron',sans-serif;font-size:.55rem;color:#94a3b8;margin-top:2px}
 
     /* Center VS divider */
-    #vs-divider{width:60px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative}
+    #vs-divider{width:60px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:center;padding-top:60px;position:relative}
     #vs-text{font-family:'Orbitron',sans-serif;font-size:clamp(1.5rem,3vw,2.4rem);font-weight:900;
       background:linear-gradient(180deg,var(--red),#fff 50%,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
       filter:drop-shadow(0 0 12px rgba(255,255,255,0.3));animation:vs-pulse 2s ease-in-out infinite}
