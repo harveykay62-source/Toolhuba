@@ -53,7 +53,7 @@
     #preview-root{position:relative;z-index:10;height:calc(100vh - var(--nav-h));display:flex;flex-direction:column;overflow:hidden}
 
     /* ── VS Header ── */
-    #vs-header{text-align:center;padding:10px 16px 6px;flex-shrink:0}
+    #vs-header{text-align:center;padding:6px 16px 4px;flex-shrink:0}
     #vs-header h1{font-family:'Orbitron',sans-serif;font-size:clamp(1.1rem,2.5vw,1.6rem);font-weight:900;letter-spacing:3px;
       background:linear-gradient(90deg,var(--red),#fff,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
     #vs-header .subtitle{font-family:Inter,sans-serif;font-size:.8rem;color:#94a3b8;margin:2px 0 6px}
@@ -63,46 +63,48 @@
     .timer-label{font-family:'Orbitron',sans-serif;font-size:.65rem;color:#f87171;margin-top:2px}
 
     /* ── Teams area ── */
-    #teams-area{flex:1;display:flex;min-height:0;padding:0 12px;gap:0;overflow:hidden}
+    #teams-area{flex:1;display:flex;min-height:0;padding:0 6px;gap:0}
 
     /* Team column */
-    .team-col{flex:1;display:flex;flex-direction:column;padding:8px;min-height:0;overflow:hidden}
-    .team-label{font-family:'Bebas Neue',sans-serif;font-size:clamp(.9rem,1.8vw,1.2rem);letter-spacing:3px;text-align:center;margin-bottom:6px;flex-shrink:0}
+    .team-col{flex:1;display:flex;flex-direction:column;padding:4px;min-height:0}
+    .team-label{font-family:'Bebas Neue',sans-serif;font-size:clamp(.8rem,1.8vw,1.2rem);letter-spacing:3px;text-align:center;margin-bottom:4px;flex-shrink:0}
     .team-label.player-label{color:var(--blue)}
     .team-label.ai-label{color:var(--red)}
 
-    .team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;overflow:hidden;align-content:start;flex:1;min-height:0}
+    /* Grid uses rows:1fr so cards SHARE available height — never overflow */
+    .team-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:4px;flex:1;min-height:0}
 
-    /* Fighter card */
-    .fighter-card{background:var(--card-bg);border:2px solid var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;padding:8px 4px 6px;cursor:default;transition:all .25s ease;position:relative;overflow:hidden;min-height:0}
+    /* Fighter card fills its cell completely */
+    .fighter-card{background:var(--card-bg);border:2px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 2px 3px;cursor:default;transition:all .25s ease;position:relative;overflow:hidden;min-height:0}
     .fighter-card.clickable{cursor:pointer}
-    .fighter-card.clickable:hover{border-color:rgba(59,130,246,0.5);background:rgba(30,30,60,0.9);transform:translateY(-2px)}
+    .fighter-card.clickable:hover{border-color:rgba(59,130,246,0.5);background:rgba(30,30,60,0.9)}
     .fighter-card.selected{border-color:var(--gold)!important;box-shadow:0 0 18px rgba(245,158,11,0.5),inset 0 0 20px rgba(245,158,11,0.08)}
-    .fighter-card.selected::after{content:'✓';position:absolute;top:4px;right:6px;font-size:.75rem;color:var(--gold);font-weight:700}
+    .fighter-card.selected::after{content:'✓';position:absolute;top:3px;right:4px;font-size:.7rem;color:var(--gold);font-weight:700}
     .fighter-card.ai-lead-reveal{border-color:var(--red)!important;box-shadow:var(--glow-red)}
-    .card-avatar{width:clamp(56px,8vw,100px);height:clamp(72px,10vw,130px);flex-shrink:0}
-    .card-avatar svg{width:100%;height:100%}
-    .card-name{font-family:'Russo One',sans-serif;font-size:clamp(.55rem,1.1vw,.8rem);color:#f1f5f9;text-align:center;margin:3px 0 2px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-    .card-types{display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
-    .type-badge{font-family:Inter,sans-serif;font-size:.5rem;font-weight:600;padding:1px 5px;border-radius:4px;color:#fff;line-height:1.4;text-transform:uppercase;letter-spacing:.5px}
-    .card-hp{font-family:'Orbitron',sans-serif;font-size:.55rem;color:#94a3b8;margin-top:2px}
+    /* Avatar takes all spare vertical space in the card */
+    .card-avatar{width:100%;flex:1;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .card-avatar svg{max-width:100%;max-height:100%;height:auto;width:auto}
+    .card-name{font-family:'Russo One',sans-serif;font-size:clamp(.48rem,1.1vw,.72rem);color:#f1f5f9;text-align:center;margin:2px 0 1px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;flex-shrink:0}
+    .card-types{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;flex-shrink:0}
+    .type-badge{font-family:Inter,sans-serif;font-size:.42rem;font-weight:600;padding:1px 3px;border-radius:3px;color:#fff;line-height:1.4;text-transform:uppercase;letter-spacing:.3px}
+    .card-hp{font-family:'Orbitron',sans-serif;font-size:.48rem;color:#94a3b8;margin-top:1px;flex-shrink:0}
 
     /* Center VS divider */
-    #vs-divider{width:60px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:center;padding-top:60px;position:relative}
-    #vs-text{font-family:'Orbitron',sans-serif;font-size:clamp(1.5rem,3vw,2.4rem);font-weight:900;
+    #vs-divider{width:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative}
+    #vs-text{font-family:'Orbitron',sans-serif;font-size:clamp(1.1rem,3vw,2.4rem);font-weight:900;
       background:linear-gradient(180deg,var(--red),#fff 50%,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
       filter:drop-shadow(0 0 12px rgba(255,255,255,0.3));animation:vs-pulse 2s ease-in-out infinite}
     @keyframes vs-pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 12px rgba(255,255,255,0.3))}50%{transform:scale(1.12);filter:drop-shadow(0 0 20px rgba(255,255,255,0.5))}}
-    #vs-divider::before{content:'';position:absolute;width:2px;height:80%;background:linear-gradient(180deg,var(--red),transparent 20%,transparent 80%,var(--blue));opacity:.3}
+    #vs-divider::before{content:'';position:absolute;width:2px;height:60%;background:linear-gradient(180deg,var(--red),transparent 20%,transparent 80%,var(--blue));opacity:.3}
 
     /* AI spinner */
     .ai-spinner{display:flex;align-items:center;justify-content:center;gap:4px;color:#94a3b8;font-family:Inter,sans-serif;font-size:.7rem}
-    .ai-spinner .dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:ai-dot .6s ease-in-out infinite alternate}
+    .ai-spinner .dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:ai-dot .6s ease-in-out infinite alternate}
     .ai-spinner .dot:nth-child(2){animation-delay:.15s}.ai-spinner .dot:nth-child(3){animation-delay:.3s}
     @keyframes ai-dot{from{opacity:.3;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
 
-    /* ── Bottom bar ── */
-    #bottom-bar{flex-shrink:0;height:64px;display:flex;align-items:center;justify-content:center;padding:0 16px;gap:12px}
+    /* ── Bottom bar — always pinned ── */
+    #bottom-bar{flex-shrink:0;height:60px;display:flex;align-items:center;justify-content:center;padding:0 16px;gap:12px;border-top:1px solid var(--border)}
     #btn-battle{font-family:'Orbitron',sans-serif;font-size:clamp(.85rem,1.6vw,1.1rem);font-weight:700;letter-spacing:2px;
       padding:12px 40px;border:none;border-radius:10px;cursor:pointer;color:#fff;
       background:linear-gradient(135deg,var(--red2),var(--red),#f97316);
@@ -128,16 +130,12 @@
 
     /* ── Responsive tweaks ── */
     @media(max-width:640px){
-      .team-grid{grid-template-columns:repeat(3,1fr);gap:5px}
-      .card-avatar{width:50px;height:65px}
-      #vs-divider{width:36px}
+      #vs-divider{width:32px}
       #btn-battle{padding:10px 24px;font-size:.75rem}
     }
     @media(max-height:640px){
-      .card-avatar{width:48px;height:60px}
-      #vs-header{padding:6px 12px 2px}
-      .team-label{margin-bottom:3px}
-      .fighter-card{padding:4px 2px 3px}
+      #vs-header{padding:4px 12px 2px}
+      .team-label{margin-bottom:2px}
     }
   </style>
 </head>
@@ -370,6 +368,12 @@
     var flash = document.getElementById('vs-flash');
     flash.classList.add('active');
     setTimeout(function() { flash.classList.remove('active'); }, 200);
+
+    /* Auto-launch after short delay so selection animation plays */
+    clearInterval(timerInterval);
+    setTimeout(function() {
+      PolitiBattle._launchBattleFromPreview(playerFighters, aiFighters, selectedIdx, aiPickedIdx);
+    }, 600);
   }
 
   /* ── Reveal AI lead pick ── */
@@ -416,7 +420,10 @@
 
       if (timeLeft <= 0) {
         clearInterval(timerInterval);
-        if (selectedIdx === null) { selectLead(0); }
+        if (selectedIdx === null) selectLead(0);
+        setTimeout(function() {
+          PolitiBattle._launchBattleFromPreview(playerFighters, aiFighters, selectedIdx, aiPickedIdx);
+        }, 400);
       }
     }
 
