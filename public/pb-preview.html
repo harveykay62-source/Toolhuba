@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<!-- PolitiBattle — Team Preview / Lead Select — standalone page -->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="PolitiBattle — Team Preview">
+  <title>Team Preview — PolitiBattle</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏛️</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden;background:#09090f;color:#e2e8f0}
+    :root{
+      --nav-h:60px;--red:#ef4444;--gold:#f59e0b;--blue:#3b82f6;
+      --red2:#dc2626;--blue2:#1d4ed8;
+      --card-bg:rgba(15,15,30,0.85);--border:rgba(255,255,255,0.08);
+      --glow-red:0 0 24px rgba(239,68,68,0.45);--glow-blue:0 0 24px rgba(59,130,246,0.45);
+    }
+
+    /* ── Starfield ── */
+    #pb-starfield{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+    .pb-star{position:absolute;border-radius:50%;animation:pb-twinkle var(--dur,3s) ease-in-out infinite alternate;opacity:var(--op,0.6)}
+    @keyframes pb-twinkle{from{opacity:var(--op,0.6);transform:scale(1)}to{opacity:calc(var(--op,0.6)*0.25);transform:scale(0.7)}}
+    #pb-aurora{position:fixed;inset:0;z-index:0;pointer-events:none;
+      background:radial-gradient(ellipse 60% 30% at 20% 80%,rgba(239,68,68,0.07) 0%,transparent 70%),
+                 radial-gradient(ellipse 60% 30% at 80% 20%,rgba(59,130,246,0.07) 0%,transparent 70%);
+      animation:pb-aurora-pulse 8s ease-in-out infinite alternate}
+    @keyframes pb-aurora-pulse{from{opacity:.6}to{opacity:1}}
+
+    /* ── Site header ── */
+    .site-header{position:relative;z-index:100;height:var(--nav-h);background:rgba(9,9,15,0.95);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    .header-inner{max-width:1280px;margin:0 auto;height:100%;display:flex;align-items:center;gap:16px;padding:0 20px}
+    .logo{display:flex;align-items:center;gap:8px;text-decoration:none;font-family:Inter,sans-serif;font-weight:700;font-size:1.1rem;color:#f8fafc;flex-shrink:0}
+    .logo-icon{font-size:1.3rem}.logo-ai{color:#818cf8}
+    .header-search-wrap{flex:1;max-width:340px}
+    .header-search-btn{width:100%;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:#64748b;font-family:Inter,sans-serif;font-size:.85rem;cursor:pointer;transition:background .2s}
+    .header-search-btn:hover{background:rgba(255,255,255,0.09)}
+    .header-search-btn kbd{margin-left:auto;background:rgba(255,255,255,0.07);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.75rem}
+    .header-nav{display:flex;align-items:center;gap:4px;margin-left:auto}
+    .header-nav-btn{padding:6px 12px;border-radius:8px;text-decoration:none;font-family:Inter,sans-serif;font-size:.85rem;font-weight:500;color:#94a3b8;transition:background .2s,color .2s;white-space:nowrap}
+    .header-nav-btn:hover{background:rgba(255,255,255,0.07);color:#f1f5f9}
+    .header-nav-btn.active-nav{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(239,68,68,.1));border:1px solid rgba(99,102,241,.3);color:#e2e8f0}
+    .header-actions{display:flex;align-items:center;gap:8px}
+    .btn-icon{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#94a3b8;transition:background .2s}
+    .btn-icon:hover{background:rgba(255,255,255,0.1);color:#f1f5f9}
+    [data-theme="light"] .icon-moon{display:none}[data-theme="dark"] .icon-sun{display:none}
+    @media(max-width:700px){.header-search-wrap{display:none}.header-nav{gap:2px}.header-nav-btn{font-size:.78rem;padding:5px 8px}}
+    @media(max-width:500px){.header-nav .header-nav-btn:not(.active-nav):not(:last-child){display:none}}
+
+    /* ── Page layout ── */
+    #preview-root{position:relative;z-index:10;height:calc(100vh - var(--nav-h));display:flex;flex-direction:column;overflow:hidden}
+
+    /* ── VS Header ── */
+    #vs-header{text-align:center;padding:10px 16px 6px;flex-shrink:0}
+    #vs-header h1{font-family:'Orbitron',sans-serif;font-size:clamp(1.1rem,2.5vw,1.6rem);font-weight:900;letter-spacing:3px;
+      background:linear-gradient(90deg,var(--red),#fff,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    #vs-header .subtitle{font-family:Inter,sans-serif;font-size:.8rem;color:#94a3b8;margin:2px 0 6px}
+    /* Timer bar */
+    .timer-wrap{max-width:360px;margin:0 auto;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden}
+    .timer-bar{height:100%;width:100%;border-radius:3px;background:linear-gradient(90deg,var(--red),#f97316);transition:width .25s linear}
+    .timer-label{font-family:'Orbitron',sans-serif;font-size:.65rem;color:#f87171;margin-top:2px}
+
+    /* ── Teams area ── */
+    #teams-area{flex:1;display:flex;min-height:0;padding:0 12px;gap:0}
+
+    /* Team column */
+    .team-col{flex:1;display:flex;flex-direction:column;min-height:0;padding:8px}
+    .team-label{font-family:'Bebas Neue',sans-serif;font-size:clamp(.9rem,1.8vw,1.2rem);letter-spacing:3px;text-align:center;margin-bottom:6px;flex-shrink:0}
+    .team-label.player-label{color:var(--blue)}
+    .team-label.ai-label{color:var(--red)}
+
+    .team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;overflow:hidden;align-content:start;flex:1;min-height:0}
+
+    /* Fighter card */
+    .fighter-card{background:var(--card-bg);border:2px solid var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;padding:8px 4px 6px;cursor:default;transition:all .25s ease;position:relative;overflow:hidden;min-height:0}
+    .fighter-card.clickable{cursor:pointer}
+    .fighter-card.clickable:hover{border-color:rgba(59,130,246,0.5);background:rgba(30,30,60,0.9);transform:translateY(-2px)}
+    .fighter-card.selected{border-color:var(--gold)!important;box-shadow:0 0 18px rgba(245,158,11,0.5),inset 0 0 20px rgba(245,158,11,0.08)}
+    .fighter-card.selected::after{content:'✓';position:absolute;top:4px;right:6px;font-size:.75rem;color:var(--gold);font-weight:700}
+    .fighter-card.ai-lead-reveal{border-color:var(--red)!important;box-shadow:var(--glow-red)}
+    .card-avatar{width:clamp(56px,8vw,100px);height:clamp(72px,10vw,130px);flex-shrink:0}
+    .card-avatar svg{width:100%;height:100%}
+    .card-name{font-family:'Russo One',sans-serif;font-size:clamp(.55rem,1.1vw,.8rem);color:#f1f5f9;text-align:center;margin:3px 0 2px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    .card-types{display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+    .type-badge{font-family:Inter,sans-serif;font-size:.5rem;font-weight:600;padding:1px 5px;border-radius:4px;color:#fff;line-height:1.4;text-transform:uppercase;letter-spacing:.5px}
+    .card-hp{font-family:'Orbitron',sans-serif;font-size:.55rem;color:#94a3b8;margin-top:2px}
+
+    /* Center VS divider */
+    #vs-divider{width:60px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative}
+    #vs-text{font-family:'Orbitron',sans-serif;font-size:clamp(1.5rem,3vw,2.4rem);font-weight:900;
+      background:linear-gradient(180deg,var(--red),#fff 50%,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      filter:drop-shadow(0 0 12px rgba(255,255,255,0.3));animation:vs-pulse 2s ease-in-out infinite}
+    @keyframes vs-pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 12px rgba(255,255,255,0.3))}50%{transform:scale(1.12);filter:drop-shadow(0 0 20px rgba(255,255,255,0.5))}}
+    #vs-divider::before{content:'';position:absolute;width:2px;height:80%;background:linear-gradient(180deg,var(--red),transparent 20%,transparent 80%,var(--blue));opacity:.3}
+
+    /* AI spinner */
+    .ai-spinner{display:flex;align-items:center;justify-content:center;gap:4px;color:#94a3b8;font-family:Inter,sans-serif;font-size:.7rem}
+    .ai-spinner .dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:ai-dot .6s ease-in-out infinite alternate}
+    .ai-spinner .dot:nth-child(2){animation-delay:.15s}.ai-spinner .dot:nth-child(3){animation-delay:.3s}
+    @keyframes ai-dot{from{opacity:.3;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+
+    /* ── Bottom bar ── */
+    #bottom-bar{flex-shrink:0;height:64px;display:flex;align-items:center;justify-content:center;padding:0 16px;gap:12px}
+    #btn-battle{font-family:'Orbitron',sans-serif;font-size:clamp(.85rem,1.6vw,1.1rem);font-weight:700;letter-spacing:2px;
+      padding:12px 40px;border:none;border-radius:10px;cursor:pointer;color:#fff;
+      background:linear-gradient(135deg,var(--red2),var(--red),#f97316);
+      box-shadow:0 0 20px rgba(239,68,68,0.3);transition:all .3s ease;text-transform:uppercase}
+    #btn-battle:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;transform:none!important}
+    #btn-battle:not(:disabled):hover{transform:translateY(-2px) scale(1.03);box-shadow:0 0 32px rgba(239,68,68,0.5)}
+    #btn-battle.ready{animation:btn-pulse 1.5s ease-in-out infinite}
+    @keyframes btn-pulse{0%,100%{box-shadow:0 0 20px rgba(239,68,68,0.3)}50%{box-shadow:0 0 36px rgba(239,68,68,0.6)}}
+    #btn-back{font-family:Inter,sans-serif;font-size:.8rem;padding:10px 20px;border:1px solid var(--border);border-radius:8px;
+      background:rgba(255,255,255,0.05);color:#94a3b8;cursor:pointer;transition:all .2s}
+    #btn-back:hover{background:rgba(255,255,255,0.1);color:#f1f5f9}
+
+    /* ── Slide-in animations ── */
+    .slide-left{animation:slideL .5s ease-out both}
+    .slide-right{animation:slideR .5s ease-out both}
+    @keyframes slideL{from{transform:translateX(-60px);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes slideR{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+    /* VS flash overlay */
+    #vs-flash{position:fixed;inset:0;z-index:200;pointer-events:none;opacity:0;
+      background:radial-gradient(circle at center,rgba(255,255,255,0.4),transparent 70%);transition:opacity .15s}
+    #vs-flash.active{opacity:1}
+
+    /* ── Responsive tweaks ── */
+    @media(max-width:640px){
+      .team-grid{grid-template-columns:repeat(3,1fr);gap:5px}
+      .card-avatar{width:50px;height:65px}
+      #vs-divider{width:36px}
+      #btn-battle{padding:10px 24px;font-size:.75rem}
+    }
+    @media(max-height:640px){
+      .card-avatar{width:48px;height:60px}
+      #vs-header{padding:6px 12px 2px}
+      .team-label{margin-bottom:3px}
+      .fighter-card{padding:4px 2px 3px}
+    }
+  </style>
+</head>
+<body>
+
+<div id="pb-starfield"></div>
+<div id="pb-aurora"></div>
+<div id="vs-flash"></div>
+
+<!-- ── Site Header ── -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner">
+    <a class="logo" href="/" aria-label="ToolHub AI Home">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">ToolHub<span class="logo-ai"> AI</span></span>
+    </a>
+    <div class="header-search-wrap">
+      <button class="header-search-btn" id="headerSearch" aria-label="Search tools">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search tools…
+        <kbd>⌘K</kbd>
+      </button>
+    </div>
+    <nav class="header-nav">
+      <a class="header-nav-btn" href="/">🔧 Tools</a>
+      <a class="header-nav-btn" href="/quizzes">🎓 Quizzes</a>
+      <a class="header-nav-btn" href="/multiplayer">🎮 Multiplayer</a>
+      <a class="header-nav-btn active-nav" href="/politibattle">🏛️ PolitiBattle</a>
+    </nav>
+    <div class="header-actions">
+      <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ── Preview Root ── -->
+<main id="preview-root" aria-label="Team Preview">
+
+  <!-- VS Header -->
+  <section id="vs-header">
+    <h1>⚔️ TEAM PREVIEW</h1>
+    <p class="subtitle">Pick your lead fighter</p>
+    <div class="timer-wrap"><div class="timer-bar" id="timerBar"></div></div>
+    <div class="timer-label" id="timerLabel">0:30</div>
+  </section>
+
+  <!-- Teams Area -->
+  <section id="teams-area">
+    <div class="team-col slide-left">
+      <div class="team-label player-label">YOUR TEAM</div>
+      <div class="team-grid" id="playerGrid"></div>
+    </div>
+
+    <div id="vs-divider"><span id="vs-text">VS</span></div>
+
+    <div class="team-col slide-right">
+      <div class="team-label ai-label">AI OPPONENT</div>
+      <div class="team-grid" id="aiGrid"></div>
+    </div>
+  </section>
+
+  <!-- Bottom Bar -->
+  <section id="bottom-bar">
+    <button id="btn-back" onclick="window.location.href='/politibattle/team'">← Back</button>
+    <button id="btn-battle" disabled>⚔️ BATTLE!</button>
+  </section>
+
+</main>
+
+<!-- Scripts -->
+<script src="/js/pb-data.js"></script>
+<script src="/js/pb-avatars.js"></script>
+<script src="/js/pb-engine.js"></script>
+<script src="/js/pb-mechanics.js"></script>
+<script src="/js/pb-ai.js"></script>
+<script src="/js/pb-sound.js"></script>
+<script src="/js/pb-ui.js"></script>
+<script src="/js/politibattle-main.js"></script>
+<script>
+'use strict';
+(function() {
+
+  /* ── Type color map (CSS hex strings from PBData.TCOL) ── */
+  const TYPE_CSS = {
+    Republican:'#ef4444', Democrat:'#3b82f6', Libertarian:'#eab308',
+    Green:'#22c55e', Socialist:'#ec4899', Authoritarian:'#7c3aed',
+    Centrist:'#94a3b8', Populist:'#f97316', Corporate:'#475569',
+    Revolutionary:'#dc2626'
+  };
+
+  /* ── State ── */
+  let playerFighters = [];
+  let aiFighters     = [];
+  let selectedIdx    = null;
+  let aiPickedIdx    = null;
+  let timerInterval  = null;
+  let timeLeft       = 30;
+
+  /* ── Init ── */
+  function init() {
+    buildStarfield();
+
+    /* Read sessionStorage */
+    let raw;
+    try { raw = JSON.parse(sessionStorage.getItem('pb_currentTeams')); } catch(e) {}
+    if (!raw || !raw.playerTeam || !raw.aiTeam) {
+      window.location.href = '/politibattle';
+      return;
+    }
+
+    const D = window.PBData;
+    const E = window.PBEngine;
+
+    /* Build fighter objects */
+    playerFighters = raw.playerTeam.map(function(id) {
+      const pol = D.POLS.find(function(p) { return p.id === id; });
+      return pol ? E.buildFighter(pol, true) : null;
+    }).filter(Boolean);
+
+    aiFighters = raw.aiTeam.map(function(id) {
+      const pol = D.POLS.find(function(p) { return p.id === id; });
+      return pol ? E.buildFighter(pol, false) : null;
+    }).filter(Boolean);
+
+    /* Persist built teams */
+    try {
+      sessionStorage.setItem('pb_builtTeams', JSON.stringify({
+        playerTeam: playerFighters,
+        aiTeam: aiFighters
+      }));
+    } catch(e) {}
+
+    /* Render grids */
+    renderGrid('playerGrid', playerFighters, true);
+    renderGrid('aiGrid', aiFighters, false);
+
+    /* AI picks lead after 1.5s */
+    setTimeout(revealAILead, 1500);
+
+    /* Start countdown */
+    startTimer();
+
+    /* Battle button */
+    document.getElementById('btn-battle').addEventListener('click', function() {
+      if (selectedIdx === null) return;
+      PolitiBattle._launchBattleFromPreview(playerFighters, aiFighters, selectedIdx, aiPickedIdx);
+    });
+  }
+
+  /* ── Render a 6-card grid ── */
+  function renderGrid(containerId, fighters, isPlayer) {
+    const grid = document.getElementById(containerId);
+    grid.innerHTML = '';
+
+    fighters.forEach(function(f, i) {
+      const card = document.createElement('div');
+      card.className = 'fighter-card' + (isPlayer ? ' clickable' : '');
+      card.dataset.idx = i;
+
+      /* Avatar */
+      const avatarDiv = document.createElement('div');
+      avatarDiv.className = 'card-avatar';
+      const svgMarkup = (window.PBData.AVATARS && window.PBData.AVATARS[f.svgId]) || '';
+      avatarDiv.innerHTML = svgMarkup;
+      card.appendChild(avatarDiv);
+
+      /* Name */
+      const name = document.createElement('div');
+      name.className = 'card-name';
+      name.textContent = f.n;
+      card.appendChild(name);
+
+      /* Type badges */
+      const types = document.createElement('div');
+      types.className = 'card-types';
+      (f.tps || []).forEach(function(tp) {
+        const badge = document.createElement('span');
+        badge.className = 'type-badge';
+        badge.textContent = tp;
+        badge.style.background = TYPE_CSS[tp] || '#64748b';
+        types.appendChild(badge);
+      });
+      card.appendChild(types);
+
+      /* HP stat */
+      const hp = document.createElement('div');
+      hp.className = 'card-hp';
+      hp.textContent = 'HP ' + f.mhp;
+      card.appendChild(hp);
+
+      /* AI spinner overlay (hidden by default) */
+      if (!isPlayer) {
+        const spin = document.createElement('div');
+        spin.className = 'ai-spinner';
+        spin.id = 'ai-spin-' + i;
+        spin.style.display = 'none';
+        spin.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+        card.appendChild(spin);
+      }
+
+      /* Click handler for player cards */
+      if (isPlayer) {
+        card.addEventListener('click', function() { selectLead(i); });
+      }
+
+      grid.appendChild(card);
+    });
+  }
+
+  /* ── Select player lead ── */
+  function selectLead(idx) {
+    if (selectedIdx === idx) return;
+    selectedIdx = idx;
+
+    /* Update card visuals */
+    var cards = document.querySelectorAll('#playerGrid .fighter-card');
+    cards.forEach(function(c, i) {
+      c.classList.toggle('selected', i === idx);
+    });
+
+    /* Enable battle button */
+    var btn = document.getElementById('btn-battle');
+    btn.disabled = false;
+    btn.classList.add('ready');
+
+    /* VS flash */
+    var flash = document.getElementById('vs-flash');
+    flash.classList.add('active');
+    setTimeout(function() { flash.classList.remove('active'); }, 200);
+  }
+
+  /* ── Reveal AI lead pick ── */
+  function revealAILead() {
+    var AI = window.PBAI;
+    if (AI && AI.pickLead) {
+      /* pickLead expects raw pol data for type analysis */
+      var rawAI = aiFighters.map(function(f) {
+        return window.PBData.POLS.find(function(p) { return p.id === f.id; }) || f;
+      });
+      var rawPlayer = playerFighters.map(function(f) {
+        return window.PBData.POLS.find(function(p) { return p.id === f.id; }) || f;
+      });
+      aiPickedIdx = AI.pickLead(rawAI, rawPlayer);
+    } else {
+      aiPickedIdx = 0;
+    }
+
+    /* Highlight AI lead card */
+    var aiCards = document.querySelectorAll('#aiGrid .fighter-card');
+    if (aiCards[aiPickedIdx]) {
+      aiCards[aiPickedIdx].classList.add('ai-lead-reveal');
+    }
+  }
+
+  /* ── Countdown timer ── */
+  function startTimer() {
+    var bar = document.getElementById('timerBar');
+    var label = document.getElementById('timerLabel');
+    var total = 30;
+    timeLeft = total;
+
+    timerInterval = setInterval(function() {
+      timeLeft--;
+      var pct = (timeLeft / total) * 100;
+      bar.style.width = pct + '%';
+      var sec = timeLeft < 10 ? '0' + timeLeft : '' + timeLeft;
+      label.textContent = '0:' + sec;
+
+      if (timeLeft <= 10) {
+        label.style.color = '#ef4444';
+        label.style.fontWeight = '700';
+      }
+
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        /* Auto-select first fighter if none chosen */
+        if (selectedIdx === null) {
+          selectLead(0);
+        }
+      }
+    }, 1000);
+  }
+
+  /* ── Starfield generator ── */
+  function buildStarfield() {
+    var sf = document.getElementById('pb-starfield');
+    if (!sf) return;
+    for (var i = 0; i < 60; i++) {
+      var star = document.createElement('div');
+      star.className = 'pb-star';
+      var size = Math.random() * 2.5 + 1;
+      star.style.width = size + 'px';
+      star.style.height = size + 'px';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+      star.style.background = Math.random() > 0.5 ? '#e2e8f0' : (Math.random() > 0.5 ? '#ef4444' : '#3b82f6');
+      star.style.setProperty('--dur', (2 + Math.random() * 4) + 's');
+      star.style.setProperty('--op', (0.3 + Math.random() * 0.5).toString());
+      star.style.animationDelay = (Math.random() * 3) + 's';
+      sf.appendChild(star);
+    }
+  }
+
+  /* ── Boot ── */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>

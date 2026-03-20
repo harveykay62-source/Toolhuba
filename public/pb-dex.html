@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<!-- PolitiBattle — PolitiDex — /politibattle/dex -->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="PolitiDex — Browse all 50 PolitiBattle fighters. Stats, moves, abilities.">
+  <title>PolitiDex — PolitiBattle — ToolHub AI</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏛️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden;background:#09090f;color:#e2e8f0}
+
+    :root{
+      --nav-h:60px;
+      --topbar-h:54px;
+      --red:#ef4444;--gold:#f59e0b;--blue:#3b82f6;
+      --red2:#dc2626;--blue2:#1d4ed8;
+      --card-bg:rgba(15,15,30,0.85);
+      --border:rgba(255,255,255,0.08);
+      --glow-red:0 0 24px rgba(239,68,68,0.45);
+      --glow-blue:0 0 24px rgba(59,130,246,0.45);
+    }
+
+    /* ── Starfield ── */
+    #pb-starfield{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+    .pb-star{position:absolute;border-radius:50%;animation:pb-twinkle var(--dur,3s) ease-in-out infinite alternate;opacity:var(--op,0.6)}
+    @keyframes pb-twinkle{from{opacity:var(--op,0.6);transform:scale(1)}to{opacity:calc(var(--op,0.6)*0.25);transform:scale(0.7)}}
+    #pb-aurora{position:fixed;inset:0;z-index:0;pointer-events:none;
+      background:radial-gradient(ellipse 60% 30% at 20% 80%,rgba(239,68,68,0.07) 0%,transparent 70%),
+                 radial-gradient(ellipse 60% 30% at 80% 20%,rgba(59,130,246,0.07) 0%,transparent 70%);
+      animation:pb-aurora-pulse 8s ease-in-out infinite alternate}
+    @keyframes pb-aurora-pulse{from{opacity:.6}to{opacity:1}}
+
+    /* ── Site header (exact match) ── */
+    .site-header{position:relative;z-index:100;height:var(--nav-h);background:rgba(9,9,15,0.95);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);flex-shrink:0}
+    .header-inner{max-width:1280px;margin:0 auto;height:100%;display:flex;align-items:center;gap:16px;padding:0 20px}
+    .logo{display:flex;align-items:center;gap:8px;text-decoration:none;font-family:Inter,sans-serif;font-weight:700;font-size:1.1rem;color:#f8fafc;flex-shrink:0}
+    .logo-icon{font-size:1.3rem}.logo-ai{color:#818cf8}
+    .header-search-wrap{flex:1;max-width:340px}
+    .header-search-btn{width:100%;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:#64748b;font-family:Inter,sans-serif;font-size:.85rem;cursor:pointer;transition:background .2s}
+    .header-search-btn:hover{background:rgba(255,255,255,0.09)}
+    .header-search-btn kbd{margin-left:auto;background:rgba(255,255,255,0.07);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.75rem}
+    .header-nav{display:flex;align-items:center;gap:4px;margin-left:auto}
+    .header-nav-btn{padding:6px 12px;border-radius:8px;text-decoration:none;font-family:Inter,sans-serif;font-size:.85rem;font-weight:500;color:#94a3b8;transition:background .2s,color .2s;white-space:nowrap}
+    .header-nav-btn:hover{background:rgba(255,255,255,0.07);color:#f1f5f9}
+    .header-nav-btn.active-nav{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(239,68,68,.1));border:1px solid rgba(99,102,241,.3);color:#e2e8f0}
+    .header-actions{display:flex;align-items:center;gap:8px}
+    .btn-icon{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#94a3b8;transition:background .2s}
+    .btn-icon:hover{background:rgba(255,255,255,0.1);color:#f1f5f9}
+    [data-theme="light"] .icon-moon{display:none}
+    [data-theme="dark"] .icon-sun{display:none}
+    @media(max-width:700px){.header-search-wrap{display:none}.header-nav{gap:2px}.header-nav-btn{font-size:.78rem;padding:5px 8px}}
+    @media(max-width:500px){.header-nav .header-nav-btn:not(.active-nav):not(:last-child){display:none}}
+
+    /* ══════════════════════════════════════════════════════════════════
+       OUTER WRAPPER — exactly 100vh, no page scroll
+       ══════════════════════════════════════════════════════════════════ */
+    #dex-wrap{
+      display:flex;flex-direction:column;height:100vh;overflow:hidden;
+      position:relative;z-index:10;
+    }
+
+    /* ── Top bar ── */
+    #dex-topbar{
+      height:var(--topbar-h);min-height:var(--topbar-h);flex-shrink:0;
+      display:flex;align-items:center;gap:10px;
+      padding:0 16px;
+      background:rgba(9,9,15,0.92);
+      border-bottom:1px solid var(--border);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    }
+    #dex-back{
+      display:flex;align-items:center;gap:6px;
+      background:rgba(255,255,255,0.05);border:1px solid var(--border);
+      border-radius:8px;padding:6px 12px;
+      color:#94a3b8;font-family:Inter,sans-serif;font-size:.82rem;font-weight:500;
+      cursor:pointer;transition:all .2s;text-decoration:none;white-space:nowrap;flex-shrink:0;
+    }
+    #dex-back:hover{background:rgba(255,255,255,0.1);color:#f1f5f9}
+    #dex-back svg{flex-shrink:0}
+    #dex-title{
+      font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(.85rem,2vw,1.15rem);
+      letter-spacing:3px;
+      background:linear-gradient(135deg,#ef4444 0%,#818cf8 50%,#3b82f6 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+      flex-shrink:0;
+    }
+    #dex-search{
+      flex:1;max-width:280px;min-width:100px;
+      background:rgba(255,255,255,0.05);border:1px solid var(--border);
+      border-radius:8px;padding:6px 10px 6px 32px;
+      color:#e2e8f0;font-family:Inter,sans-serif;font-size:.82rem;
+      outline:none;transition:border .2s,background .2s;
+    }
+    #dex-search:focus{border-color:rgba(99,102,241,.5);background:rgba(255,255,255,0.08)}
+    #dex-search::placeholder{color:#4a5568}
+    .search-wrap{position:relative;flex:1;max-width:280px}
+    .search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#4a5568;pointer-events:none}
+    #dex-count{
+      font-family:'Orbitron',sans-serif;font-size:.7rem;color:#64748b;
+      letter-spacing:1px;flex-shrink:0;white-space:nowrap;
+    }
+
+    /* ── Type filter pills ── */
+    #dex-filters{
+      display:flex;gap:5px;overflow-x:auto;flex-shrink:0;
+      padding:0 4px;
+      scrollbar-width:none;-ms-overflow-style:none;
+    }
+    #dex-filters::-webkit-scrollbar{display:none}
+    .filter-pill{
+      padding:3px 10px;border-radius:20px;
+      font-family:Inter,sans-serif;font-size:.68rem;font-weight:600;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(255,255,255,0.04);color:#94a3b8;
+      cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;
+      text-transform:uppercase;letter-spacing:.5px;
+    }
+    .filter-pill:hover{background:rgba(255,255,255,0.08);color:#e2e8f0}
+    .filter-pill.active{color:#fff;border-color:transparent}
+
+    @media(max-width:700px){
+      #dex-topbar{flex-wrap:wrap;height:auto;min-height:unset;padding:8px 12px;gap:6px}
+      #dex-title{order:0}
+      #dex-back{order:-1}
+      .search-wrap{order:2;max-width:100%;flex-basis:100%}
+      #dex-count{order:1;margin-left:auto}
+      #dex-filters{order:3;flex-basis:100%}
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       SCROLLABLE GRID
+       ══════════════════════════════════════════════════════════════════ */
+    #dex-grid-wrap{
+      flex:1;overflow-y:auto;overflow-x:hidden;
+      padding:12px;
+      scroll-behavior:smooth;
+    }
+    #dex-grid-wrap::-webkit-scrollbar{width:6px}
+    #dex-grid-wrap::-webkit-scrollbar-track{background:transparent}
+    #dex-grid-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+    #dex-grid-wrap::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2)}
+
+    #dex-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+      gap:10px;
+      max-width:1400px;margin:0 auto;
+    }
+
+    /* ── Individual card ── */
+    .dex-card{
+      background:var(--card-bg);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px 10px 12px;
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+      cursor:pointer;
+      transition:all .25s cubic-bezier(.4,0,.2,1);
+      position:relative;overflow:hidden;
+    }
+    .dex-card::before{
+      content:'';position:absolute;inset:0;
+      background:radial-gradient(circle at 50% 0%,var(--type-glow,rgba(99,102,241,0.08)) 0%,transparent 70%);
+      opacity:0;transition:opacity .3s;pointer-events:none;
+    }
+    .dex-card:hover{
+      transform:translateY(-4px);
+      border-color:rgba(255,255,255,0.18);
+      box-shadow:0 8px 32px rgba(0,0,0,0.4),0 0 20px var(--type-glow,rgba(99,102,241,0.12));
+    }
+    .dex-card:hover::before{opacity:1}
+    .dex-card:active{transform:translateY(-2px) scale(0.98)}
+
+    .dex-card .avatar-wrap{
+      width:90px;height:90px;
+      display:flex;align-items:center;justify-content:center;
+      border-radius:50%;
+      background:radial-gradient(circle,rgba(255,255,255,0.03) 0%,transparent 70%);
+      position:relative;
+    }
+    .dex-card .avatar-wrap svg{width:72px;height:72px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5))}
+    .dex-card .card-name{
+      font-family:'Russo One',sans-serif;font-size:.78rem;
+      color:#f1f5f9;text-align:center;line-height:1.15;
+    }
+    .dex-card .card-title{
+      font-family:Inter,sans-serif;font-size:.62rem;
+      color:#64748b;text-align:center;line-height:1.2;
+      max-height:2.4em;overflow:hidden;
+    }
+    .dex-card .card-types{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+    .type-badge{
+      display:inline-flex;align-items:center;
+      padding:2px 7px;border-radius:4px;
+      font-family:Inter,sans-serif;font-size:.58rem;font-weight:700;
+      text-transform:uppercase;letter-spacing:.5px;
+      color:#fff;
+    }
+    .dex-card .card-stats{
+      width:100%;display:flex;flex-direction:column;gap:2px;margin-top:2px;
+    }
+    .mini-bar{display:flex;align-items:center;gap:4px}
+    .mini-bar .label{
+      font-family:'Orbitron',sans-serif;font-size:.5rem;
+      color:#64748b;width:22px;text-align:right;letter-spacing:.5px;
+    }
+    .mini-bar .track{
+      flex:1;height:4px;border-radius:2px;
+      background:rgba(255,255,255,0.06);overflow:hidden;
+    }
+    .mini-bar .fill{height:100%;border-radius:2px;transition:width .4s ease}
+    .mini-bar .val{
+      font-family:'Orbitron',sans-serif;font-size:.48rem;
+      color:#94a3b8;width:18px;
+    }
+    .dex-card .card-num{
+      position:absolute;top:6px;right:8px;
+      font-family:'Orbitron',sans-serif;font-size:.52rem;
+      color:#334155;letter-spacing:1px;
+    }
+
+    /* ── Empty state ── */
+    #dex-empty{
+      display:none;flex-direction:column;align-items:center;justify-content:center;
+      padding:60px 20px;gap:12px;
+    }
+    #dex-empty .empty-icon{font-size:3rem;opacity:.4}
+    #dex-empty .empty-text{font-family:Inter,sans-serif;font-size:.9rem;color:#64748b;text-align:center}
+
+    /* ══════════════════════════════════════════════════════════════════
+       DETAIL MODAL
+       ══════════════════════════════════════════════════════════════════ */
+    #dex-modal{
+      position:fixed;inset:0;z-index:500;
+      display:none;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.8);
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      padding:16px;
+    }
+    #dex-modal.open{display:flex}
+
+    #modal-inner{
+      width:100%;max-width:680px;max-height:calc(100vh - 32px);
+      overflow-y:auto;overflow-x:hidden;
+      background:linear-gradient(170deg,#0c0c1a 0%,#12122a 100%);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:16px;
+      position:relative;
+      scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent;
+    }
+    #modal-inner::-webkit-scrollbar{width:5px}
+    #modal-inner::-webkit-scrollbar-track{background:transparent}
+    #modal-inner::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+
+    #modal-close{
+      position:sticky;top:0;z-index:10;float:right;
+      margin:12px 12px 0 0;
+      width:36px;height:36px;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(255,255,255,0.06);border:1px solid var(--border);
+      border-radius:50%;cursor:pointer;color:#94a3b8;
+      transition:all .2s;
+    }
+    #modal-close:hover{background:rgba(255,255,255,0.12);color:#f1f5f9;transform:rotate(90deg)}
+
+    .modal-hero{
+      display:flex;flex-direction:column;align-items:center;
+      padding:10px 24px 20px;gap:10px;
+      background:radial-gradient(ellipse 60% 40% at 50% 30%,var(--hero-glow,rgba(99,102,241,0.1)) 0%,transparent 70%);
+    }
+    .modal-hero .avatar-lg{
+      width:160px;height:160px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .modal-hero .avatar-lg svg{
+      width:140px;height:140px;
+      filter:drop-shadow(0 4px 20px rgba(0,0,0,0.6));
+      animation:modal-float 4s ease-in-out infinite;
+    }
+    @keyframes modal-float{
+      0%,100%{transform:translateY(0)}
+      50%{transform:translateY(-6px)}
+    }
+    .modal-hero .m-name{
+      font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.4rem;
+      letter-spacing:2px;color:#f8fafc;text-align:center;
+    }
+    .modal-hero .m-title{
+      font-family:Inter,sans-serif;font-size:.8rem;color:#64748b;text-align:center;
+    }
+    .modal-hero .m-flavour{
+      font-family:Inter,sans-serif;font-size:.75rem;font-style:italic;
+      color:#94a3b8;text-align:center;max-width:460px;line-height:1.4;
+      padding:6px 16px;
+      border-left:2px solid rgba(255,255,255,0.1);
+    }
+    .modal-hero .m-types{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+    .modal-hero .type-badge{font-size:.68rem;padding:3px 10px;border-radius:5px}
+
+    /* ── Modal sections ── */
+    .m-section{padding:16px 24px;border-top:1px solid var(--border)}
+    .m-section-title{
+      font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;
+      letter-spacing:2px;text-transform:uppercase;color:#475569;margin-bottom:10px;
+    }
+
+    /* Ability + Item row */
+    .m-info-row{display:flex;gap:12px;flex-wrap:wrap}
+    .m-info-block{
+      flex:1;min-width:200px;
+      background:rgba(255,255,255,0.03);border:1px solid var(--border);
+      border-radius:10px;padding:10px 14px;
+    }
+    .m-info-label{
+      font-family:'Orbitron',sans-serif;font-size:.55rem;
+      letter-spacing:1.5px;text-transform:uppercase;color:#475569;margin-bottom:4px;
+    }
+    .m-info-name{font-family:'Russo One',sans-serif;font-size:.85rem;color:#e2e8f0;margin-bottom:2px}
+    .m-info-desc{font-family:Inter,sans-serif;font-size:.72rem;color:#94a3b8;line-height:1.35}
+
+    /* Nature */
+    .m-nature{
+      display:inline-flex;align-items:center;gap:8px;
+      background:rgba(255,255,255,0.03);border:1px solid var(--border);
+      border-radius:8px;padding:6px 14px;
+    }
+    .m-nature .nat-name{font-family:'Russo One',sans-serif;font-size:.82rem;color:#e2e8f0}
+    .m-nature .nat-mod{font-family:Inter,sans-serif;font-size:.68rem}
+    .nat-up{color:#ef4444}.nat-dn{color:#3b82f6}
+
+    /* Radar chart */
+    .radar-wrap{
+      display:flex;align-items:center;justify-content:center;
+      padding:10px 0;
+    }
+    #radar-canvas{max-width:320px;max-height:320px;width:100%;height:auto}
+
+    /* Moveset */
+    .m-moves{display:flex;flex-direction:column;gap:8px}
+    .m-move{
+      background:rgba(255,255,255,0.03);border:1px solid var(--border);
+      border-radius:10px;padding:10px 14px;
+      display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;
+    }
+    .m-move .move-name{
+      font-family:'Russo One',sans-serif;font-size:.82rem;color:#f1f5f9;
+      flex-shrink:0;
+    }
+    .m-move .move-type{font-size:.6rem;padding:2px 7px;border-radius:4px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.5px;font-family:Inter,sans-serif}
+    .m-move .move-cat{
+      font-family:Inter,sans-serif;font-size:.62rem;
+      padding:2px 7px;border-radius:4px;
+      background:rgba(255,255,255,0.06);color:#94a3b8;
+      text-transform:capitalize;
+    }
+    .m-move .move-stats{
+      display:flex;gap:10px;font-family:'Orbitron',sans-serif;font-size:.58rem;color:#64748b;
+    }
+    .m-move .move-stats span{display:flex;align-items:center;gap:3px}
+    .m-move .move-stats .stat-label{color:#475569}
+    .m-move .move-desc{
+      flex-basis:100%;
+      font-family:Inter,sans-serif;font-size:.7rem;color:#64748b;
+      line-height:1.35;font-style:italic;
+    }
+
+    /* ── Animations ── */
+    @keyframes card-in{
+      from{opacity:0;transform:translateY(12px) scale(0.96)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .dex-card{animation:card-in .35s ease both}
+    @keyframes modal-in{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+    #dex-modal.open #modal-inner{animation:modal-in .25s ease}
+  </style>
+</head>
+<body>
+
+<!-- ═══ Background layers ═══ -->
+<div id="pb-starfield"></div>
+<div id="pb-aurora"></div>
+
+<!-- ═══ Full-page wrapper ═══ -->
+<div id="dex-wrap">
+
+  <!-- ═══ Site header (exact match) ═══ -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a class="logo" href="/" aria-label="ToolHub AI Home">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">ToolHub<span class="logo-ai"> AI</span></span>
+      </a>
+      <div class="header-search-wrap">
+        <button class="header-search-btn" id="headerSearch" aria-label="Search tools">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Search tools…
+          <kbd>⌘K</kbd>
+        </button>
+      </div>
+      <nav class="header-nav">
+        <a class="header-nav-btn" href="/">🔧 Tools</a>
+        <a class="header-nav-btn" href="/quizzes">🎓 Quizzes</a>
+        <a class="header-nav-btn" href="/multiplayer">🎮 Multiplayer</a>
+        <a class="header-nav-btn active-nav" href="/politibattle">🏛️ PolitiBattle</a>
+      </nav>
+      <div class="header-actions">
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ Top bar ═══ -->
+  <div id="dex-topbar">
+    <a id="dex-back" href="/politibattle">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      Back
+    </a>
+    <div id="dex-title">POLITIDEX</div>
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="dex-search" type="text" placeholder="Search fighters…" autocomplete="off" spellcheck="false">
+    </div>
+    <span id="dex-count"></span>
+    <div id="dex-filters"></div>
+  </div>
+
+  <!-- ═══ Scrollable grid ═══ -->
+  <div id="dex-grid-wrap">
+    <div id="dex-grid"></div>
+    <div id="dex-empty">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-text">No fighters match your search.</div>
+    </div>
+  </div>
+
+</div><!-- /dex-wrap -->
+
+<!-- ═══ Detail modal ═══ -->
+<div id="dex-modal">
+  <div id="modal-inner">
+    <button id="modal-close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ═══ Game scripts (data needed for dex) ═══ -->
+<script src="/js/pb-data.js"></script>
+<script src="/js/pb-avatars.js"></script>
+<script src="/js/pb-engine.js"></script>
+<script src="/js/pb-mechanics.js"></script>
+<script src="/js/pb-ai.js"></script>
+<script src="/js/pb-sound.js"></script>
+<script src="/js/pb-ui.js"></script>
+<script src="/js/politibattle-main.js"></script>
+
+<script>
+'use strict';
+(function(){
+
+  /* ── Type colour map ── */
+  const TC = {
+    Republican:'#ef4444', Democrat:'#3b82f6', Libertarian:'#eab308',
+    Green:'#22c55e', Socialist:'#ec4899', Authoritarian:'#7c3aed',
+    Centrist:'#94a3b8', Populist:'#f97316', Corporate:'#475569',
+    Revolutionary:'#dc2626',
+  };
+
+  const STAT_LABELS = {hp:'HP',atk:'ATK',def:'DEF',spa:'SPA',spd:'SPD',spe:'SPE'};
+  const STAT_KEYS = ['hp','atk','def','spa','spd','spe'];
+  const STAT_COLORS = {hp:'#22c55e',atk:'#ef4444',def:'#f59e0b',spa:'#818cf8',spd:'#06b6d4',spe:'#ec4899'};
+  const MAX_STAT = 150; // for bar scaling
+
+  const D = window.PBData;
+  const POLS = D.POLS;
+  const grid = document.getElementById('dex-grid');
+  const gridWrap = document.getElementById('dex-grid-wrap');
+  const searchInput = document.getElementById('dex-search');
+  const filtersWrap = document.getElementById('dex-filters');
+  const countEl = document.getElementById('dex-count');
+  const emptyEl = document.getElementById('dex-empty');
+  const modal = document.getElementById('dex-modal');
+  const modalContent = document.getElementById('modal-content');
+
+  let activeType = null;
+
+  /* ── Stars ── */
+  (function makeStars(){
+    const sf = document.getElementById('pb-starfield');
+    const n = 80;
+    for(let i = 0; i < n; i++){
+      const s = document.createElement('div');
+      s.className = 'pb-star';
+      const sz = Math.random() * 2.5 + 1;
+      s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;background:#fff;--dur:${2+Math.random()*4}s;--op:${0.3+Math.random()*0.5};animation-delay:${Math.random()*5}s`;
+      sf.appendChild(s);
+    }
+  })();
+
+  /* ── Build filter pills ── */
+  const allTypes = Object.keys(TC);
+  allTypes.forEach(tp => {
+    const pill = document.createElement('button');
+    pill.className = 'filter-pill';
+    pill.textContent = tp;
+    pill.style.setProperty('--pc', TC[tp]);
+    pill.addEventListener('click', () => {
+      if(activeType === tp){ activeType = null; pill.classList.remove('active'); pill.style.background=''; pill.style.borderColor=''; }
+      else {
+        filtersWrap.querySelectorAll('.filter-pill').forEach(p => { p.classList.remove('active'); p.style.background=''; p.style.borderColor=''; });
+        activeType = tp;
+        pill.classList.add('active');
+        pill.style.background = TC[tp] + '25';
+        pill.style.borderColor = TC[tp];
+        pill.style.color = TC[tp];
+      }
+      render();
+    });
+    filtersWrap.appendChild(pill);
+  });
+
+  /* ── Get avatar SVG ── */
+  function getAvatar(svgId){
+    const raw = D.AVATARS && D.AVATARS[svgId];
+    if(!raw) return `<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg"><text x="60" y="90" text-anchor="middle" font-size="40" fill="#64748b">?</text></svg>`;
+    return raw;
+  }
+
+  /* ── Build card HTML ── */
+  function buildCard(pol, idx){
+    const c = document.createElement('div');
+    c.className = 'dex-card';
+    c.style.setProperty('--type-glow', TC[pol.tps[0]] + '22');
+    c.style.animationDelay = (idx * 0.03) + 's';
+
+    let statsHTML = '';
+    STAT_KEYS.forEach(k => {
+      const v = pol.bs[k];
+      const pct = Math.min(100, (v / MAX_STAT) * 100);
+      statsHTML += `<div class="mini-bar"><span class="label">${STAT_LABELS[k]}</span><div class="track"><div class="fill" style="width:${pct}%;background:${STAT_COLORS[k]}"></div></div><span class="val">${v}</span></div>`;
+    });
+
+    let typesHTML = pol.tps.map(t => `<span class="type-badge" style="background:${TC[t]}">${t}</span>`).join('');
+
+    c.innerHTML = `
+      <span class="card-num">#${String(idx+1).padStart(3,'0')}</span>
+      <div class="avatar-wrap">${getAvatar(pol.svgId)}</div>
+      <div class="card-name">${pol.n}</div>
+      <div class="card-title">${pol.ttl}</div>
+      <div class="card-types">${typesHTML}</div>
+      <div class="card-stats">${statsHTML}</div>
+    `;
+
+    c.addEventListener('click', () => openModal(pol));
+    return c;
+  }
+
+  /* ── Render grid ── */
+  function render(){
+    const q = searchInput.value.toLowerCase().trim();
+    const filtered = POLS.filter(p => {
+      if(q && !p.n.toLowerCase().includes(q) && !p.id.toLowerCase().includes(q) && !p.ttl.toLowerCase().includes(q)) return false;
+      if(activeType && !p.tps.includes(activeType)) return false;
+      return true;
+    });
+    grid.innerHTML = '';
+    filtered.forEach((p, i) => grid.appendChild(buildCard(p, i)));
+    countEl.textContent = filtered.length + ' / ' + POLS.length;
+    emptyEl.style.display = filtered.length === 0 ? 'flex' : 'none';
+    gridWrap.scrollTop = 0;
+  }
+
+  searchInput.addEventListener('input', render);
+
+  /* ══════════════════════════════════════════════════════════════════
+     DETAIL MODAL
+     ══════════════════════════════════════════════════════════════════ */
+
+  function openModal(pol){
+    const nature = D.NATURES[pol.nat] || {n:pol.nat,up:null,dn:null};
+    const ability = D.ABILITIES[pol.abl] || {n:pol.abl,desc:''};
+    const item = pol.itm ? (D.ITEMS[pol.itm] || {n:pol.itm,desc:''}) : null;
+
+    let typesHTML = pol.tps.map(t => `<span class="type-badge" style="background:${TC[t]}">${t}</span>`).join('');
+
+    let natMod = '';
+    if(nature.up) natMod += `<span class="nat-up">▲ ${STAT_LABELS[nature.up]}</span>`;
+    if(nature.dn) natMod += ` <span class="nat-dn">▼ ${STAT_LABELS[nature.dn]}</span>`;
+    if(!nature.up && !nature.dn) natMod = '<span style="color:#64748b">Neutral</span>';
+
+    let movesHTML = '';
+    pol.mvs.forEach(mKey => {
+      const mv = D.MOVES[mKey];
+      if(!mv) return;
+      const pwText = mv.pw ? mv.pw : '—';
+      const acText = mv.ac ? mv.ac : '—';
+      movesHTML += `
+        <div class="m-move">
+          <span class="move-name">${mv.n}</span>
+          <span class="move-type" style="background:${TC[mv.tp] || '#475569'}">${mv.tp}</span>
+          <span class="move-cat">${mv.c}</span>
+          <div class="move-stats">
+            <span><span class="stat-label">PWR</span> ${pwText}</span>
+            <span><span class="stat-label">ACC</span> ${acText}</span>
+            <span><span class="stat-label">PP</span> ${mv.pp}</span>
+          </div>
+          <div class="move-desc">${mv.d}</div>
+        </div>`;
+    });
+
+    const heroGlow = TC[pol.tps[0]] + '18';
+
+    modalContent.innerHTML = `
+      <div class="modal-hero" style="--hero-glow:${heroGlow}">
+        <div class="avatar-lg">${getAvatar(pol.svgId)}</div>
+        <div class="m-name">${pol.n}</div>
+        <div class="m-title">${pol.ttl}</div>
+        <div class="m-types">${typesHTML}</div>
+        <div class="m-flavour">"${pol.fl}"</div>
+      </div>
+
+      <div class="m-section">
+        <div class="m-section-title">Profile</div>
+        <div class="m-info-row">
+          <div class="m-info-block">
+            <div class="m-info-label">Ability</div>
+            <div class="m-info-name">${ability.n}</div>
+            <div class="m-info-desc">${ability.desc}</div>
+          </div>
+          ${item ? `<div class="m-info-block">
+            <div class="m-info-label">Held Item</div>
+            <div class="m-info-name">${item.n}</div>
+            <div class="m-info-desc">${item.desc}</div>
+          </div>` : ''}
+        </div>
+        <div style="margin-top:10px">
+          <div class="m-info-label">Nature</div>
+          <div class="m-nature">
+            <span class="nat-name">${nature.n}</span>
+            <span class="nat-mod">${natMod}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="m-section">
+        <div class="m-section-title">Base Stats</div>
+        <div class="radar-wrap"><canvas id="radar-canvas" width="320" height="320"></canvas></div>
+      </div>
+
+      <div class="m-section">
+        <div class="m-section-title">Moveset</div>
+        <div class="m-moves">${movesHTML}</div>
+      </div>
+    `;
+
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    drawRadar(pol.bs, nature);
+  }
+
+  /* ── Close modal ── */
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+
+  function closeModal(){
+    modal.classList.remove('open');
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     RADAR CHART (hexagonal, 6 axes)
+     ══════════════════════════════════════════════════════════════════ */
+
+  function drawRadar(bs, nature){
+    const canvas = document.getElementById('radar-canvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = 320, h = 320;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+    ctx.scale(dpr, dpr);
+
+    const cx = w/2, cy = h/2, R = 120;
+    const labels = ['HP','ATK','DEF','SPA','SPD','SPE'];
+    const keys = STAT_KEYS;
+    const vals = keys.map(k => bs[k]);
+    const colors = keys.map(k => STAT_COLORS[k]);
+    const n = 6;
+
+    function angle(i){ return (Math.PI * 2 * i / n) - Math.PI/2; }
+    function pt(i, r){ return [cx + Math.cos(angle(i)) * r, cy + Math.sin(angle(i)) * r]; }
+
+    // Background hex rings
+    ctx.lineWidth = 1;
+    [0.2, 0.4, 0.6, 0.8, 1.0].forEach(frac => {
+      ctx.beginPath();
+      for(let i = 0; i <= n; i++){
+        const [x,y] = pt(i % n, R * frac);
+        i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.stroke();
+    });
+
+    // Axis lines
+    for(let i = 0; i < n; i++){
+      const [x,y] = pt(i, R);
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x,y);
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';ctx.stroke();
+    }
+
+    // Data polygon
+    const pct = vals.map(v => Math.min(1, v / MAX_STAT));
+    ctx.beginPath();
+    pct.forEach((p, i) => {
+      const [x,y] = pt(i, R * p);
+      i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(99,102,241,0.18)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(129,140,248,0.7)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Data points
+    pct.forEach((p, i) => {
+      const [x,y] = pt(i, R * p);
+      ctx.beginPath(); ctx.arc(x,y, 4, 0, Math.PI*2);
+      ctx.fillStyle = colors[i];
+      ctx.fill();
+      ctx.strokeStyle = '#0c0c1a'; ctx.lineWidth = 2; ctx.stroke();
+    });
+
+    // Labels + values
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    labels.forEach((lbl, i) => {
+      const [x,y] = pt(i, R + 24);
+      // Determine nature highlight
+      let col = '#94a3b8';
+      if(nature.up && keys[i] === nature.up) col = '#ef4444';
+      if(nature.dn && keys[i] === nature.dn) col = '#3b82f6';
+
+      ctx.font = '700 10px Orbitron, sans-serif';
+      ctx.fillStyle = col;
+      ctx.fillText(lbl, x, y - 6);
+      ctx.font = '600 11px Inter, sans-serif';
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillText(vals[i], x, y + 8);
+    });
+  }
+
+  /* ── Init ── */
+  render();
+
+})();
+</script>
+</body>
+</html>

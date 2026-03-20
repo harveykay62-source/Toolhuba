@@ -7,6 +7,11 @@
  *   GET  /arena                  → serve public/arena.html          (3D battle)
  *   GET  /politibattle-multi     → serve public/politibattle-multi.html (online lobby)
  *   GET  /game/:code             → serve public/politibattle-multi.html (invite link)
+ *   GET  /politibattle/team      → serve public/pb-team.html        (team select)
+ *   GET  /politibattle/preview   → serve public/pb-preview.html     (matchup preview)
+ *   GET  /politibattle/battle    → serve public/pb-battle.html      (battle screen)
+ *   GET  /politibattle/victory   → serve public/pb-victory.html     (victory screen)
+ *   GET  /politibattle/dex       → serve public/pb-dex.html         (politician dex)
  *
  * API routes:
  *   POST /api/politibattle/create-room  → create a new battle room, return { code }
@@ -53,6 +58,31 @@ router.get('/politibattle-multi', (req, res) => {
  */
 router.get('/game/:code', (req, res) => {
   res.sendFile(pub('politibattle-multi.html'));
+});
+
+/** Team selection — pick your roster before the match (state via sessionStorage) */
+router.get('/politibattle/team', (req, res) => {
+  res.sendFile(pub('pb-team.html'));
+});
+
+/** Matchup preview — show both teams before the battle starts (state via sessionStorage) */
+router.get('/politibattle/preview', (req, res) => {
+  res.sendFile(pub('pb-preview.html'));
+});
+
+/** Battle screen — main turn-based battle UI (state via sessionStorage) */
+router.get('/politibattle/battle', (req, res) => {
+  res.sendFile(pub('pb-battle.html'));
+});
+
+/** Victory screen — post-match results and stats (state via sessionStorage) */
+router.get('/politibattle/victory', (req, res) => {
+  res.sendFile(pub('pb-victory.html'));
+});
+
+/** Politician Dex — browse all politician cards and stats (state via sessionStorage) */
+router.get('/politibattle/dex', (req, res) => {
+  res.sendFile(pub('pb-dex.html'));
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

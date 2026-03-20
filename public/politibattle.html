@@ -1,853 +1,793 @@
 <!DOCTYPE html>
+<!-- PolitiBattle — Home / Menu Screen — pure structure, all logic in politibattle-main.js -->
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="PolitiBattle — 50 Political Fighters. Zero Dignity. Pure Strategy.">
-<meta property="og:title" content="PolitiBattle">
-<meta property="og:description" content="50 Political Fighters. Zero Dignity. Pure Strategy.">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&family=Orbitron:wght@400;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/style.css">
-<link rel="stylesheet" href="/css/quiz.css">
-<style>
-/* ── POLITIBATTLE GLOBALS ─────────────────────────────────────── */
-:root {
-  --pb-red:    #e63946;
-  --pb-blue:   #3a86ff;
-  --pb-gold:   #ffd60a;
-  --pb-dark:   #090e1a;
-  --pb-dark2:  #0f1628;
-  --pb-dark3:  #141d35;
-  --pb-border: rgba(255,255,255,.08);
-  --pb-glow-r: rgba(230,57,70,.4);
-  --pb-glow-b: rgba(58,134,255,.4);
-}
-body { background: var(--pb-dark) !important; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="PolitiBattle — 50 Political Fighters. Zero Dignity. Pure Strategy.">
+  <meta name="author" content="ToolHub AI">
+  <meta property="og:site_name" content="ToolHub AI">
+  <meta name="theme-color" content="#6366f1">
+  <title>PolitiBattle — ToolHub AI</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏛️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ── Reset / no-scroll foundation ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #09090f;
+      color: #e2e8f0;
+    }
 
-/* ── SCREEN SYSTEM ────────────────────────────────────────────── */
-.pb-screen { display: none; min-height: calc(100vh - 60px); }
-.pb-screen.active { display: block; }
+    /* ── CSS custom props ── */
+    :root {
+      --nav-h: 60px;
+      --red:   #ef4444;
+      --gold:  #f59e0b;
+      --blue:  #3b82f6;
+      --red2:  #dc2626;
+      --blue2: #1d4ed8;
+      --card-bg: rgba(15,15,30,0.85);
+      --border: rgba(255,255,255,0.08);
+      --glow-red:  0 0 24px rgba(239,68,68,0.45);
+      --glow-blue: 0 0 24px rgba(59,130,246,0.45);
+    }
 
-/* ── TYPE BADGE ───────────────────────────────────────────────── */
-.pb-type { display:inline-block; font-size:.6rem; font-weight:700; letter-spacing:.06em;
-  padding:2px 7px; border-radius:3px; text-transform:uppercase; }
-.pb-type-Republican    { background:#ef4444; color:#fff; }
-.pb-type-Democrat      { background:#3b82f6; color:#fff; }
-.pb-type-Libertarian   { background:#eab308; color:#000; }
-.pb-type-Green         { background:#22c55e; color:#000; }
-.pb-type-Socialist     { background:#ec4899; color:#fff; }
-.pb-type-Authoritarian { background:#7c3aed; color:#fff; }
-.pb-type-Centrist      { background:#94a3b8; color:#000; }
-.pb-type-Populist      { background:#f97316; color:#fff; }
-.pb-type-Corporate     { background:#475569; color:#fff; }
-.pb-type-Revolutionary { background:#dc2626; color:#fff; }
+    /* ── Starfield background ── */
+    #pb-starfield {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .pb-star {
+      position: absolute;
+      border-radius: 50%;
+      animation: pb-twinkle var(--dur, 3s) ease-in-out infinite alternate;
+      opacity: var(--op, 0.6);
+    }
+    @keyframes pb-twinkle {
+      from { opacity: var(--op, 0.6); transform: scale(1); }
+      to   { opacity: calc(var(--op, 0.6) * 0.25); transform: scale(0.7); }
+    }
+    #pb-aurora {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 30% at 20% 80%, rgba(239,68,68,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 30% at 80% 20%, rgba(59,130,246,0.07) 0%, transparent 70%);
+      animation: pb-aurora-pulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes pb-aurora-pulse {
+      from { opacity: 0.6; }
+      to   { opacity: 1; }
+    }
 
-/* ─────────────────────────────────────────────────────────────── */
-/* HOME SCREEN                                                     */
-/* ─────────────────────────────────────────────────────────────── */
-#homeScreen {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px 60px;
-  min-height: calc(100vh - 60px);
-  background: var(--pb-dark);
-}
-#homeScreen::before {
-  content:'';
-  position:absolute; inset:0;
-  background: radial-gradient(ellipse 80% 50% at 20% 30%, rgba(230,57,70,.12) 0%, transparent 60%),
-              radial-gradient(ellipse 60% 40% at 80% 70%, rgba(58,134,255,.10) 0%, transparent 60%);
-  animation: pb-pulse 6s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-#homeScreen::after {
-  content:'';
-  position:absolute; inset:0;
-  background-image:
-    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 40% 8%, rgba(255,255,255,.35) 0%, transparent 100%),
-    radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,.25) 0%, transparent 100%),
-    radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 85% 65%, rgba(255,255,255,.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 92% 10%, rgba(255,255,255,.35) 0%, transparent 100%),
-    radial-gradient(1px 1px at 5% 80%, rgba(255,255,255,.25) 0%, transparent 100%),
-    radial-gradient(1px 1px at 47% 90%, rgba(255,255,255,.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 63% 85%, rgba(255,255,255,.2) 0%, transparent 100%);
-  animation: pb-stars 20s linear infinite;
-  pointer-events: none;
-}
-@keyframes pb-pulse { 0%{opacity:.7} 100%{opacity:1} }
-@keyframes pb-stars { 0%{transform:translateY(0)} 100%{transform:translateY(-20px)} }
+    /* ── Site header (exact match to index.html) ── */
+    .site-header {
+      position: relative;
+      z-index: 100;
+      height: var(--nav-h);
+      background: rgba(9,9,15,0.95);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      font-family: Inter, sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #f8fafc;
+      flex-shrink: 0;
+    }
+    .logo-icon { font-size: 1.3rem; }
+    .logo-ai { color: #818cf8; }
+    .header-search-wrap { flex: 1; max-width: 340px; }
+    .header-search-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      color: #64748b;
+      font-family: Inter, sans-serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .header-search-btn:hover { background: rgba(255,255,255,0.09); }
+    .header-search-btn kbd {
+      margin-left: auto;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.75rem;
+    }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+    .header-nav-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-family: Inter, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #94a3b8;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+    .header-nav-btn:hover { background: rgba(255,255,255,0.07); color: #f1f5f9; }
+    .header-nav-btn.active-nav {
+      background: linear-gradient(135deg,rgba(99,102,241,.15),rgba(239,68,68,.1));
+      border: 1px solid rgba(99,102,241,.3);
+      color: #e2e8f0;
+    }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-icon {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #94a3b8;
+      transition: background 0.2s;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,0.1); color: #f1f5f9; }
+    [data-theme="light"] .icon-moon { display: none; }
+    [data-theme="dark"]  .icon-sun  { display: none; }
+    @media (max-width: 700px) {
+      .header-search-wrap { display: none; }
+      .header-nav { gap: 2px; }
+      .header-nav-btn { font-size: 0.78rem; padding: 5px 8px; }
+    }
+    @media (max-width: 500px) {
+      .header-nav .header-nav-btn:not(.active-nav):not(:last-child) { display: none; }
+    }
 
-.pb-home-inner { position:relative; z-index:1; text-align:center; max-width:700px; width:100%; }
+    /* ── Main content area ── */
+    #pb-home {
+      position: relative;
+      z-index: 10;
+      height: calc(100vh - var(--nav-h));
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      gap: clamp(10px, 2vh, 22px);
+    }
 
-.pb-title {
-  font-family: 'Russo One', sans-serif;
-  font-size: clamp(2.4rem, 7vw, 5rem);
-  line-height: 1;
-  background: linear-gradient(90deg, var(--pb-red), var(--pb-gold), var(--pb-blue));
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: pb-title-shine 3s linear infinite;
-  background-size: 200% auto;
-  letter-spacing: -.01em;
-  margin-bottom: 12px;
-}
-@keyframes pb-title-shine {
-  0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%}
-}
-.pb-subtitle {
-  font-family: 'Orbitron', sans-serif;
-  font-size: .75rem;
-  color: rgba(255,255,255,.45);
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  margin-bottom: 48px;
-}
+    /* Settings gear — top-right of content area */
+    #pbSettingsBtn {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background 0.2s, transform 0.3s;
+      color: #94a3b8;
+      z-index: 20;
+    }
+    #pbSettingsBtn:hover { background: rgba(255,255,255,0.1); transform: rotate(45deg); }
 
-.pb-home-btns { display:flex; flex-direction:column; gap:16px; width:100%; max-width:440px; margin:0 auto 32px; }
+    /* ── Title ── */
+    #pb-title {
+      font-family: 'Russo One', sans-serif;
+      font-size: clamp(2.4rem, 7vw, 5.5rem);
+      line-height: 1;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--red) 0%, var(--gold) 50%, var(--blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 20px rgba(239,68,68,0.5)) drop-shadow(0 0 40px rgba(59,130,246,0.3));
+      animation: pb-title-pulse 3s ease-in-out infinite alternate;
+      user-select: none;
+      text-align: center;
+    }
+    @keyframes pb-title-pulse {
+      from { filter: drop-shadow(0 0 18px rgba(239,68,68,0.45)) drop-shadow(0 0 36px rgba(59,130,246,0.25)); }
+      to   { filter: drop-shadow(0 0 32px rgba(239,68,68,0.7))  drop-shadow(0 0 56px rgba(59,130,246,0.5));  }
+    }
 
-.pb-main-btn {
-  background: var(--pb-dark3);
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 14px;
-  padding: 20px 28px;
-  cursor: pointer;
-  text-align: left;
-  transition: transform .15s, border-color .15s, box-shadow .15s;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.pb-main-btn:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.25); box-shadow:0 8px 32px rgba(0,0,0,.4); }
-.pb-main-btn.pb-btn-red:hover { border-color:var(--pb-red); box-shadow:0 8px 32px var(--pb-glow-r); }
-.pb-main-btn.pb-btn-blue:hover { border-color:var(--pb-blue); box-shadow:0 8px 32px var(--pb-glow-b); }
-.pb-main-btn-icon { font-size:2rem; flex-shrink:0; }
-.pb-main-btn-text { flex:1; }
-.pb-main-btn-label {
-  font-family: 'Russo One', sans-serif;
-  font-size: 1.05rem;
-  color: #fff;
-  display: block;
-  margin-bottom: 3px;
-}
-.pb-main-btn-sub { font-size:.72rem; color:rgba(255,255,255,.4); font-family:'Inter',sans-serif; }
+    /* ── Subtitle ── */
+    #pb-subtitle {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(0.85rem, 2.2vw, 1.25rem);
+      letter-spacing: 0.22em;
+      color: #64748b;
+      text-align: center;
+      text-transform: uppercase;
+    }
 
-.pb-home-links { display:flex; gap:20px; justify-content:center; margin-bottom:32px; }
-.pb-home-link {
-  background: rgba(255,255,255,.05);
-  border: 1px solid var(--pb-border);
-  border-radius:8px;
-  padding:8px 18px;
-  color:rgba(255,255,255,.6);
-  font-size:.82rem;
-  cursor:pointer;
-  transition:all .15s;
-}
-.pb-home-link:hover { color:#fff; border-color:rgba(255,255,255,.2); }
+    /* ── Primary battle buttons ── */
+    #pb-primary-btns {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pb-main-btn {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: clamp(180px, 28vw, 260px);
+      padding: 18px 20px;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      font-family: 'Russo One', sans-serif;
+      font-size: clamp(0.82rem, 1.6vw, 1rem);
+      color: #fff;
+      text-decoration: none;
+      text-align: center;
+      transition: transform 0.18s, box-shadow 0.18s;
+      overflow: hidden;
+    }
+    .pb-main-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.06);
+      opacity: 0;
+      transition: opacity 0.2s;
+      border-radius: inherit;
+    }
+    .pb-main-btn:hover::before { opacity: 1; }
+    .pb-main-btn:hover { transform: translateY(-3px) scale(1.02); }
+    .pb-main-btn:active { transform: translateY(0) scale(0.98); }
+    .pb-main-btn-sub {
+      font-family: Inter, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.04em;
+    }
+    #pbBattleVsCpu {
+      background: linear-gradient(135deg, #dc2626, #ef4444, #f97316);
+      box-shadow: var(--glow-red), 0 4px 20px rgba(239,68,68,0.3);
+    }
+    #pbBattleVsCpu:hover {
+      box-shadow: 0 0 40px rgba(239,68,68,0.7), 0 8px 30px rgba(239,68,68,0.4);
+    }
+    #pbBattleOnline {
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6, #06b6d4);
+      box-shadow: var(--glow-blue), 0 4px 20px rgba(59,130,246,0.3);
+    }
+    #pbBattleOnline:hover {
+      box-shadow: 0 0 40px rgba(59,130,246,0.7), 0 8px 30px rgba(59,130,246,0.4);
+    }
 
-.pb-stats-card {
-  position:absolute; bottom:20px; right:20px;
-  background:rgba(255,255,255,.05);
-  border:1px solid var(--pb-border);
-  border-radius:10px;
-  padding:10px 16px;
-  font-size:.72rem;
-  color:rgba(255,255,255,.5);
-  text-align:center;
-  z-index:1;
-}
-.pb-stats-card strong { color:rgba(255,255,255,.8); }
-.pb-settings-btn {
-  position:absolute; bottom:20px; left:20px;
-  background:rgba(255,255,255,.05);
-  border:1px solid var(--pb-border);
-  border-radius:8px;
-  padding:8px 14px;
-  color:rgba(255,255,255,.5);
-  font-size:.8rem;
-  cursor:pointer;
-  transition:all .15s;
-  z-index:1;
-}
-.pb-settings-btn:hover { color:#fff; border-color:rgba(255,255,255,.2); }
+    /* ── Secondary buttons row ── */
+    #pb-secondary-btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pb-sec-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: background 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.18s;
+      text-decoration: none;
+    }
+    .pb-sec-btn:hover {
+      background: rgba(255,255,255,0.09);
+      color: #e2e8f0;
+      border-color: rgba(255,255,255,0.18);
+      box-shadow: 0 0 14px rgba(255,255,255,0.06);
+    }
 
-/* ─────────────────────────────────────────────────────────────── */
-/* TEAM BUILD SCREEN                                               */
-/* ─────────────────────────────────────────────────────────────── */
-#teamBuildScreen {
-  background: var(--pb-dark);
-  padding: 24px 20px;
-  min-height: calc(100vh - 60px);
-}
-.tb-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; max-width:1100px; margin:0 auto 20px; }
-.tb-back { background:rgba(255,255,255,.07); border:1px solid var(--pb-border); color:#fff; border-radius:8px; padding:7px 14px; font-size:.82rem; cursor:pointer; transition:all .15s; }
-.tb-back:hover { border-color:rgba(255,255,255,.2); }
-.tb-title { font-family:'Russo One',sans-serif; font-size:1.3rem; color:#fff; flex:1; }
-.tb-rand-btn { background:linear-gradient(135deg,var(--pb-red),#c1121f); color:#fff; border-radius:8px; padding:8px 16px; font-size:.82rem; font-weight:600; cursor:pointer; }
-.tb-controls { max-width:1100px; margin:0 auto 16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.tb-search { flex:1; min-width:180px; background:var(--pb-dark2); border:1px solid var(--pb-border); border-radius:8px; padding:8px 14px; color:#fff; font-size:.85rem; }
-.tb-search::placeholder { color:rgba(255,255,255,.3); }
-.tb-sort { background:var(--pb-dark2); border:1px solid var(--pb-border); border-radius:8px; padding:7px 12px; color:#fff; font-size:.82rem; }
-.tb-type-pills { max-width:1100px; margin:0 auto 16px; display:flex; gap:6px; flex-wrap:wrap; }
-.tb-pill { border:1px solid var(--pb-border); border-radius:20px; padding:4px 11px; font-size:.7rem; cursor:pointer; color:rgba(255,255,255,.6); background:transparent; transition:all .15s; }
-.tb-pill.active { color:#fff; border-color:currentColor; }
-.tb-slots { max-width:1100px; margin:0 auto 20px; display:flex; gap:8px; }
-.tb-slot { width:80px; height:80px; border:2px dashed rgba(255,255,255,.15); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all .15s; overflow:hidden; }
-.tb-slot.filled { border-color:var(--pb-gold); border-style:solid; }
-.tb-slot svg { width:100%; height:100%; }
-.tb-analysis { max-width:1100px; margin:0 auto 16px; display:flex; gap:12px; flex-wrap:wrap; }
-.tb-analysis-card { background:var(--pb-dark2); border:1px solid var(--pb-border); border-radius:10px; padding:10px 14px; flex:1; min-width:160px; font-size:.75rem; }
-.tb-analysis-card h4 { color:rgba(255,255,255,.5); margin-bottom:6px; font-size:.65rem; text-transform:uppercase; letter-spacing:.1em; }
-.tb-analysis-val { color:#fff; font-weight:600; }
-.tb-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
-.tb-pol-card { background:var(--pb-dark2); border:1px solid var(--pb-border); border-radius:10px; padding:12px; cursor:pointer; transition:all .15s; text-align:center; }
-.tb-pol-card:hover { border-color:rgba(255,255,255,.2); transform:translateY(-2px); }
-.tb-pol-card.selected { border-color:var(--pb-gold); box-shadow:0 0 12px rgba(255,214,10,.2); }
-.tb-pol-card svg { width:70px; height:93px; margin:0 auto 6px; display:block; }
-.tb-pol-name { font-size:.72rem; font-weight:600; color:#fff; margin-bottom:4px; }
-.tb-pol-bst { font-size:.62rem; color:rgba(255,255,255,.4); }
-.tb-pol-types { display:flex; gap:3px; justify-content:center; margin-bottom:4px; flex-wrap:wrap; }
-.tb-confirm { display:block; max-width:300px; margin:24px auto 0; background:linear-gradient(135deg,var(--pb-gold),#f5a623); color:#000; font-family:'Russo One',sans-serif; font-size:1rem; border-radius:10px; padding:13px 24px; cursor:pointer; opacity:.5; pointer-events:none; transition:opacity .15s; }
-.tb-confirm.enabled { opacity:1; pointer-events:auto; }
+    /* ── Stats card ── */
+    #homeStatsCard {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 22px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      max-width: 560px;
+      width: 100%;
+      backdrop-filter: blur(8px);
+    }
+    .pb-stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .pb-stat-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .pb-stat-lbl { color: #475569; letter-spacing: 0.08em; }
+    #pb-stats-empty { color: #475569; font-size: 0.72rem; letter-spacing: 0.1em; }
+    #pbStatsReset {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: #64748b;
+      font-size: 0.65rem;
+      font-family: Inter, sans-serif;
+      padding: 4px 9px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #pbStatsReset:hover { border-color: var(--red); color: var(--red); }
 
-/* ─────────────────────────────────────────────────────────────── */
-/* PREVIEW SCREEN                                                  */
-/* ─────────────────────────────────────────────────────────────── */
-#previewScreen {
-  background: var(--pb-dark);
-  min-height: calc(100vh - 60px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 30px 20px;
-  position: relative;
-}
-.pv-title { font-family:'Russo One',sans-serif; font-size:1.5rem; color:#fff; text-align:center; margin-bottom:6px; }
-.pv-timer { font-family:'Orbitron',sans-serif; font-size:1rem; color:var(--pb-gold); text-align:center; margin-bottom:30px; }
-.pv-teams { display:flex; gap:60px; align-items:flex-start; justify-content:center; width:100%; max-width:900px; flex-wrap:wrap; }
-.pv-side { flex:1; min-width:280px; max-width:380px; }
-.pv-side-label { font-size:.7rem; text-transform:uppercase; letter-spacing:.12em; color:rgba(255,255,255,.4); margin-bottom:12px; text-align:center; }
-.pv-fighter-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-.pv-fighter-card { background:var(--pb-dark2); border:2px solid var(--pb-border); border-radius:10px; padding:10px 6px; text-align:center; cursor:pointer; transition:all .15s; }
-.pv-fighter-card:hover { border-color:rgba(255,255,255,.25); }
-.pv-fighter-card.selected { border-color:var(--pb-gold); box-shadow:0 0 16px rgba(255,214,10,.3); }
-.pv-fighter-card.ai-lead { border-color:var(--pb-red); box-shadow:0 0 16px rgba(230,57,70,.3); }
-.pv-fighter-card svg { width:60px; height:80px; margin:0 auto 4px; display:block; }
-.pv-fighter-name { font-size:.6rem; color:rgba(255,255,255,.8); font-weight:600; }
-.pv-fighter-types { display:flex; gap:2px; justify-content:center; margin-top:3px; flex-wrap:wrap; }
-.pv-vs { font-family:'Bebas Neue',sans-serif; font-size:5rem; color:rgba(255,255,255,.08); align-self:center; flex-shrink:0; }
-.pv-prompt { font-size:.8rem; color:var(--pb-gold); text-align:center; margin-top:10px; font-family:'Orbitron',sans-serif; letter-spacing:.05em; }
-.pv-ai-prompt { font-size:.8rem; color:var(--pb-red); text-align:center; margin-top:10px; font-family:'Orbitron',sans-serif; letter-spacing:.05em; }
-.pv-battle-btn {
-  margin-top:32px;
-  font-family:'Russo One',sans-serif;
-  font-size:1.3rem;
-  background:linear-gradient(135deg,var(--pb-red),#c1121f);
-  color:#fff;
-  border-radius:12px;
-  padding:16px 60px;
-  cursor:pointer;
-  opacity:.4;
-  pointer-events:none;
-  transition:all .2s;
-  box-shadow:0 4px 24px var(--pb-glow-r);
-  letter-spacing:.05em;
-}
-.pv-battle-btn.ready { opacity:1; pointer-events:auto; animation:pb-pulse-btn 1.2s ease-in-out infinite; }
-@keyframes pb-pulse-btn { 0%,100%{box-shadow:0 4px 24px var(--pb-glow-r)} 50%{box-shadow:0 4px 40px var(--pb-glow-r),0 0 60px var(--pb-glow-r)} }
+    /* ── MODALS ── */
+    .pb-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.82);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .pb-modal-overlay.open { display: flex; }
+    .pb-modal {
+      background: #0d0d1a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 28px;
+      position: relative;
+      box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    }
+    .pb-modal-close {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: #94a3b8;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .pb-modal-close:hover { background: rgba(239,68,68,0.15); color: var(--red); }
+    .pb-modal h2 {
+      font-family: 'Russo One', sans-serif;
+      font-size: 1.3rem;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, var(--red), var(--gold), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
 
-/* ─────────────────────────────────────────────────────────────── */
-/* BATTLE SCREEN                                                   */
-/* ─────────────────────────────────────────────────────────────── */
-#battleScreen {
-  background: var(--pb-dark);
-  min-height: calc(100vh - 60px);
-  display: flex;
-  flex-direction: row;
-  gap: 0;
-}
-.bt-main { flex:1; display:flex; flex-direction:column; min-width:0; }
-/* Field */
-.bt-field {
-  height: 340px;
-  background: linear-gradient(180deg, #0a1520 0%, #0d1e0a 40%, #111 100%);
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.bt-field::before {
-  content:'';
-  position:absolute; inset:0;
-  background: radial-gradient(ellipse 60% 30% at 50% 100%, rgba(34,197,94,.06) 0%, transparent 70%);
-}
-.bt-weather-badge {
-  position:absolute; top:10px; left:50%; transform:translateX(-50%);
-  background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.1);
-  border-radius:20px; padding:3px 12px; font-size:.65rem; color:rgba(255,255,255,.7);
-  font-family:'Orbitron',sans-serif; letter-spacing:.1em; display:none;
-}
-.bt-turn-badge {
-  position:absolute; top:10px; left:12px;
-  font-family:'Press Start 2P',monospace; font-size:.5rem;
-  color:rgba(255,255,255,.35);
-}
-/* Enemy */
-.bt-enemy-sprite {
-  position:absolute; right:12%; top:18px;
-  width:120px; height:160px;
-  transform:scaleX(-1);
-  filter:drop-shadow(0 4px 12px rgba(0,0,0,.6));
-  transition:transform .2s;
-}
-/* Player */
-.bt-player-sprite {
-  position:absolute; left:8%; bottom:50px;
-  width:130px; height:173px;
-  filter:drop-shadow(0 4px 12px rgba(0,0,0,.6));
-  transition:transform .2s;
-}
-/* HP Boxes — Showdown style */
-.bt-hp-box {
-  position:absolute;
-  background:rgba(20,29,53,.92);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:8px;
-  padding:8px 12px;
-  min-width:210px;
-  backdrop-filter:blur(4px);
-}
-.bt-hp-box.enemy { top:14px; right:8px; }
-.bt-hp-box.player { bottom:14px; left:8px; }
-.bt-hp-row1 { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
-.bt-hp-name { font-family:'Russo One',sans-serif; font-size:.78rem; color:#fff; }
-.bt-hp-level { font-size:.62rem; color:rgba(255,255,255,.4); font-family:'Orbitron',sans-serif; }
-.bt-hp-bar-wrap { height:6px; background:rgba(255,255,255,.1); border-radius:3px; margin-bottom:4px; }
-.bt-hp-bar { height:100%; border-radius:3px; transition:width .4s ease, background .4s; background:#22c55e; }
-.bt-hp-bar.yellow { background:#eab308; }
-.bt-hp-bar.red { background:#ef4444; animation:hp-flash .5s ease infinite alternate; }
-@keyframes hp-flash { from{opacity:1} to{opacity:.6} }
-.bt-hp-row2 { display:flex; align-items:center; justify-content:space-between; }
-.bt-hp-nums { font-family:'Press Start 2P',monospace; font-size:.52rem; color:rgba(255,255,255,.55); }
-.bt-hp-status { font-size:.55rem; font-weight:700; padding:1px 5px; border-radius:3px; text-transform:uppercase; }
-.bt-hp-status.psn { background:#7c3aed; color:#fff; }
-.bt-hp-status.brn { background:#f97316; color:#fff; }
-.bt-hp-status.par { background:#eab308; color:#000; }
-.bt-hp-status.frz { background:#3b82f6; color:#fff; }
-.bt-hp-status.slp { background:#94a3b8; color:#000; }
-.bt-hp-types { display:flex; gap:3px; margin-top:3px; }
+    /* ── Type Chart modal ── */
+    #typeChartModal .pb-modal { max-width: 760px; }
+    .pb-type-grid-wrap { overflow-x: auto; }
+    .pb-type-grid {
+      border-collapse: collapse;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.6rem;
+      min-width: 480px;
+      width: 100%;
+    }
+    .pb-type-grid th, .pb-type-grid td {
+      border: 1px solid rgba(255,255,255,0.05);
+      padding: 5px 4px;
+      text-align: center;
+      min-width: 44px;
+    }
+    .pb-type-grid th { color: #64748b; font-size: 0.58rem; letter-spacing: 0.06em; }
+    .pb-type-grid .tc-header-corner { background: rgba(255,255,255,0.03); }
+    .pb-type-grid .tc-atk { color: #94a3b8; writing-mode: initial; }
+    .tc-2x   { background: rgba( 34,197, 94,0.2); color: #4ade80; font-weight:700; }
+    .tc-half { background: rgba(239, 68, 68,0.18); color: #f87171; font-weight:700; }
+    .tc-zero { background: rgba(  0,  0,  0,0.5);  color: #374151; font-weight:700; }
+    .tc-norm { background: transparent; color: #374151; }
+    .tc-def-label { font-size: 0.55rem; color: #475569; letter-spacing: 0.08em; }
 
-/* Battle Log */
-.bt-log {
-  flex:1;
-  overflow-y:auto;
-  padding:8px 12px;
-  background:rgba(8,12,24,.95);
-  border-top:1px solid rgba(255,255,255,.06);
-  border-bottom:1px solid rgba(255,255,255,.06);
-  max-height:110px;
-  font-family:'Press Start 2P',monospace;
-  font-size:.5rem;
-  line-height:2.2;
-  scroll-behavior:smooth;
-}
-.bt-log .log-use   { color:#f8f8f2; }
-.bt-log .log-dmg   { color:#ff8fa3; }
-.bt-log .log-eff   { color:#f9c74f; }
-.bt-log .log-heal  { color:#80ffb4; }
-.bt-log .log-status{ color:#c77dff; }
-.bt-log .log-ko    { color:#ef4444; font-weight:bold; }
-.bt-log .log-info  { color:rgba(255,255,255,.4); }
-.bt-log .log-crit  { color:#ffd60a; }
+    /* ── How to Play modal ── */
+    #howToPlayModal .pb-modal { max-width: 620px; }
+    .pb-htp-section { margin-bottom: 18px; }
+    .pb-htp-section h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.12em;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    .pb-htp-section p, .pb-htp-section li {
+      font-family: Inter, sans-serif;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      color: #94a3b8;
+    }
+    .pb-htp-section ul { padding-left: 18px; }
+    .pb-htp-section li { margin-bottom: 3px; }
 
-/* Controls */
-.bt-controls {
-  background: rgba(10,15,28,.98);
-  border-top:1px solid rgba(255,255,255,.06);
-  padding: 10px 12px;
-}
-.bt-controls-header {
-  display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;
-}
-.bt-ctrl-label { font-family:'Press Start 2P',monospace; font-size:.55rem; color:#f97316; }
-.bt-timer-bar-wrap { width:120px; height:5px; background:rgba(255,255,255,.1); border-radius:3px; }
-.bt-timer-bar { height:100%; background:#22c55e; border-radius:3px; transition:width .9s linear, background .3s; }
-.bt-timer-bar.low { background:#ef4444; }
-.bt-timer-num { font-family:'Press Start 2P',monospace; font-size:.5rem; color:rgba(255,255,255,.5); margin-left:6px; }
-.bt-move-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
-.bt-move-btn {
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.09);
-  border-radius:8px;
-  padding:8px 10px;
-  cursor:pointer;
-  text-align:left;
-  position:relative;
-  transition:all .12s;
-}
-.bt-move-btn:hover:not(:disabled) { border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.07); }
-.bt-move-btn:disabled { opacity:.35; cursor:not-allowed; }
-.bt-move-top { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
-.bt-move-name { font-family:'Press Start 2P',monospace; font-size:.48rem; color:#fff; }
-.bt-move-pp { font-family:'Press Start 2P',monospace; font-size:.42rem; color:rgba(255,255,255,.35); margin-left:auto; }
-.bt-move-bottom { display:flex; align-items:center; gap:6px; }
-.bt-move-cat { font-size:.6rem; }
-.bt-move-pw { font-size:.6rem; color:rgba(255,255,255,.5); }
-.bt-move-acc { font-size:.6rem; color:rgba(255,255,255,.35); }
-.bt-move-tooltip {
-  display:none;
-  position:absolute; bottom:calc(100% + 6px); left:0;
-  background:rgba(0,0,0,.9); border:1px solid rgba(255,255,255,.15);
-  border-radius:6px; padding:6px 10px; font-size:.55rem; color:#fff;
-  white-space:nowrap; z-index:10; pointer-events:none;
-  font-family:'Press Start 2P',monospace;
-}
-.bt-move-btn:hover .bt-move-tooltip { display:block; }
+    /* ── Settings modal ── */
+    #settingsModal .pb-modal { max-width: 440px; }
+    .pb-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .pb-setting-row:last-child { border-bottom: none; }
+    .pb-setting-label {
+      font-family: Inter, sans-serif;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+    .pb-setting-sub {
+      font-family: Inter, sans-serif;
+      font-size: 0.72rem;
+      color: #475569;
+      margin-top: 1px;
+    }
+    input[type="range"].pb-slider {
+      width: 120px;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
+    .pb-toggle {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .pb-toggle input { opacity: 0; width: 0; height: 0; }
+    .pb-toggle-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .pb-toggle input:checked + .pb-toggle-track { background: var(--blue); }
+    .pb-toggle-track::after {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 18px; height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .pb-toggle input:checked + .pb-toggle-track::after { transform: translateX(18px); }
+    select.pb-select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #e2e8f0;
+      padding: 5px 10px;
+      font-family: Inter, sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
 
-/* Switch panel */
-.bt-switch-section { border-top:1px solid rgba(255,255,255,.06); padding-top:8px; }
-.bt-switch-label { font-family:'Press Start 2P',monospace; font-size:.48rem; color:rgba(58,134,255,.8); font-style:italic; margin-bottom:6px; }
-.bt-switch-list { display:flex; gap:6px; flex-wrap:wrap; }
-.bt-switch-btn {
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.09);
-  border-radius:7px;
-  padding:5px 10px;
-  cursor:pointer;
-  display:flex; align-items:center; gap:7px;
-  transition:all .12s;
-}
-.bt-switch-btn:hover:not(:disabled) { border-color:rgba(58,134,255,.4); background:rgba(58,134,255,.08); }
-.bt-switch-btn:disabled { opacity:.3; cursor:not-allowed; }
-.bt-switch-thumb { width:32px; height:43px; }
-.bt-switch-info { text-align:left; }
-.bt-switch-name { font-family:'Press Start 2P',monospace; font-size:.45rem; color:#fff; }
-.bt-switch-hp-wrap { width:60px; height:4px; background:rgba(255,255,255,.1); border-radius:2px; margin-top:3px; }
-.bt-switch-hp-bar { height:100%; border-radius:2px; background:#22c55e; transition:width .3s; }
-.bt-kb-hints { margin-top:6px; display:flex; gap:8px; flex-wrap:wrap; }
-.bt-kb-hint { font-size:.48rem; color:rgba(255,255,255,.25); font-family:'Press Start 2P',monospace; }
-.bt-kb-hint kbd { background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:3px; padding:1px 4px; }
-
-/* Right side panel */
-.bt-side-panel {
-  width:180px;
-  background:rgba(8,12,24,.8);
-  border-left:1px solid rgba(255,255,255,.06);
-  padding:12px;
-  display:flex; flex-direction:column; gap:16px;
-  overflow-y:auto;
-}
-@media(max-width:767px){ .bt-side-panel { display:none; } }
-.bt-panel-side-label { font-family:'Press Start 2P',monospace; font-size:.45rem; color:rgba(255,255,255,.3); margin-bottom:8px; text-transform:uppercase; }
-.bt-panel-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
-.bt-panel-thumb { width:28px; height:37px; }
-.bt-panel-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.bt-panel-dot.green { background:#22c55e; }
-.bt-panel-dot.yellow { background:#eab308; }
-.bt-panel-dot.red { background:#ef4444; }
-.bt-panel-dot.fainted { background:rgba(255,255,255,.1); }
-.bt-panel-name { font-size:.5rem; color:rgba(255,255,255,.5); font-family:'Press Start 2P',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px; }
-
-/* ─────────────────────────────────────────────────────────────── */
-/* VICTORY SCREEN                                                  */
-/* ─────────────────────────────────────────────────────────────── */
-#victoryScreen {
-  background: var(--pb-dark);
-  min-height: calc(100vh - 60px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 40px 20px;
-}
-.vc-trophy { font-size: 5rem; margin-bottom: 12px; animation: vc-bounce .6s cubic-bezier(.36,.07,.19,.97) both; }
-@keyframes vc-bounce { 0%,100%{transform:translateY(0)} 30%{transform:translateY(-20px)} 60%{transform:translateY(-10px)} }
-.vc-result { font-family:'Russo One',sans-serif; font-size:3rem; margin-bottom:8px; }
-.vc-result.win { color:var(--pb-gold); text-shadow:0 0 40px rgba(255,214,10,.4); }
-.vc-result.loss { color:var(--pb-red); text-shadow:0 0 40px rgba(230,57,70,.4); }
-.vc-flavour { color:rgba(255,255,255,.45); font-size:.85rem; margin-bottom:30px; max-width:440px; font-style:italic; }
-.vc-stats { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; margin-bottom:32px; }
-.vc-stat { background:var(--pb-dark2); border:1px solid var(--pb-border); border-radius:10px; padding:14px 22px; min-width:110px; }
-.vc-stat-val { font-family:'Orbitron',sans-serif; font-size:1.5rem; color:#fff; }
-.vc-stat-label { font-size:.65rem; color:rgba(255,255,255,.4); margin-top:2px; }
-.vc-buttons { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
-.vc-btn { border-radius:10px; padding:12px 22px; font-size:.88rem; font-weight:600; cursor:pointer; transition:all .15s; border:1px solid transparent; }
-.vc-btn.primary { background:linear-gradient(135deg,var(--pb-red),#c1121f); color:#fff; border-color:transparent; }
-.vc-btn.primary:hover { transform:translateY(-2px); box-shadow:0 6px 24px var(--pb-glow-r); }
-.vc-btn.secondary { background:rgba(255,255,255,.06); color:#fff; border-color:var(--pb-border); }
-.vc-btn.secondary:hover { border-color:rgba(255,255,255,.2); }
-.vc-achieve { background:linear-gradient(135deg,rgba(255,214,10,.1),rgba(255,214,10,.05)); border:1px solid rgba(255,214,10,.3); border-radius:10px; padding:10px 18px; margin-bottom:20px; color:var(--pb-gold); font-size:.8rem; display:none; }
-.vc-achieve.show { display:block; animation:vc-bounce .4s; }
-
-/* ─────────────────────────────────────────────────────────────── */
-/* DEX SCREEN                                                      */
-/* ─────────────────────────────────────────────────────────────── */
-#dexScreen {
-  background: var(--pb-dark);
-  min-height: calc(100vh - 60px);
-  padding: 30px 20px;
-}
-.dex-header { max-width:1100px; margin:0 auto 20px; display:flex; align-items:center; gap:12px; }
-.dex-title { font-family:'Russo One',sans-serif; font-size:1.5rem; color:#fff; flex:1; }
-.dex-back { background:rgba(255,255,255,.07); border:1px solid var(--pb-border); color:#fff; border-radius:8px; padding:7px 14px; font-size:.82rem; cursor:pointer; }
-.dex-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
-.dex-card { background:var(--pb-dark2); border:1px solid var(--pb-border); border-radius:12px; padding:14px; text-align:center; cursor:pointer; transition:all .15s; }
-.dex-card:hover { border-color:rgba(255,255,255,.25); transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.4); }
-.dex-card svg { width:80px; height:107px; margin:0 auto 8px; display:block; }
-.dex-card-name { font-size:.78rem; font-weight:600; color:#fff; margin-bottom:5px; }
-.dex-card-types { display:flex; gap:3px; justify-content:center; margin-bottom:8px; flex-wrap:wrap; }
-.dex-stat-bars { text-align:left; }
-.dex-stat-row { display:flex; align-items:center; gap:5px; margin-bottom:3px; }
-.dex-stat-lbl { font-size:.55rem; color:rgba(255,255,255,.35); width:26px; flex-shrink:0; }
-.dex-stat-bar-wrap { flex:1; height:4px; background:rgba(255,255,255,.1); border-radius:2px; }
-.dex-stat-bar { height:100%; border-radius:2px; background:var(--pb-blue); }
-.dex-stat-val { font-size:.55rem; color:rgba(255,255,255,.5); width:24px; text-align:right; flex-shrink:0; }
-
-/* ─────────────────────────────────────────────────────────────── */
-/* MODALS                                                          */
-/* ─────────────────────────────────────────────────────────────── */
-.pb-modal-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:500;
-  display:none; align-items:center; justify-content:center; padding:20px;
-}
-.pb-modal-overlay.open { display:flex; }
-.pb-modal {
-  background:var(--pb-dark2);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:16px;
-  padding:24px;
-  max-width:520px;
-  width:100%;
-  max-height:85vh;
-  overflow-y:auto;
-  position:relative;
-}
-.pb-modal-title { font-family:'Russo One',sans-serif; font-size:1.2rem; color:#fff; margin-bottom:18px; }
-.pb-modal-x { position:absolute; top:14px; right:16px; background:none; border:none; color:rgba(255,255,255,.4); font-size:1.4rem; cursor:pointer; }
-.pb-modal-x:hover { color:#fff; }
-
-/* Settings modal */
-.pb-setting-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid rgba(255,255,255,.06); }
-.pb-setting-label { font-size:.85rem; color:rgba(255,255,255,.8); }
-.pb-setting-sub { font-size:.7rem; color:rgba(255,255,255,.35); margin-top:2px; }
-.pb-toggle { width:44px; height:24px; background:rgba(255,255,255,.1); border-radius:12px; position:relative; cursor:pointer; transition:background .2s; border:none; }
-.pb-toggle.on { background:var(--pb-blue); }
-.pb-toggle::after { content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; background:#fff; border-radius:50%; transition:left .2s; }
-.pb-toggle.on::after { left:22px; }
-.pb-range { width:120px; accent-color:var(--pb-blue); }
-
-/* Type chart */
-.tc-grid { overflow-x:auto; }
-.tc-table { border-collapse:collapse; font-size:.6rem; font-family:'Press Start 2P',monospace; min-width:500px; }
-.tc-table th, .tc-table td { width:44px; height:44px; text-align:center; border:1px solid rgba(255,255,255,.06); }
-.tc-table th { color:rgba(255,255,255,.5); font-size:.42rem; background:var(--pb-dark3); }
-.tc-cell-2 { background:rgba(34,197,94,.25); color:#4ade80; font-weight:bold; }
-.tc-cell-05 { background:rgba(239,68,68,.2); color:#f87171; }
-.tc-cell-0 { background:rgba(0,0,0,.5); color:rgba(255,255,255,.2); }
-.tc-cell-1 { color:rgba(255,255,255,.3); }
-
-/* Dex detail modal */
-.dex-detail-top { display:flex; gap:20px; margin-bottom:20px; align-items:flex-start; flex-wrap:wrap; }
-.dex-detail-avatar { width:100px; flex-shrink:0; }
-.dex-detail-info { flex:1; }
-.dex-detail-name { font-family:'Russo One',sans-serif; font-size:1.2rem; color:#fff; margin-bottom:4px; }
-.dex-detail-ttl { font-size:.72rem; color:rgba(255,255,255,.4); margin-bottom:8px; }
-.dex-detail-fl { font-size:.72rem; color:rgba(255,255,255,.55); font-style:italic; margin-bottom:10px; }
-.dex-detail-abl { font-size:.72rem; color:var(--pb-gold); }
-.dex-radar-wrap { margin:12px 0; }
-.dex-detail-moves { margin-top:12px; }
-.dex-detail-moves-title { font-size:.65rem; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:.1em; margin-bottom:8px; }
-.dex-detail-move-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:.65rem; }
-.dex-detail-move-name { color:#fff; flex:1; }
-.dex-detail-move-pw { color:rgba(255,255,255,.4); width:40px; text-align:right; }
-
-/* ─────────────────────────────────────────────────────────────── */
-/* ANIMATION OVERLAYS                                              */
-/* ─────────────────────────────────────────────────────────────── */
-.pb-hit-flash { position:absolute; inset:0; background:rgba(255,255,255,.15); pointer-events:none; opacity:0; border-radius:inherit; }
-.pb-damage-num {
-  position:absolute; font-family:'Press Start 2P',monospace; font-size:.9rem;
-  color:#ff8fa3; text-shadow:0 2px 4px rgba(0,0,0,.8);
-  pointer-events:none; animation:dmg-float 1.2s ease-out forwards; z-index:10;
-}
-@keyframes dmg-float { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-40px)} }
-
-/* ─────────────────────────────────────────────────────────────── */
-/* LOADING STATE                                                   */
-/* ─────────────────────────────────────────────────────────────── */
-.pb-loading { display:flex; align-items:center; justify-content:center; min-height:200px; }
-.pb-spinner { width:32px; height:32px; border:3px solid rgba(255,255,255,.1); border-top-color:var(--pb-blue); border-radius:50%; animation:spin .8s linear infinite; }
-@keyframes spin{to{transform:rotate(360deg)}}
-</style>
+    /* ── Mobile tweaks ── */
+    @media (max-width: 560px) {
+      #pb-primary-btns { gap: 12px; }
+      .pb-main-btn { width: 100%; max-width: 300px; }
+      #homeStatsCard { padding: 10px 14px; gap: 14px; }
+    }
+    @media (max-height: 620px) {
+      #pb-home { gap: 8px; }
+      #pb-title { font-size: clamp(1.8rem, 6vw, 3.5rem); }
+    }
+  </style>
 </head>
 <body>
-<!-- ── SITE HEADER (from index.html) ─────────────────────────── -->
+
+<!-- ── Starfield & aurora ── -->
+<div id="pb-aurora"></div>
+<div id="pb-starfield"></div>
+
+<!-- ── Site Header (exact match to index.html) ── -->
 <header class="site-header" id="siteHeader">
   <div class="header-inner">
-    <a class="logo" href="/">
+    <a class="logo" href="/" aria-label="ToolHub AI Home">
       <span class="logo-icon">⚡</span>
       <span class="logo-text">ToolHub<span class="logo-ai"> AI</span></span>
     </a>
+    <div class="header-search-wrap">
+      <button class="header-search-btn" id="headerSearch" aria-label="Search tools">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search tools…
+        <kbd>⌘K</kbd>
+      </button>
+    </div>
     <nav class="header-nav">
       <a class="header-nav-btn" href="/">🔧 Tools</a>
-      <a class="header-nav-btn header-nav-quiz" href="/quizzes">🎓 Quizzes</a>
-      <a class="header-nav-btn" href="/multiplayer" style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(16,185,129,.1));border:1px solid rgba(99,102,241,.3)">🎮 Multiplayer</a>
-      <a class="header-nav-btn" href="/politibattle" style="color:#fff;background:rgba(230,57,70,.15);border:1px solid rgba(230,57,70,.3)">🏛️ PolitiBattle</a>
+      <a class="header-nav-btn" href="/quizzes">🎓 Quizzes</a>
+      <a class="header-nav-btn" href="/multiplayer">🎮 Multiplayer</a>
+      <a class="header-nav-btn active-nav" href="/politibattle">🏛️ PolitiBattle</a>
     </nav>
     <div class="header-actions">
-      <button class="mobile-nav-btn" id="mobileMenuBtn" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
-      <button id="themeToggle" class="btn-icon" aria-label="Toggle theme" onclick="/* noop */">
+      <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
         <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
       </button>
     </div>
   </div>
 </header>
 
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- SCREEN 1: HOME                                                          -->
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<section id="homeScreen" class="pb-screen active">
-  <div class="pb-home-inner">
-    <h1 class="pb-title">POLITI⚡BATTLE</h1>
-    <p class="pb-subtitle">50 Political Fighters · Zero Dignity · Pure Strategy</p>
-    <div class="pb-home-btns">
-      <button class="pb-main-btn pb-btn-red" onclick="PolitiBattle.startQuickBattle()">
-        <span class="pb-main-btn-icon">⚔️</span>
-        <span class="pb-main-btn-text">
-          <span class="pb-main-btn-label">RANDOM BATTLE — VS CPU</span>
-          <span class="pb-main-btn-sub">Solo vs AI · Instant action</span>
-        </span>
-      </button>
-      <button class="pb-main-btn pb-btn-blue" onclick="window.location.href='/politibattle-multi'">
-        <span class="pb-main-btn-icon">🌐</span>
-        <span class="pb-main-btn-text">
-          <span class="pb-main-btn-label">RANDOM BATTLE — ONLINE</span>
-          <span class="pb-main-btn-sub">Fight a real human · Matchmaking</span>
-        </span>
-      </button>
-    </div>
-    <div class="pb-home-links">
-      <button class="pb-home-link" onclick="PolitiBattle.showScreen('dexScreen')">📖 PolitiDex</button>
-      <button class="pb-home-link" onclick="PolitiBattle._openTypeChart()">🏆 Type Chart</button>
-    </div>
-  </div>
-  <div class="pb-stats-card" id="homeStatsCard">
-    <div>W / L</div>
-    <div><strong id="homeWins">0</strong> / <strong id="homeLosses">0</strong></div>
-  </div>
-  <button class="pb-settings-btn" onclick="PolitiBattle._openSettings()">⚙️ Settings</button>
-</section>
+<!-- ── Main content (100vh - nav, no scroll) ── -->
+<main id="pb-home" aria-label="PolitiBattle Main Menu">
 
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- SCREEN 2: TEAM BUILD                                                    -->
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<section id="teamBuildScreen" class="pb-screen">
-  <div class="tb-header">
-    <button class="tb-back" onclick="PolitiBattle.showScreen('homeScreen')">← Back</button>
-    <span class="tb-title">Build Your Team</span>
-    <button class="tb-rand-btn" onclick="PolitiBattle._randomizeTeam()">🎲 Random Team</button>
-  </div>
-  <div class="tb-controls">
-    <input class="tb-search" id="tbSearch" type="search" placeholder="Search fighters…" oninput="PolitiBattle._onTBSearch(this.value)">
-    <select class="tb-sort" id="tbSort" onchange="PolitiBattle._renderPolGrid()">
-      <option value="name">Sort: Name</option>
-      <option value="hp">Sort: HP</option>
-      <option value="spe">Sort: Speed</option>
-      <option value="bst">Sort: Total BST</option>
-    </select>
-  </div>
-  <div class="tb-type-pills" id="tbTypePills"></div>
-  <div class="tb-slots" id="tbSlots"></div>
-  <div class="tb-analysis" id="tbAnalysis">
-    <div class="tb-analysis-card"><h4>Total BST</h4><div class="tb-analysis-val" id="tbBST">0</div></div>
-    <div class="tb-analysis-card"><h4>Weaknesses</h4><div class="tb-analysis-val" id="tbWeaknesses">—</div></div>
-    <div class="tb-analysis-card"><h4>No Coverage vs</h4><div class="tb-analysis-val" id="tbCoverage">—</div></div>
-  </div>
-  <div class="tb-grid" id="tbGrid"></div>
-  <button class="tb-confirm" id="tbConfirm" onclick="PolitiBattle._confirmTeam()">▶ CONFIRM TEAM</button>
-</section>
+  <!-- Settings gear -->
+  <button id="pbSettingsBtn" aria-label="Settings" title="Settings">⚙️</button>
 
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- SCREEN 3: PREVIEW                                                       -->
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<section id="previewScreen" class="pb-screen">
-  <h2 class="pv-title">SELECT YOUR LEAD</h2>
-  <div class="pv-timer">⏱ <span id="pvCountdown">30</span>s</div>
-  <div class="pv-teams">
-    <div class="pv-side" id="pvPlayerSide">
-      <div class="pv-side-label">Your Team</div>
-      <div class="pv-fighter-grid" id="pvPlayerGrid"></div>
-      <div class="pv-prompt" id="pvPlayerPrompt">← Click a fighter to select lead</div>
-    </div>
-    <div class="pv-vs">VS</div>
-    <div class="pv-side" id="pvAiSide">
-      <div class="pv-side-label">AI Team</div>
-      <div class="pv-fighter-grid" id="pvAiGrid"></div>
-      <div class="pv-ai-prompt" id="pvAiPrompt">AI is thinking…</div>
-    </div>
-  </div>
-  <button class="pv-battle-btn" id="pvBattleBtn" onclick="PolitiBattle.confirmLeadAndStartBattle(PolitiBattle._selectedLeadIdx)">⚔️ BATTLE!</button>
-</section>
+  <!-- Title -->
+  <h1 id="pb-title">POLITI⚡BATTLE</h1>
 
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- SCREEN 4: BATTLE                                                        -->
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<section id="battleScreen" class="pb-screen">
-  <div class="bt-main">
-    <!-- FIELD -->
-    <div class="bt-field" id="btField">
-      <div class="bt-turn-badge" id="btTurnBadge">TURN 1</div>
-      <div class="bt-weather-badge" id="btWeatherBadge"></div>
-      <!-- Enemy sprite -->
-      <div class="bt-enemy-sprite" id="btEnemySprite"></div>
-      <!-- Player sprite -->
-      <div class="bt-player-sprite" id="btPlayerSprite"></div>
-      <!-- HP Boxes -->
-      <div class="bt-hp-box enemy" id="btEnemyHPBox">
-        <div class="bt-hp-row1">
-          <span class="bt-hp-name" id="btEnemyName">—</span>
-          <span class="bt-hp-level" id="btEnemyLevel">Lv50</span>
-        </div>
-        <div class="bt-hp-bar-wrap"><div class="bt-hp-bar" id="btEnemyHPBar" style="width:100%"></div></div>
-        <div class="bt-hp-row2">
-          <span class="bt-hp-status" id="btEnemyStatus"></span>
-          <div class="bt-hp-types" id="btEnemyTypes"></div>
-        </div>
-      </div>
-      <div class="bt-hp-box player" id="btPlayerHPBox">
-        <div class="bt-hp-row1">
-          <span class="bt-hp-name" id="btPlayerName">—</span>
-          <span class="bt-hp-level" id="btPlayerLevel">Lv50</span>
-        </div>
-        <div class="bt-hp-bar-wrap"><div class="bt-hp-bar" id="btPlayerHPBar" style="width:100%"></div></div>
-        <div class="bt-hp-row2">
-          <span class="bt-hp-nums" id="btPlayerHPNums">— / —</span>
-          <span class="bt-hp-status" id="btPlayerStatus"></span>
-        </div>
-        <div class="bt-hp-types" id="btPlayerTypes"></div>
-      </div>
-    </div>
-    <!-- LOG -->
-    <div class="bt-log" id="btLog"></div>
-    <!-- CONTROLS -->
-    <div class="bt-controls">
-      <div class="bt-controls-header">
-        <span class="bt-ctrl-label">ATTACK</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <div class="bt-timer-bar-wrap"><div class="bt-timer-bar" id="btTimerBar"></div></div>
-          <span class="bt-timer-num" id="btTimerNum">60</span>
-        </div>
-      </div>
-      <div class="bt-move-grid" id="btMoveGrid"></div>
-      <div class="bt-switch-section">
-        <div class="bt-switch-label">Switch Fighter</div>
-        <div class="bt-switch-list" id="btSwitchList"></div>
-      </div>
-      <div class="bt-kb-hints">
-        <span class="bt-kb-hint"><kbd>1</kbd>-<kbd>4</kbd> moves</span>
-        <span class="bt-kb-hint"><kbd>S</kbd> switch</span>
-        <span class="bt-kb-hint"><kbd>Esc</kbd> cancel</span>
-      </div>
-    </div>
-  </div>
-  <!-- RIGHT PANEL -->
-  <div class="bt-side-panel" id="btSidePanel">
-    <div>
-      <div class="bt-panel-side-label">Your Team</div>
-      <div id="btPanelPlayer"></div>
-    </div>
-    <div>
-      <div class="bt-panel-side-label">AI Team</div>
-      <div id="btPanelAI"></div>
-    </div>
-  </div>
-</section>
+  <!-- Subtitle -->
+  <p id="pb-subtitle">50 Political Fighters&nbsp;·&nbsp;Zero Dignity&nbsp;·&nbsp;Pure Strategy.</p>
 
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- SCREEN 5: VICTORY                                                       -->
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<section id="victoryScreen" class="pb-screen">
-  <div class="vc-trophy" id="vcTrophy">🏆</div>
-  <div class="vc-result" id="vcResult">VICTORY!</div>
-  <div class="vc-flavour" id="vcFlavour">The people have spoken. Your opponent has been… cancelled.</div>
-  <div class="vc-achieve" id="vcAchieve"></div>
-  <div class="vc-stats">
-    <div class="vc-stat"><div class="vc-stat-val" id="vcDmg">0</div><div class="vc-stat-label">Damage Dealt</div></div>
-    <div class="vc-stat"><div class="vc-stat-val" id="vcCrits">0</div><div class="vc-stat-label">Crits Landed</div></div>
-    <div class="vc-stat"><div class="vc-stat-val" id="vcTurns">0</div><div class="vc-stat-label">Turns</div></div>
-    <div class="vc-stat"><div class="vc-stat-val" id="vcKOs">0</div><div class="vc-stat-label">KOs</div></div>
+  <!-- Primary battle buttons -->
+  <div id="pb-primary-btns">
+    <button class="pb-main-btn" id="pbBattleVsCpu" aria-label="Random Battle vs CPU">
+      ⚔️ RANDOM BATTLE — VS CPU
+      <span class="pb-main-btn-sub">Instant action · Solo vs AI</span>
+    </button>
+    <button class="pb-main-btn" id="pbBattleOnline" aria-label="Random Battle Online">
+      🌐 RANDOM BATTLE — ONLINE
+      <span class="pb-main-btn-sub">Fight a real human · Matchmaking</span>
+    </button>
   </div>
-  <div class="vc-buttons">
-    <button class="vc-btn primary" onclick="PolitiBattle.startQuickBattle()">▶ Battle Again</button>
-    <button class="vc-btn secondary" onclick="PolitiBattle.showScreen('homeScreen')">🏠 Home</button>
+
+  <!-- Secondary buttons -->
+  <div id="pb-secondary-btns">
+    <button class="pb-sec-btn" id="pbDexBtn">📖 PolitiDex</button>
+    <button class="pb-sec-btn" id="pbTypeChartBtn">🏆 Type Chart</button>
+    <button class="pb-sec-btn" id="pbHowToPlayBtn">❓ How to Play</button>
   </div>
-</section>
 
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- SCREEN 6: DEX                                                           -->
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<section id="dexScreen" class="pb-screen">
-  <div class="dex-header">
-    <button class="dex-back" onclick="PolitiBattle.showScreen('homeScreen')">← Back</button>
-    <span class="dex-title">📖 PolitiDex</span>
-    <span style="font-size:.75rem;color:rgba(255,255,255,.35)" id="dexCount"></span>
+  <!-- Stats card -->
+  <div id="homeStatsCard" role="region" aria-label="Your battle stats">
+    <span id="pb-stats-empty">No battles yet</span>
+    <!-- JS will replace with stat items -->
+    <button id="pbStatsReset" style="display:none" aria-label="Reset stats">Reset</button>
   </div>
-  <div class="dex-grid" id="dexGrid"></div>
-</section>
 
-<!-- ─────────────────────────────────────────────────────────────────────── -->
-<!-- MODALS                                                                  -->
-<!-- ─────────────────────────────────────────────────────────────────────── -->
+</main>
 
-<!-- Settings -->
-<div class="pb-modal-overlay" id="settingsModal" onclick="if(event.target===this)this.classList.remove('open')">
+<!-- ══════════════════════════════════
+     SETTINGS MODAL
+══════════════════════════════════ -->
+<div class="pb-modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
   <div class="pb-modal">
-    <button class="pb-modal-x" onclick="document.getElementById('settingsModal').classList.remove('open')">×</button>
-    <div class="pb-modal-title">⚙️ Settings</div>
+    <button class="pb-modal-close" onclick="document.getElementById('settingsModal').classList.remove('open')" aria-label="Close">✕</button>
+    <h2 id="settingsModalTitle">⚙️ Settings</h2>
+
     <div class="pb-setting-row">
-      <div><div class="pb-setting-label">Volume</div></div>
-      <input type="range" class="pb-range" id="settingVolume" min="0" max="100" value="60" oninput="PolitiBattle._onSettingChange()">
+      <div>
+        <div class="pb-setting-label">🔊 Volume</div>
+        <div class="pb-setting-sub">Sound effects &amp; music</div>
+      </div>
+      <input type="range" id="pbVolume" class="pb-slider" min="0" max="100" value="70" aria-label="Volume">
     </div>
+
     <div class="pb-setting-row">
-      <div><div class="pb-setting-label">Mute</div><div class="pb-setting-sub">Silence all sounds</div></div>
-      <button class="pb-toggle" id="settingMute" onclick="this.classList.toggle('on');PolitiBattle._onSettingChange()"></button>
+      <div>
+        <div class="pb-setting-label">🔇 Mute</div>
+        <div class="pb-setting-sub">Silence all audio</div>
+      </div>
+      <label class="pb-toggle">
+        <input type="checkbox" id="pbMute">
+        <span class="pb-toggle-track"></span>
+      </label>
     </div>
+
     <div class="pb-setting-row">
-      <div><div class="pb-setting-label">3D Mode</div><div class="pb-setting-sub">Launch battles in arena</div></div>
-      <button class="pb-toggle" id="setting3D" onclick="this.classList.toggle('on');PolitiBattle._onSettingChange()"></button>
+      <div>
+        <div class="pb-setting-label">🎲 3D Mode</div>
+        <div class="pb-setting-sub">Enable 3D battle animations</div>
+      </div>
+      <label class="pb-toggle">
+        <input type="checkbox" id="pb3dMode" checked>
+        <span class="pb-toggle-track"></span>
+      </label>
     </div>
+
+    <div class="pb-setting-row">
+      <div>
+        <div class="pb-setting-label">🤖 AI Difficulty</div>
+        <div class="pb-setting-sub">CPU opponent strength</div>
+      </div>
+      <select id="pbAiDifficulty" class="pb-select" aria-label="AI difficulty">
+        <option value="easy">Easy</option>
+        <option value="normal" selected>Normal</option>
+        <option value="hard">Hard</option>
+        <option value="nightmare">Nightmare</option>
+      </select>
+    </div>
+
+    <div class="pb-setting-row">
+      <div>
+        <div class="pb-setting-label">⏱️ Battle Timer</div>
+        <div class="pb-setting-sub">Timed moves (30s)</div>
+      </div>
+      <label class="pb-toggle">
+        <input type="checkbox" id="pbTimer">
+        <span class="pb-toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="pb-setting-row">
+      <div>
+        <div class="pb-setting-label">🌙 Dark Theme</div>
+        <div class="pb-setting-sub">Toggle light/dark mode</div>
+      </div>
+      <label class="pb-toggle">
+        <input type="checkbox" id="pbDarkTheme" checked>
+        <span class="pb-toggle-track"></span>
+      </label>
+    </div>
+
   </div>
 </div>
 
-<!-- Type Chart -->
-<div class="pb-modal-overlay" id="typeChartModal" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="pb-modal" style="max-width:680px">
-    <button class="pb-modal-x" onclick="document.getElementById('typeChartModal').classList.remove('open')">×</button>
-    <div class="pb-modal-title">🏆 Type Chart</div>
-    <p style="font-size:.7rem;color:rgba(255,255,255,.4);margin-bottom:12px">Row = Attacker · Column = Defender</p>
-    <div class="tc-grid" id="typeChartContent"></div>
-  </div>
-</div>
-
-<!-- Dex Detail -->
-<div class="pb-modal-overlay" id="dexDetailModal" onclick="if(event.target===this)this.classList.remove('open')">
+<!-- ══════════════════════════════════
+     TYPE CHART MODAL
+══════════════════════════════════ -->
+<div class="pb-modal-overlay" id="typeChartModal" role="dialog" aria-modal="true" aria-labelledby="typeChartModalTitle">
   <div class="pb-modal">
-    <button class="pb-modal-x" onclick="document.getElementById('dexDetailModal').classList.remove('open')">×</button>
-    <div id="dexDetailContent"></div>
+    <button class="pb-modal-close" onclick="document.getElementById('typeChartModal').classList.remove('open')" aria-label="Close">✕</button>
+    <h2 id="typeChartModalTitle">🏆 Type Effectiveness Chart</h2>
+    <p style="font-family:Inter,sans-serif;font-size:0.78rem;color:#475569;margin-bottom:14px">
+      Row = Attacker type &nbsp;·&nbsp; Column = Defender type
+      &nbsp;&nbsp;
+      <span class="tc-2x" style="padding:2px 6px;border-radius:4px">2×</span>
+      <span class="tc-half" style="padding:2px 6px;border-radius:4px;margin:0 4px">½×</span>
+      <span class="tc-zero" style="padding:2px 6px;border-radius:4px">0×</span>
+      <span class="tc-norm" style="padding:2px 6px;border-radius:4px;border:1px solid #1e293b">1×</span>
+    </p>
+    <div class="pb-type-grid-wrap">
+      <table class="pb-type-grid" id="pbTypeChartTable" aria-label="Type effectiveness matrix">
+        <!-- Populated by JS or static below -->
+        <thead id="pbTypeChartHead"></thead>
+        <tbody id="pbTypeChartBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-<!-- Scripts (load order as specified) -->
+<!-- ══════════════════════════════════
+     HOW TO PLAY MODAL
+══════════════════════════════════ -->
+<div class="pb-modal-overlay" id="howToPlayModal" role="dialog" aria-modal="true" aria-labelledby="howToPlayModalTitle">
+  <div class="pb-modal">
+    <button class="pb-modal-close" onclick="document.getElementById('howToPlayModal').classList.remove('open')" aria-label="Close">✕</button>
+    <h2 id="howToPlayModalTitle">❓ How to Play PolitiBattle</h2>
+
+    <div class="pb-htp-section">
+      <h3>🗺️ The Premise</h3>
+      <p>50 of history's most chaotic political figures have been ripped from their timelines and forced to fight in the PolitiBattle arena. Each fighter has a <strong>Type</strong>, stats, and 4 moves. Your job: pick a fighter and outlast your opponent.</p>
+    </div>
+
+    <div class="pb-htp-section">
+      <h3>⚔️ Battle Flow</h3>
+      <ul>
+        <li>Each turn you choose one of your fighter's 4 moves — or switch fighters.</li>
+        <li>Moves have PP (Power Points). When PP hits 0, that move is exhausted.</li>
+        <li>Reduce your opponent's HP to 0 to win the round.</li>
+        <li>First to knock out all 3 of the opponent's fighters wins the match.</li>
+      </ul>
+    </div>
+
+    <div class="pb-htp-section">
+      <h3>🎭 Types &amp; Effectiveness</h3>
+      <ul>
+        <li>10 types: Populist, Elitist, Hawk, Dove, Scandal, Spin, Legal, Grassroots, Corporate, Chaos.</li>
+        <li>Type matchups follow the Type Chart — some deal 2×, some ½×, some 0× damage.</li>
+        <li>A fighter's own type gets a 1.5× STAB bonus when using a matching move.</li>
+      </ul>
+    </div>
+
+    <div class="pb-htp-section">
+      <h3>📊 Stats Explained</h3>
+      <ul>
+        <li><strong>HP</strong> — health pool. Reach 0 and the fighter is out.</li>
+        <li><strong>ATK / DEF</strong> — physical offense and defense.</li>
+        <li><strong>SPD</strong> — who moves first each turn.</li>
+        <li><strong>SPC</strong> — special move power (scandal leaks, spin campaigns).</li>
+        <li><strong>ELO</strong> — your personal skill rating. Rises with wins, drops with losses.</li>
+      </ul>
+    </div>
+
+    <div class="pb-htp-section">
+      <h3>💡 Pro Tips</h3>
+      <ul>
+        <li>Check the Type Chart before picking your fighter — a good matchup wins fights before they start.</li>
+        <li>Save high-PP moves for key moments. Running dry turns the tide fast.</li>
+        <li>Status moves (Filibuster, Propaganda, Recess) can turn losing fights around.</li>
+        <li>Switch early — don't wait until your fighter is at 10% HP.</li>
+        <li>Online rank matches use the same rules; your ELO updates win or lose.</li>
+      </ul>
+    </div>
+
+    <div class="pb-htp-section">
+      <h3>🏆 Ranked Mode</h3>
+      <p>Play <em>Random Battle — Online</em> to enter ranked matchmaking. Wins raise your ELO; losses lower it. Climb the leaderboard and earn the title of Supreme Strategist.</p>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+<!-- ── Scripts: loaded in order ── -->
 <script src="/js/pb-data.js"></script>
 <script src="/js/pb-avatars.js"></script>
 <script src="/js/pb-engine.js"></script>
@@ -856,5 +796,208 @@ body { background: var(--pb-dark) !important; }
 <script src="/js/pb-sound.js"></script>
 <script src="/js/pb-ui.js"></script>
 <script src="/js/politibattle-main.js"></script>
+
+<script>
+'use strict';
+
+/* ── Starfield generator ── */
+(function buildStars() {
+  const sf = document.getElementById('pb-starfield');
+  const count = 110;
+  const reds  = ['#ef4444','#f87171','#fca5a5'];
+  const blues = ['#3b82f6','#60a5fa','#93c5fd'];
+  const whites = ['#e2e8f0','#f1f5f9','#cbd5e1'];
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'pb-star';
+    const size = Math.random() * 2.4 + 0.6;
+    const palette = Math.random() < 0.3 ? reds : Math.random() < 0.5 ? blues : whites;
+    const color = palette[Math.floor(Math.random() * palette.length)];
+    s.style.cssText = [
+      `left:${Math.random()*100}%`,
+      `top:${Math.random()*100}%`,
+      `width:${size}px`,
+      `height:${size}px`,
+      `background:${color}`,
+      `--dur:${(Math.random()*4+2).toFixed(1)}s`,
+      `--op:${(Math.random()*0.6+0.2).toFixed(2)}`,
+      `animation-delay:${(Math.random()*5).toFixed(1)}s`
+    ].join(';');
+    sf.appendChild(s);
+  }
+})();
+
+/* ── Wire up buttons once DOM is ready ── */
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* Battle vs CPU */
+  const cpuBtn = document.getElementById('pbBattleVsCpu');
+  if (cpuBtn) cpuBtn.addEventListener('click', function () {
+    if (window.PolitiBattle && typeof PolitiBattle.startQuickBattle === 'function') {
+      PolitiBattle.startQuickBattle();
+    }
+  });
+
+  /* Battle Online */
+  const onlineBtn = document.getElementById('pbBattleOnline');
+  if (onlineBtn) onlineBtn.addEventListener('click', function () {
+    window.location.href = '/politibattle-multi';
+  });
+
+  /* PolitiDex */
+  const dexBtn = document.getElementById('pbDexBtn');
+  if (dexBtn) dexBtn.addEventListener('click', function () {
+    window.location.href = '/politibattle/dex';
+  });
+
+  /* Type Chart */
+  const tcBtn = document.getElementById('pbTypeChartBtn');
+  if (tcBtn) tcBtn.addEventListener('click', function () {
+    if (window.PolitiBattle && typeof PolitiBattle._openTypeChart === 'function') {
+      PolitiBattle._openTypeChart();
+    } else {
+      document.getElementById('typeChartModal').classList.add('open');
+    }
+  });
+
+  /* How to Play */
+  const htpBtn = document.getElementById('pbHowToPlayBtn');
+  if (htpBtn) htpBtn.addEventListener('click', function () {
+    if (window.PolitiBattle && typeof PolitiBattle._openHowToPlay === 'function') {
+      PolitiBattle._openHowToPlay();
+    } else {
+      document.getElementById('howToPlayModal').classList.add('open');
+    }
+  });
+
+  /* Settings gear */
+  const settBtn = document.getElementById('pbSettingsBtn');
+  if (settBtn) settBtn.addEventListener('click', function () {
+    if (window.PolitiBattle && typeof PolitiBattle._openSettings === 'function') {
+      PolitiBattle._openSettings();
+    } else {
+      document.getElementById('settingsModal').classList.add('open');
+    }
+  });
+
+  /* Close modals on overlay click */
+  document.querySelectorAll('.pb-modal-overlay').forEach(function (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  /* Close modals on Escape */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.pb-modal-overlay.open').forEach(function (m) {
+        m.classList.remove('open');
+      });
+    }
+  });
+
+  /* Stats card — read from localStorage */
+  _renderHomeStats();
+
+  /* Stats reset button */
+  const resetBtn = document.getElementById('pbStatsReset');
+  if (resetBtn) resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all battle stats?')) {
+      localStorage.removeItem('politibattle_stats');
+      _renderHomeStats();
+    }
+  });
+
+  /* Settings persistence */
+  _loadSettings();
+  document.getElementById('pbVolume').addEventListener('input', _saveSettings);
+  document.getElementById('pbMute').addEventListener('change', _saveSettings);
+  document.getElementById('pb3dMode').addEventListener('change', _saveSettings);
+  document.getElementById('pbAiDifficulty').addEventListener('change', _saveSettings);
+  document.getElementById('pbTimer').addEventListener('change', _saveSettings);
+  document.getElementById('pbDarkTheme').addEventListener('change', function () {
+    document.documentElement.setAttribute('data-theme', this.checked ? 'dark' : 'light');
+    _saveSettings();
+  });
+
+  /* Theme toggle (header) */
+  const themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) themeToggle.addEventListener('click', function () {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    const darkCheck = document.getElementById('pbDarkTheme');
+    if (darkCheck) darkCheck.checked = !isDark;
+    _saveSettings();
+  });
+
+  /* Kick off main.js home stats update if available */
+  if (window.PolitiBattle && typeof PolitiBattle._updateHomeStats === 'function') {
+    PolitiBattle._updateHomeStats();
+  }
+});
+
+/* ── Stats renderer ── */
+function _renderHomeStats() {
+  const card  = document.getElementById('homeStatsCard');
+  const empty = document.getElementById('pb-stats-empty');
+  const reset = document.getElementById('pbStatsReset');
+  if (!card) return;
+
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem('politibattle_stats')); } catch (e) { raw = null; }
+
+  /* Remove old stat items */
+  card.querySelectorAll('.pb-stat-item').forEach(function (el) { el.remove(); });
+
+  if (!raw || (!raw.wins && !raw.losses)) {
+    if (empty) empty.style.display = '';
+    if (reset) reset.style.display = 'none';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  if (reset) reset.style.display = '';
+
+  var stats = [
+    { lbl: 'WINS',   val: raw.wins   || 0 },
+    { lbl: 'LOSSES', val: raw.losses || 0 },
+    { lbl: 'STREAK', val: raw.streak || 0 },
+    { lbl: 'ELO',    val: raw.elo    || 1000 }
+  ];
+  stats.forEach(function (s) {
+    var item = document.createElement('div');
+    item.className = 'pb-stat-item';
+    item.innerHTML = '<span class="pb-stat-val">' + s.val + '</span><span class="pb-stat-lbl">' + s.lbl + '</span>';
+    card.insertBefore(item, reset);
+  });
+}
+
+/* ── Settings persistence ── */
+function _saveSettings() {
+  var s = {
+    volume:      document.getElementById('pbVolume').value,
+    mute:        document.getElementById('pbMute').checked,
+    mode3d:      document.getElementById('pb3dMode').checked,
+    aiDiff:      document.getElementById('pbAiDifficulty').value,
+    timer:       document.getElementById('pbTimer').checked,
+    darkTheme:   document.getElementById('pbDarkTheme').checked
+  };
+  try { localStorage.setItem('pb_settings', JSON.stringify(s)); } catch (e) {}
+}
+function _loadSettings() {
+  var s;
+  try { s = JSON.parse(localStorage.getItem('pb_settings')); } catch (e) { s = null; }
+  if (!s) return;
+  if (s.volume      != null) document.getElementById('pbVolume').value         = s.volume;
+  if (s.mute        != null) document.getElementById('pbMute').checked          = s.mute;
+  if (s.mode3d      != null) document.getElementById('pb3dMode').checked        = s.mode3d;
+  if (s.aiDiff      != null) document.getElementById('pbAiDifficulty').value    = s.aiDiff;
+  if (s.timer       != null) document.getElementById('pbTimer').checked         = s.timer;
+  if (s.darkTheme   != null) {
+    document.getElementById('pbDarkTheme').checked = s.darkTheme;
+    document.documentElement.setAttribute('data-theme', s.darkTheme ? 'dark' : 'light');
+  }
+}
+</script>
+
 </body>
 </html>

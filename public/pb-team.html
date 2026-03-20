@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<!-- PolitiBattle — Team Builder Page — /politibattle/team -->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="PolitiBattle Team Builder — Pick your 6 fighters.">
+  <title>Team Builder — PolitiBattle — ToolHub AI</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏛️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: #09090f; color: #e2e8f0; }
+
+    :root {
+      --nav-h: 60px;
+      --red: #ef4444; --gold: #f59e0b; --blue: #3b82f6;
+      --card-bg: rgba(15,15,30,0.85);
+      --border: rgba(255,255,255,0.08);
+    }
+
+    /* ── Starfield ── */
+    #pb-aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: radial-gradient(ellipse 60% 30% at 20% 80%, rgba(239,68,68,0.07) 0%, transparent 70%),
+                  radial-gradient(ellipse 60% 30% at 80% 20%, rgba(59,130,246,0.07) 0%, transparent 70%);
+      animation: aur 8s ease-in-out infinite alternate; }
+    @keyframes aur { from { opacity: .6 } to { opacity: 1 } }
+    #pb-starfield { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .pb-star { position: absolute; border-radius: 50%;
+      animation: tw var(--dur,3s) ease-in-out infinite alternate; opacity: var(--op,.6); }
+    @keyframes tw { from { opacity: var(--op,.6); transform: scale(1) }
+                     to   { opacity: calc(var(--op,.6)*0.25); transform: scale(.7) } }
+
+    /* ── Site header (exact match) ── */
+    .site-header { position: relative; z-index: 100; height: var(--nav-h);
+      background: rgba(9,9,15,0.95); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); flex-shrink: 0; }
+    .header-inner { max-width: 1280px; margin: 0 auto; height: 100%;
+      display: flex; align-items: center; gap: 16px; padding: 0 20px; }
+    .logo { display: flex; align-items: center; gap: 8px; text-decoration: none;
+      font-family: Inter, sans-serif; font-weight: 700; font-size: 1.1rem; color: #f8fafc; flex-shrink: 0; }
+    .logo-icon { font-size: 1.3rem; }
+    .logo-ai { color: #818cf8; }
+    .header-search-wrap { flex: 1; max-width: 340px; }
+    .header-search-btn { width: 100%; display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px;
+      padding: 7px 12px; color: #64748b; font-family: Inter, sans-serif; font-size: .85rem; cursor: pointer; }
+    .header-search-btn:hover { background: rgba(255,255,255,0.09); }
+    .header-search-btn kbd { margin-left: auto; background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .75rem; }
+    .header-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+    .header-nav-btn { padding: 6px 12px; border-radius: 8px; text-decoration: none;
+      font-family: Inter, sans-serif; font-size: .85rem; font-weight: 500; color: #94a3b8;
+      transition: background .2s, color .2s; white-space: nowrap; }
+    .header-nav-btn:hover { background: rgba(255,255,255,0.07); color: #f1f5f9; }
+    .header-nav-btn.active-nav { background: linear-gradient(135deg,rgba(99,102,241,.15),rgba(239,68,68,.1));
+      border: 1px solid rgba(99,102,241,.3); color: #e2e8f0; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-icon { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px;
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #94a3b8; transition: background .2s; }
+    .btn-icon:hover { background: rgba(255,255,255,0.1); color: #f1f5f9; }
+    [data-theme="light"] .icon-moon { display: none; }
+    [data-theme="dark"]  .icon-sun  { display: none; }
+    @media (max-width: 700px) { .header-search-wrap { display: none; }
+      .header-nav { gap: 2px; } .header-nav-btn { font-size: .78rem; padding: 5px 8px; } }
+    @media (max-width: 500px) { .header-nav .header-nav-btn:not(.active-nav):not(:last-child) { display: none; } }
+
+    /* ── Page shell: flex column, exactly 100vh ── */
+    #teamPage { display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+      position: relative; z-index: 10; }
+
+    /* ── Top bar ── */
+    #topBar { flex-shrink: 0; height: 56px; display: flex; align-items: center; gap: 12px;
+      padding: 0 16px; background: rgba(9,9,15,0.92); border-bottom: 1px solid var(--border); }
+    .tb-back { background: none; border: 1px solid var(--border); color: #94a3b8; border-radius: 8px;
+      padding: 6px 14px; cursor: pointer; font-family: Inter, sans-serif; font-size: .85rem;
+      transition: background .2s, color .2s; }
+    .tb-back:hover { background: rgba(255,255,255,0.08); color: #f1f5f9; }
+    .tb-title { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.15rem;
+      background: linear-gradient(135deg, var(--red), var(--gold)); -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent; letter-spacing: 2px; }
+    .tb-spacer { flex: 1; }
+    .tb-btn { border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer;
+      font-family: Inter, sans-serif; font-size: .82rem; font-weight: 600; transition: all .2s; }
+    .tb-random { background: rgba(255,255,255,0.06); color: #e2e8f0; border: 1px solid var(--border); }
+    .tb-random:hover { background: rgba(255,255,255,0.12); }
+    .tb-battle { background: linear-gradient(135deg, var(--red), #b91c1c); color: #fff;
+      text-transform: uppercase; letter-spacing: 1px; }
+    .tb-battle:disabled { opacity: .35; cursor: not-allowed; filter: grayscale(.6); }
+    .tb-battle:not(:disabled):hover { box-shadow: 0 0 18px rgba(239,68,68,0.5); transform: scale(1.03); }
+
+    /* ── Selected slots row ── */
+    #slotsRow { flex-shrink: 0; padding: 10px 16px 6px; background: rgba(9,9,15,0.88);
+      border-bottom: 1px solid var(--border); }
+    .slots-grid { display: flex; gap: 10px; justify-content: center; margin-bottom: 6px; }
+    .slot { width: 72px; height: 78px; border-radius: 10px; border: 2px dashed rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center; position: relative;
+      background: rgba(255,255,255,0.02); transition: all .25s; overflow: hidden; }
+    .slot.filled { border: 2px solid var(--gold); background: rgba(245,158,11,0.06);
+      box-shadow: 0 0 12px rgba(245,158,11,0.15); }
+    .slot svg { width: 52px; height: 62px; }
+    .slot .slot-remove { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
+      background: rgba(239,68,68,0.85); color: #fff; border: none; border-radius: 50%;
+      font-size: 11px; line-height: 18px; text-align: center; cursor: pointer;
+      opacity: 0; transition: opacity .2s; }
+    .slot:hover .slot-remove { opacity: 1; }
+    .analysis { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .badge { font-family: Inter, sans-serif; font-size: .72rem; padding: 3px 10px;
+      border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      color: #94a3b8; }
+    .badge b { color: #e2e8f0; }
+
+    /* ── Filter row ── */
+    #filterRow { flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; background: rgba(9,9,15,0.85); border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; }
+    #searchInput { flex: 0 1 180px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 10px; color: #e2e8f0; font-family: Inter, sans-serif;
+      font-size: .82rem; outline: none; transition: border-color .2s; }
+    #searchInput:focus { border-color: rgba(99,102,241,0.5); }
+    #searchInput::placeholder { color: #475569; }
+    .type-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+    .pill { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03); color: #94a3b8; font-family: Inter, sans-serif;
+      font-size: .75rem; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    .pill:hover { background: rgba(255,255,255,0.08); }
+    .pill.active { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.5); color: #e2e8f0; }
+    #sortSelect { background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 8px; color: #e2e8f0; font-family: Inter, sans-serif;
+      font-size: .78rem; outline: none; cursor: pointer; }
+    #sortSelect option { background: #0f0f1a; }
+
+    /* ── Scrollable grid ── */
+    #gridWrap { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 12px 16px 20px; }
+    #gridWrap::-webkit-scrollbar { width: 6px; }
+    #gridWrap::-webkit-scrollbar-track { background: transparent; }
+    #gridWrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px; }
+
+    /* ── Cards ── */
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 10px 10px; cursor: pointer; transition: all .2s; text-align: center;
+      position: relative; }
+    .card:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+    .card.selected { border-color: var(--gold); box-shadow: 0 0 20px rgba(245,158,11,0.25); }
+    .card .avatar-wrap { width: 64px; height: 76px; margin: 0 auto 6px; }
+    .card .avatar-wrap svg { width: 100%; height: 100%; }
+    .card .pol-name { font-family: 'Russo One', sans-serif; font-size: .78rem; color: #f1f5f9;
+      margin-bottom: 4px; line-height: 1.2; }
+    .card .pol-types { display: flex; gap: 4px; justify-content: center; margin-bottom: 4px; flex-wrap: wrap; }
+    .card .type-tag { font-size: .62rem; padding: 1px 6px; border-radius: 4px; color: #fff;
+      font-family: Inter, sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+    .card .pol-bst { font-family: 'Orbitron', sans-serif; font-size: .68rem; color: var(--gold);
+      margin-bottom: 2px; }
+    .card .pol-abl { font-size: .62rem; color: #64748b; font-family: Inter, sans-serif;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card .sel-check { position: absolute; top: 6px; right: 8px; font-size: 14px; display: none; }
+    .card.selected .sel-check { display: block; }
+
+    /* ── Tooltip ── */
+    .tooltip { position: fixed; z-index: 999; background: rgba(15,15,30,0.95); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; font-family: Inter, sans-serif; font-size: .75rem;
+      color: #cbd5e1; pointer-events: none; max-width: 220px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      transition: opacity .15s; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .slot { width: 54px; height: 60px; }
+      .slot svg { width: 38px; height: 46px; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+      .tb-title { font-size: .9rem; }
+      #topBar { gap: 6px; padding: 0 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Starfield & aurora -->
+<div id="pb-aurora"></div>
+<div id="pb-starfield"></div>
+
+<!-- ── Page wrapper (100vh flex column) ── -->
+<div id="teamPage">
+
+<!-- ── Site Header (exact match) ── -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner">
+    <a class="logo" href="/" aria-label="ToolHub AI Home">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">ToolHub<span class="logo-ai"> AI</span></span>
+    </a>
+    <div class="header-search-wrap">
+      <button class="header-search-btn" id="headerSearch" aria-label="Search tools">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search tools…
+        <kbd>⌘K</kbd>
+      </button>
+    </div>
+    <nav class="header-nav">
+      <a class="header-nav-btn" href="/">🔧 Tools</a>
+      <a class="header-nav-btn" href="/quizzes">🎓 Quizzes</a>
+      <a class="header-nav-btn" href="/multiplayer">🎮 Multiplayer</a>
+      <a class="header-nav-btn active-nav" href="/politibattle">🏛️ PolitiBattle</a>
+    </nav>
+    <div class="header-actions">
+      <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ── Top action bar ── -->
+<div id="topBar">
+  <button class="tb-back" onclick="window.location.href='/politibattle'">← Back</button>
+  <span class="tb-title">TEAM BUILDER</span>
+  <span class="tb-spacer"></span>
+  <button class="tb-btn tb-random" id="btnRandom">🎲 Random Team</button>
+  <button class="tb-btn tb-battle" id="btnBattle" disabled>▶ BATTLE!</button>
+</div>
+
+<!-- ── Selected slots row ── -->
+<div id="slotsRow">
+  <div class="slots-grid" id="slotsGrid"></div>
+  <div class="analysis" id="analysisBar">
+    <span class="badge">Total BST: <b id="aBst">0</b></span>
+    <span class="badge">Weaknesses: <b id="aWeak">—</b></span>
+    <span class="badge">No Coverage vs: <b id="aNoCov">—</b></span>
+  </div>
+</div>
+
+<!-- ── Filter row ── -->
+<div id="filterRow">
+  <input type="text" id="searchInput" placeholder="🔍 Search fighters…" autocomplete="off">
+  <div class="type-pills" id="typePills"></div>
+  <select id="sortSelect">
+    <option value="name">Sort: Name</option>
+    <option value="hp">Sort: HP</option>
+    <option value="spe">Sort: Speed</option>
+    <option value="bst">Sort: Total BST</option>
+  </select>
+</div>
+
+<!-- ── Scrollable grid ── -->
+<div id="gridWrap"><div class="grid" id="polGrid"></div></div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip" style="opacity:0"></div>
+
+</div><!-- /teamPage -->
+
+<!-- ── Scripts ── -->
+<script src="/js/pb-data.js"></script>
+<script src="/js/pb-avatars.js"></script>
+<script src="/js/pb-engine.js"></script>
+<script src="/js/pb-mechanics.js"></script>
+<script src="/js/pb-ai.js"></script>
+<script src="/js/pb-sound.js"></script>
+<script src="/js/pb-ui.js"></script>
+<script src="/js/politibattle-main.js"></script>
+
+<script>
+'use strict';
+(function() {
+  const D   = window.PBData;
+  const AI  = window.PBAI;
+  const E   = window.PBEngine;
+  const PB  = window.PolitiBattle;
+
+  const ALL_TYPES = ['All','Republican','Democrat','Libertarian','Green','Socialist',
+                     'Authoritarian','Centrist','Populist','Corporate','Revolutionary'];
+  const TYPE_HEX = {
+    Republican:'#ef4444', Democrat:'#3b82f6', Libertarian:'#eab308', Green:'#22c55e',
+    Socialist:'#ec4899', Authoritarian:'#7c3aed', Centrist:'#94a3b8', Populist:'#f97316',
+    Corporate:'#475569', Revolutionary:'#dc2626'
+  };
+
+  let selected = [];        // array of pol ids
+  let activeType = 'All';
+  let sortKey = 'name';
+  let searchTerm = '';
+
+  /* ── Stars ── */
+  (function mkStars() {
+    const sf = document.getElementById('pb-starfield');
+    for (let i = 0; i < 90; i++) {
+      const s = document.createElement('div'); s.className = 'pb-star';
+      const sz = Math.random() * 2.5 + 1;
+      s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;`
+        + `background:${Math.random()>.5?'#fff':'#cbd5e1'};--dur:${2+Math.random()*4}s;--op:${.3+Math.random()*.5}`;
+      sf.appendChild(s);
+    }
+  })();
+
+  /* ── Helpers ── */
+  function bst(p) {
+    const b = p.bs || {};
+    return (b.hp||0)+(b.atk||0)+(b.def||0)+(b.spa||0)+(b.spd||0)+(b.spe||0);
+  }
+  function polById(id) { return D.POLS.find(p => p.id === id); }
+
+  /* ── Restore saved state ── */
+  function restoreState() {
+    try {
+      const raw = sessionStorage.getItem('pb_teamBuilderState');
+      if (raw) {
+        const st = JSON.parse(raw);
+        if (st.selectedIds && Array.isArray(st.selectedIds)) selected = st.selectedIds.slice(0,6);
+      }
+    } catch(e) {}
+  }
+  function saveState() {
+    try {
+      sessionStorage.setItem('pb_teamBuilderState', JSON.stringify({
+        selectedIds: selected, timestamp: Date.now()
+      }));
+    } catch(e) {}
+  }
+
+  /* ── Render slots ── */
+  function renderSlots() {
+    const g = document.getElementById('slotsGrid');
+    g.innerHTML = '';
+    for (let i = 0; i < 6; i++) {
+      const div = document.createElement('div');
+      div.className = 'slot' + (selected[i] ? ' filled' : '');
+      if (selected[i]) {
+        const p = polById(selected[i]);
+        const svg = D.AVATARS[p.id] || `<svg viewBox="0 0 120 160"><text x="60" y="90" text-anchor="middle" font-size="40">${p.e}</text></svg>`;
+        div.innerHTML = svg + `<button class="slot-remove" data-idx="${i}">&times;</button>`;
+      } else {
+        div.innerHTML = '<span style="color:#334155;font-size:1.4rem">+</span>';
+      }
+      g.appendChild(div);
+    }
+    // Remove handlers
+    g.querySelectorAll('.slot-remove').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        selected.splice(+btn.dataset.idx, 1);
+        saveState(); renderSlots(); renderGrid(); updateAnalysis(); updateBattleBtn();
+      });
+    });
+  }
+
+  /* ── Analysis ── */
+  function updateAnalysis() {
+    // Total BST
+    const totalBst = selected.reduce((s, id) => s + bst(polById(id)), 0);
+    document.getElementById('aBst').textContent = totalBst || '0';
+
+    // Gather team types
+    const teamTypes = new Set();
+    selected.forEach(id => { (polById(id).tps || []).forEach(t => teamTypes.add(t)); });
+
+    // Weaknesses: types that deal >= 1.5x to any team member
+    const weakSet = new Set();
+    selected.forEach(id => {
+      const p = polById(id);
+      ALL_TYPES.slice(1).forEach(atkType => {
+        const eff = E.typeEff(atkType, p.tps);
+        if (eff >= 1.5) weakSet.add(atkType);
+      });
+    });
+    document.getElementById('aWeak').textContent = weakSet.size ? [...weakSet].join(', ') : '—';
+
+    // No Coverage: types the team has no super-effective move against
+    const coveredTypes = new Set();
+    selected.forEach(id => {
+      const p = polById(id);
+      (p.mvs || []).forEach(mvId => {
+        const mv = D.MOVES[mvId];
+        if (mv && mv.tp) {
+          ALL_TYPES.slice(1).forEach(defType => {
+            const eff = E.typeEff(mv.tp, [defType]);
+            if (eff > 1) coveredTypes.add(defType);
+          });
+        }
+      });
+    });
+    const noCov = ALL_TYPES.slice(1).filter(t => !coveredTypes.has(t));
+    document.getElementById('aNoCov').textContent = selected.length ? (noCov.length ? noCov.join(', ') : 'None!') : '—';
+  }
+
+  /* ── Filter pills ── */
+  function renderPills() {
+    const wrap = document.getElementById('typePills');
+    ALL_TYPES.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'pill' + (activeType === t ? ' active' : '');
+      btn.textContent = t;
+      btn.addEventListener('click', () => { activeType = t; renderPills(); renderGrid(); });
+      wrap.appendChild(btn);
+    });
+  }
+
+  /* ── Filtered & sorted list ── */
+  function getFilteredPols() {
+    let list = [...D.POLS];
+    if (activeType !== 'All') list = list.filter(p => (p.tps||[]).includes(activeType));
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(p => p.n.toLowerCase().includes(q) || p.id.includes(q)
+        || (p.tps||[]).some(t => t.toLowerCase().includes(q)));
+    }
+    if (sortKey === 'name') list.sort((a,b) => a.n.localeCompare(b.n));
+    else if (sortKey === 'hp')  list.sort((a,b) => (b.bs.hp||0) - (a.bs.hp||0));
+    else if (sortKey === 'spe') list.sort((a,b) => (b.bs.spe||0) - (a.bs.spe||0));
+    else if (sortKey === 'bst') list.sort((a,b) => bst(b) - bst(a));
+    return list;
+  }
+
+  /* ── Render grid ── */
+  function renderGrid() {
+    const wrap = document.getElementById('polGrid');
+    wrap.innerHTML = '';
+    const list = getFilteredPols();
+    list.forEach(p => {
+      const card = document.createElement('div');
+      const isSel = selected.includes(p.id);
+      card.className = 'card' + (isSel ? ' selected' : '');
+      card.dataset.id = p.id;
+
+      const svg = D.AVATARS[p.id] || `<svg viewBox="0 0 120 160"><text x="60" y="90" text-anchor="middle" font-size="40">${p.e}</text></svg>`;
+      const types = (p.tps||[]).map(t =>
+        `<span class="type-tag" style="background:${TYPE_HEX[t]||'#555'}">${t}</span>`).join('');
+      const abl = D.ABILITIES[p.abl] ? D.ABILITIES[p.abl].n : p.abl || '';
+
+      card.innerHTML = `<span class="sel-check">⭐</span>`
+        + `<div class="avatar-wrap">${svg}</div>`
+        + `<div class="pol-name">${p.n}</div>`
+        + `<div class="pol-types">${types}</div>`
+        + `<div class="pol-bst">BST ${bst(p)}</div>`
+        + `<div class="pol-abl">${abl}</div>`;
+
+      // Click to select/deselect
+      card.addEventListener('click', () => toggleSelect(p.id));
+      // Double-click to dex
+      card.addEventListener('dblclick', e => {
+        e.preventDefault();
+        window.location.href = '/politibattle/dex#' + p.id;
+      });
+      // Hover tooltip
+      card.addEventListener('mouseenter', e => showTooltip(e, p));
+      card.addEventListener('mousemove', positionTooltip);
+      card.addEventListener('mouseleave', hideTooltip);
+
+      wrap.appendChild(card);
+    });
+  }
+
+  /* ── Toggle selection ── */
+  function toggleSelect(id) {
+    const idx = selected.indexOf(id);
+    if (idx >= 0) { selected.splice(idx, 1); }
+    else if (selected.length < 6) { selected.push(id); }
+    else { return; } // already full
+    saveState(); renderSlots(); renderGrid(); updateAnalysis(); updateBattleBtn();
+  }
+
+  /* ── Battle button state ── */
+  function updateBattleBtn() {
+    document.getElementById('btnBattle').disabled = selected.length === 0;
+  }
+
+  /* ── Tooltip ── */
+  function showTooltip(e, p) {
+    const tip = document.getElementById('tooltip');
+    // Find best damaging move
+    let bestName = '—', bestPow = 0, bestType = '';
+    (p.mvs || []).forEach(mvId => {
+      const mv = D.MOVES[mvId];
+      if (mv && mv.pw && mv.pw > bestPow) { bestPow = mv.pw; bestName = mv.n; bestType = mv.tp || ''; }
+    });
+    tip.innerHTML = `<b>${p.n}</b><br>Best move: ${bestName} (${bestPow} pw, ${bestType})<br>BST ${bst(p)} · SPE ${p.bs.spe}`;
+    tip.style.opacity = '1';
+    positionTooltip(e);
+  }
+  function positionTooltip(e) {
+    const tip = document.getElementById('tooltip');
+    const x = Math.min(e.clientX + 14, window.innerWidth - 240);
+    const y = Math.min(e.clientY + 14, window.innerHeight - 80);
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  function hideTooltip() { document.getElementById('tooltip').style.opacity = '0'; }
+
+  /* ── Random Team ── */
+  document.getElementById('btnRandom').addEventListener('click', () => {
+    const playerTeam = AI.generateAITeam('normal').map(p => p.id);
+    const aiTeam     = AI.generateAITeam('normal').map(p => p.id);
+    try {
+      sessionStorage.setItem('pb_currentTeams', JSON.stringify({
+        playerTeam, aiTeam, mode: 'random', timestamp: Date.now()
+      }));
+    } catch(e) {}
+    window.location.href = '/politibattle/preview';
+  });
+
+  /* ── Confirm Team (Battle!) ── */
+  PB._confirmTeam = function() {
+    if (!selected.length) return;
+    const aiTeam = AI.generateAITeam('normal').map(p => p.id);
+    try {
+      sessionStorage.setItem('pb_currentTeams', JSON.stringify({
+        playerTeam: [...selected], aiTeam, mode: 'manual', timestamp: Date.now()
+      }));
+      sessionStorage.removeItem('pb_teamBuilderState');
+    } catch(e) {}
+    window.location.href = '/politibattle/preview';
+  };
+  document.getElementById('btnBattle').addEventListener('click', () => PB._confirmTeam());
+
+  /* ── Randomize into slots (for external call) ── */
+  PB._randomizeTeam = function() {
+    selected = AI.generateAITeam('normal').map(p => p.id).slice(0,6);
+    saveState(); renderSlots(); renderGrid(); updateAnalysis(); updateBattleBtn();
+  };
+
+  /* ── Init team page (also callable externally) ── */
+  PB._initTeamPage = function() {
+    restoreState();
+    renderPills();
+    renderSlots();
+    renderGrid();
+    updateAnalysis();
+    updateBattleBtn();
+  };
+
+  /* ── Wire up search / sort ── */
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchTerm = e.target.value.trim(); renderGrid();
+  });
+  document.getElementById('sortSelect').addEventListener('change', e => {
+    sortKey = e.target.value; renderGrid();
+  });
+
+  /* ── Theme toggle ── */
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+  });
+
+  /* ── Boot ── */
+  PB._initTeamPage();
+
+})();
+</script>
+
+</body>
+</html>

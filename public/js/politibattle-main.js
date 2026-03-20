@@ -1,885 +1,1181 @@
-// PolitiBattle Module — politibattle-main — loaded by politibattle.html
+// PolitiBattle Module — politibattle-main — shared across all PB pages
+// Loaded by: politibattle.html, pb-team.html, pb-preview.html,
+//            pb-battle.html, pb-victory.html, pb-dex.html
 'use strict';
 
 window.PolitiBattle = {
 
-  _state: 'home',
-  _battle: null,
-  _playerTeam: [],
-  _aiTeam: [],
-  _settings: {},
-  _selectedLeadIdx: -1,
-  _pvCountdownTimer: null,
-  _turnTimer: null,
-  _turnSeconds: 60,
-  _inputLocked: false,
-  _tbSelectedIds: new Set(),
-  _tbActiveType: null,
-  _tbSearchDebounce: null,
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SESSION-STORAGE KEY CONSTANTS
+  // ═══════════════════════════════════════════════════════════════════════════
+  _SS_TEAMS:   'pb_currentTeams',
+  _SS_CONFIG:  'pb_battleConfig',
+  _SS_VICTORY: 'pb_victoryData',
+  _SS_TBSTATE: 'pb_teamBuilderState',
+  _SS_STATS:   'politibattle_stats',
 
-  // ─── INIT ───────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BATTLE STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  _battle:     null,
+  _battleBusy: false,
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SETTINGS CACHE (loaded from localStorage once)
+  // ═══════════════════════════════════════════════════════════════════════════
+  _settings: null,
+
+  _loadSettingsCache() {
+    try {
+      this._settings = JSON.parse(localStorage.getItem('pb_settings')) || {};
+    } catch (e) {
+      this._settings = {};
+    }
+    return this._settings;
+  },
+
+  getSetting(key, fallback) {
+    if (!this._settings) this._loadSettingsCache();
+    return this._settings[key] != null ? this._settings[key] : fallback;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MASTER INIT — page detector + router
+  // ═══════════════════════════════════════════════════════════════════════════
   init() {
-    this.loadSettings();
+    this._loadSettingsCache();
+
+    var page = window.location.pathname.replace(/\/+$/, '') || '/';
+
+    if (page === '/politibattle')          this._initHomePage();
+    else if (page === '/politibattle/team')    this._initTeamPage();
+    else if (page === '/politibattle/preview') this._initPreviewPage();
+    else if (page === '/politibattle/battle')  this._initBattlePage();
+    else if (page === '/politibattle/victory') this._initVictoryPage();
+    else if (page === '/politibattle/dex')     this._initDexPage();
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HOME PAGE  —  /politibattle  →  politibattle.html
+  // ═══════════════════════════════════════════════════════════════════════════
+  _initHomePage() {
+    var self = this;
+
+    // Sound init on first interaction
+    var soundInited = false;
+    document.addEventListener('click', function _initSnd() {
+      if (soundInited) return;
+      soundInited = true;
+      try { if (window.PBSound && PBSound.init) PBSound.init(); } catch (_) {}
+    }, { once: false });
+
+    // Update home stats card
     this._updateHomeStats();
-    this._buildTypePills();
-    this.initKeyboard();
-    // Render dex grid eagerly (hidden until shown)
-    this._renderDexGrid();
-    console.log('[PolitiBattle] init complete');
+
+    // Modal helpers — open type chart, how to play, settings
+    // (The HTML inline script already wires the buttons; these methods
+    //  provide a programmatic fallback so other pages can call them.)
   },
 
-  // ─── SCREEN MANAGEMENT ──────────────────────────────────────────────────────
-  showScreen(id) {
-    document.querySelectorAll('.pb-screen').forEach(s => s.classList.remove('active'));
-    const el = document.getElementById(id);
-    if (el) {
-      el.classList.add('active');
-      this._state = id.replace('Screen', '').replace('Screen', '');
-    }
-    // Stop preview timer when leaving preview
-    if (id !== 'previewScreen') this._stopPvCountdown();
-    // Stop turn timer when leaving battle
-    if (id !== 'battleScreen') this.stopTurnTimer();
-    // Refresh stats on home
-    if (id === 'homeScreen') this._updateHomeStats();
-  },
+  // ── Update the stats card on the home page ──
+  _updateHomeStats() {
+    var card  = document.getElementById('homeStatsCard');
+    if (!card) return;
 
-  // ─── QUICK BATTLE ───────────────────────────────────────────────────────────
-  startQuickBattle() {
-    const AI = window.PBAI;
-    if (!AI) { console.error('PBAI not loaded'); return; }
-    const rawPlayerTeam = AI.generateAITeam('normal');
-    const rawAiTeam     = AI.generateAITeam('normal');
-    const E = window.PBEngine;
-    this._playerTeam = rawPlayerTeam.map(p => E.buildFighter(p, true));
-    this._aiTeam     = rawAiTeam.map(p => E.buildFighter(p, false));
-    // Store raw pol data for UI rendering (avatar/types)
-    this._playerTeamData = rawPlayerTeam;
-    this._aiTeamData     = rawAiTeam;
-    this._selectedLeadIdx = -1;
-    this.showPreview(rawPlayerTeam, rawAiTeam);
-  },
+    var raw;
+    try { raw = JSON.parse(localStorage.getItem(this._SS_STATS)); } catch (e) { raw = null; }
 
-  // ─── PREVIEW SCREEN ─────────────────────────────────────────────────────────
-  showPreview(playerTeamData, aiTeamData) {
-    this._playerTeamData = playerTeamData;
-    this._aiTeamData     = aiTeamData;
-    this._selectedLeadIdx = -1;
-    this.showScreen('previewScreen');
-    this._renderPreviewGrids();
-    this._startPvCountdown(30);
-    // AI auto-selects lead after 1.5s
-    setTimeout(() => this._pvShowAILead(), 1500);
-  },
+    var empty = document.getElementById('pb-stats-empty');
+    var reset = document.getElementById('pbStatsReset');
 
-  _renderPreviewGrids() {
-    const makeCard = (pol, idx, side) => {
-      const avatarSVG = (window.PBData.AVATARS && window.PBData.AVATARS[pol.svgId]) || '';
-      const types = (pol.tps || []).map(t => `<span class="pb-type pb-type-${t}">${t}</span>`).join('');
-      const card = document.createElement('div');
-      card.className = 'pv-fighter-card';
-      card.dataset.idx = idx;
-      card.innerHTML = `${avatarSVG}<div class="pv-fighter-name">${pol.n}</div><div class="pv-fighter-types">${types}</div>`;
-      if (side === 'player') {
-        card.onclick = () => this._pvSelectLead(idx);
-      }
-      return card;
-    };
-    const pg = document.getElementById('pvPlayerGrid');
-    const ag = document.getElementById('pvAiGrid');
-    if (pg) { pg.innerHTML = ''; this._playerTeamData.forEach((p, i) => pg.appendChild(makeCard(p, i, 'player'))); }
-    if (ag) { ag.innerHTML = ''; this._aiTeamData.forEach((p, i) => ag.appendChild(makeCard(p, i, 'ai'))); }
-    const btn = document.getElementById('pvBattleBtn');
-    if (btn) btn.classList.remove('ready');
-  },
+    // Clear old stat items
+    card.querySelectorAll('.pb-stat-item').forEach(function (el) { el.remove(); });
 
-  _pvSelectLead(idx) {
-    this._selectedLeadIdx = idx;
-    document.querySelectorAll('#pvPlayerGrid .pv-fighter-card').forEach((c, i) => {
-      c.classList.toggle('selected', i === idx);
-    });
-    const prompt = document.getElementById('pvPlayerPrompt');
-    if (prompt) prompt.textContent = `Lead: ${this._playerTeamData[idx].n}`;
-    this._pvCheckReady();
-  },
-
-  _pvShowAILead() {
-    const aiLeadIdx = 0;
-    document.querySelectorAll('#pvAiGrid .pv-fighter-card').forEach((c, i) => {
-      c.classList.toggle('ai-lead', i === aiLeadIdx);
-    });
-    const prompt = document.getElementById('pvAiPrompt');
-    if (prompt) prompt.textContent = `AI Lead: ${this._aiTeamData[aiLeadIdx].n}`;
-    this._pvCheckReady();
-  },
-
-  _pvCheckReady() {
-    const btn = document.getElementById('pvBattleBtn');
-    if (btn && this._selectedLeadIdx >= 0) btn.classList.add('ready');
-  },
-
-  _startPvCountdown(sec) {
-    this._stopPvCountdown();
-    let s = sec;
-    const el = document.getElementById('pvCountdown');
-    this._pvCountdownTimer = setInterval(() => {
-      s--;
-      if (el) el.textContent = s;
-      if (s <= 0) {
-        this._stopPvCountdown();
-        // Auto-select lead 0 if none chosen
-        if (this._selectedLeadIdx < 0) this._pvSelectLead(0);
-        this.confirmLeadAndStartBattle(this._selectedLeadIdx);
-      }
-    }, 1000);
-  },
-
-  _stopPvCountdown() {
-    if (this._pvCountdownTimer) { clearInterval(this._pvCountdownTimer); this._pvCountdownTimer = null; }
-  },
-
-  // ─── CONFIRM LEAD & START ───────────────────────────────────────────────────
-  confirmLeadAndStartBattle(playerLeadIdx) {
-    this._stopPvCountdown();
-    if (playerLeadIdx < 0) playerLeadIdx = 0;
-    // Reorder: selected lead goes to index 0
-    if (playerLeadIdx !== 0) {
-      [this._playerTeam[0], this._playerTeam[playerLeadIdx]] = [this._playerTeam[playerLeadIdx], this._playerTeam[0]];
-      if (this._playerTeamData) {
-        [this._playerTeamData[0], this._playerTeamData[playerLeadIdx]] = [this._playerTeamData[playerLeadIdx], this._playerTeamData[playerLeadIdx - playerLeadIdx + 0]];
-      }
-    }
-    const battle = window.PBEngine.createBattle(this._playerTeam, this._aiTeam);
-    this._battle = battle;
-
-    if (this._settings._3dMode) {
-      this.launchArena(battle);
+    if (!raw || (!raw.wins && !raw.losses)) {
+      if (empty) empty.style.display = '';
+      if (reset) reset.style.display = 'none';
       return;
     }
-    this.showScreen('battleScreen');
-    this._renderBattleUI();
-    this._appendLog('⚔️ Battle started!', 'info');
-    this.startTurnTimer();
-  },
+    if (empty) empty.style.display = 'none';
+    if (reset) reset.style.display = '';
 
-  // ─── BATTLE UI RENDERING ────────────────────────────────────────────────────
-  _renderBattleUI() {
-    const b = this._battle;
-    if (!b) return;
-    this._renderFighters();
-    this._renderMoves();
-    this._renderSwitchList();
-    this._renderSidePanel();
-    this._updateHPBoxes();
-  },
-
-  _renderFighters() {
-    const b = this._battle;
-    const pf = b.pTeam[b.pIdx];
-    const af = b.aTeam[b.aIdx];
-    const AVTS = window.PBData.AVATARS || {};
-    const pEl = document.getElementById('btPlayerSprite');
-    const aEl = document.getElementById('btEnemySprite');
-    if (pEl) pEl.innerHTML = AVTS[pf.id] || `<div style="font-size:3rem;text-align:center">${pf.e||'❓'}</div>`;
-    if (aEl) aEl.innerHTML = AVTS[af.id] || `<div style="font-size:3rem;text-align:center">${af.e||'❓'}</div>`;
-  },
-
-  _renderMoves() {
-    const b = this._battle;
-    if (!b) return;
-    const pf = b.pTeam[b.pIdx];
-    const af = b.aTeam[b.aIdx];
-    const grid = document.getElementById('btMoveGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    const D = window.PBData;
-    const catIcon = { physical:'💥', special:'✨', status:'💤' };
-    pf.mvs.forEach((mv, i) => {
-      const eff = D.TC && D.TC[mv.tp] ? D.TC[mv.tp][af.tps[0]] || 1 : 1;
-      const effTxt = eff === 2 ? '2x' : eff === 1.5 ? '1.5x' : eff === 0.5 ? '0.5x' : eff === 0 ? 'Immune' : '1x';
-      const btn = document.createElement('button');
-      btn.className = 'bt-move-btn';
-      btn.dataset.idx = i;
-      btn.disabled = mv.cpp <= 0 || this._inputLocked;
-      btn.innerHTML = `
-        <div class="bt-move-top">
-          <span class="pb-type pb-type-${mv.tp}">${mv.tp}</span>
-          <span class="bt-move-name">${mv.n}</span>
-          <span class="bt-move-pp">${mv.cpp}/${mv.pp}</span>
-        </div>
-        <div class="bt-move-bottom">
-          <span class="bt-move-cat">${catIcon[mv.c]||''}</span>
-          <span class="bt-move-pw">PWR ${mv.pw||'—'}</span>
-          <span class="bt-move-acc">ACC ${mv.ac||'—'}%</span>
-        </div>
-        <div class="bt-move-tooltip">${effTxt} vs ${af.n}</div>`;
-      btn.onclick = () => { if (!this._inputLocked) this.handlePlayerAction({ type:'move', idx:i }); };
-      grid.appendChild(btn);
+    var stats = [
+      { lbl: 'WINS',   val: raw.wins   || 0 },
+      { lbl: 'LOSSES', val: raw.losses || 0 },
+      { lbl: 'STREAK', val: raw.streak || 0 },
+      { lbl: 'ELO',    val: raw.elo    || 1000 }
+    ];
+    stats.forEach(function (s) {
+      var item = document.createElement('div');
+      item.className = 'pb-stat-item';
+      item.innerHTML =
+        '<span class="pb-stat-val">' + s.val + '</span>' +
+        '<span class="pb-stat-lbl">' + s.lbl + '</span>';
+      card.insertBefore(item, reset);
     });
-    // Fill empty slots up to 4
-    while (grid.children.length < 4) {
-      const ph = document.createElement('div');
-      ph.className = 'bt-move-btn';
-      ph.style.opacity = '.15';
-      ph.style.pointerEvents = 'none';
-      ph.innerHTML = '<div class="bt-move-top"><span class="bt-move-name">—</span></div>';
-      grid.appendChild(ph);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // QUICK BATTLE — generate two random teams → navigate to team or preview
+  // ═══════════════════════════════════════════════════════════════════════════
+  startQuickBattle() {
+    window.location.href = '/politibattle/team';
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RANDOMIZE TEAM — build two AI teams, save, go to preview
+  // ═══════════════════════════════════════════════════════════════════════════
+  _randomizeTeam() {
+    var AI = window.PBAI;
+    if (!AI) { window.location.href = '/politibattle/team'; return; }
+
+    var playerTeam = AI.generateAITeam('normal').map(function (p) { return p.id; });
+    var aiTeam     = AI.generateAITeam('normal').map(function (p) { return p.id; });
+
+    try {
+      sessionStorage.setItem(this._SS_TEAMS || 'pb_currentTeams', JSON.stringify({
+        playerTeam: playerTeam,
+        aiTeam:     aiTeam,
+        mode:       'random',
+        timestamp:  Date.now()
+      }));
+    } catch (e) {}
+
+    window.location.href = '/politibattle/preview';
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONFIRM TEAM — write sessionStorage + navigate to preview
+  // Default stub; pb-team.html overrides with its own version that reads
+  // from the local `selected` array.
+  // ═══════════════════════════════════════════════════════════════════════════
+  _confirmTeam() {
+    try {
+      var data = sessionStorage.getItem(this._SS_TEAMS || 'pb_currentTeams');
+      if (data) {
+        window.location.href = '/politibattle/preview';
+        return;
+      }
+    } catch (e) {}
+    window.location.href = '/politibattle/team';
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TEAM PAGE  —  /politibattle/team  →  pb-team.html
+  // The real implementation is overridden by pb-team.html's inline <script>.
+  // This stub restores any saved builder state if the override hasn't loaded.
+  // ═══════════════════════════════════════════════════════════════════════════
+  _initTeamPage() {
+    // Restore saved builder state from sessionStorage if available
+    var saved;
+    try { saved = JSON.parse(sessionStorage.getItem(this._SS_TBSTATE)); } catch (e) {}
+
+    if (saved && saved.selected && Array.isArray(saved.selected)) {
+      // Re-select previously chosen fighters in the grid
+      // (Only meaningful if the inline script hasn't already overridden this.)
+      this._tbRestoredState = saved;
+    }
+
+    // Render grid — calls _renderPolGrid if it exists on this object
+    if (typeof this._renderPolGrid === 'function') {
+      this._renderPolGrid();
     }
   },
 
-  _renderSwitchList() {
-    const b = this._battle;
-    if (!b) return;
-    const AVTS = window.PBData.AVATARS || {};
-    const list = document.getElementById('btSwitchList');
-    if (!list) return;
-    list.innerHTML = '';
-    b.pTeam.forEach((f, i) => {
-      if (i === b.pIdx) return;
-      const hpPct = Math.round((f.hp / f.mhp) * 100);
-      const hpCol = hpPct > 50 ? '#22c55e' : hpPct > 20 ? '#eab308' : '#ef4444';
-      const btn = document.createElement('button');
-      btn.className = 'bt-switch-btn';
-      btn.disabled = f.fainted || this._inputLocked;
-      btn.innerHTML = `
-        <div class="bt-switch-thumb">${AVTS[f.id]||''}</div>
-        <div class="bt-switch-info">
-          <div class="bt-switch-name">${f.n}</div>
-          <div class="bt-switch-hp-wrap"><div class="bt-switch-hp-bar" style="width:${hpPct}%;background:${hpCol}"></div></div>
-        </div>`;
-      btn.onclick = () => { if (!this._inputLocked) this.handlePlayerAction({ type:'switch', idx:i }); };
-      list.appendChild(btn);
-    });
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PREVIEW PAGE  —  /politibattle/preview  →  pb-preview.html
+  // ═══════════════════════════════════════════════════════════════════════════
+  _initPreviewPage() {
+    var self = this;
+    var D  = window.PBData;
+    var E  = window.PBEngine;
+    var AI = window.PBAI;
+    var UI = window.PBUI;
+
+    // 1. Read teams from sessionStorage
+    var raw;
+    try { raw = JSON.parse(sessionStorage.getItem(this._SS_TEAMS)); } catch (e) {}
+    if (!raw || !raw.playerTeam || !raw.aiTeam) {
+      window.location.href = '/politibattle';
+      return;
+    }
+
+    // 2. Rebuild fighter objects from pol IDs
+    var playerTeam = raw.playerTeam.map(function (entry) {
+      var id = (typeof entry === 'string') ? entry : (entry.id || entry);
+      var pol = D.POLS.find(function (p) { return p.id === id; });
+      return pol ? E.buildFighter(pol, true) : null;
+    }).filter(Boolean);
+
+    var aiTeam = raw.aiTeam.map(function (entry) {
+      var id = (typeof entry === 'string') ? entry : (entry.id || entry);
+      var pol = D.POLS.find(function (p) { return p.id === id; });
+      return pol ? E.buildFighter(pol, false) : null;
+    }).filter(Boolean);
+
+    if (playerTeam.length === 0 || aiTeam.length === 0) {
+      window.location.href = '/politibattle';
+      return;
+    }
+
+    this._playerTeam = playerTeam;
+    this._aiTeam     = aiTeam;
+
+    // 3. Render preview grids (delegate to PBUI or page-local renderer)
+    if (UI && typeof UI.renderPreview === 'function') {
+      UI.renderPreview(playerTeam, aiTeam);
+    }
+
+    // 4. AI picks lead after a short delay
+    if (AI && typeof AI.pickLead === 'function') {
+      setTimeout(function () {
+        var polData = aiTeam.map(function (f) {
+          return D.POLS.find(function (p) { return p.id === f.id; }) || f;
+        });
+        var pPolData = playerTeam.map(function (f) {
+          return D.POLS.find(function (p) { return p.id === f.id; }) || f;
+        });
+        self._aiLeadIdx = AI.pickLead(polData, pPolData);
+        if (self._aiLeadIdx == null || self._aiLeadIdx < 0) self._aiLeadIdx = 0;
+      }, 1500);
+    } else {
+      this._aiLeadIdx = 0;
+    }
   },
 
-  _renderSidePanel() {
-    const b = this._battle;
-    if (!b) return;
-    const AVTS = window.PBData.AVATARS || {};
-    const renderTeam = (team, activeIdx, elId) => {
-      const el = document.getElementById(elId);
-      if (!el) return;
-      el.innerHTML = '';
-      team.forEach((f, i) => {
-        const hpPct = f.fainted ? 0 : Math.round((f.hp / f.mhp) * 100);
-        const dotCls = f.fainted ? 'fainted' : hpPct > 50 ? 'green' : hpPct > 20 ? 'yellow' : 'red';
-        const row = document.createElement('div');
-        row.className = 'bt-panel-row';
-        row.innerHTML = `
-          <div class="bt-panel-thumb">${AVTS[f.id]||'❓'}</div>
-          <div class="bt-panel-dot ${dotCls}"></div>
-          <div class="bt-panel-name">${f.n}</div>`;
-        if (i === activeIdx) row.style.opacity = '1';
-        else row.style.opacity = '.5';
-        el.appendChild(row);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAUNCH BATTLE FROM PREVIEW
+  // Called by pb-preview.html after player selects their lead fighter.
+  // Saves the full battle config to sessionStorage and navigates.
+  // ═══════════════════════════════════════════════════════════════════════════
+  _launchBattleFromPreview(playerTeam, aiTeam, playerLeadIdx, aiLeadIdx) {
+    if (playerLeadIdx == null || !playerTeam || !aiTeam) return;
+
+    // Default AI lead to 0 if unset
+    if (aiLeadIdx == null) aiLeadIdx = 0;
+
+    // Serialize fighters as ID strings for safe sessionStorage transfer
+    var serializeTeam = function (team) {
+      return team.map(function (f) {
+        if (typeof f === 'string') return f;
+        return f.id || f;
       });
     };
-    renderTeam(b.pTeam, b.pIdx, 'btPanelPlayer');
-    renderTeam(b.aTeam, b.aIdx, 'btPanelAI');
+
+    var config = {
+      playerTeam:    serializeTeam(playerTeam),
+      aiTeam:        serializeTeam(aiTeam),
+      playerLeadIdx: playerLeadIdx,
+      aiLeadIdx:     aiLeadIdx,
+      mode:          'vsAI',
+      timestamp:     Date.now()
+    };
+
+    try {
+      sessionStorage.setItem(this._SS_CONFIG, JSON.stringify(config));
+    } catch (e) {
+      console.error('[PolitiBattle] Failed to save battle config:', e);
+    }
+
+    window.location.href = '/politibattle/battle';
   },
 
-  _updateHPBoxes() {
-    const b = this._battle;
-    if (!b) return;
-    const pf = b.pTeam[b.pIdx];
-    const af = b.aTeam[b.aIdx];
-    const AVTS = window.PBData.AVATARS || {};
-    // Update turn badge
-    const tb = document.getElementById('btTurnBadge');
-    if (tb) tb.textContent = `TURN ${b.turn}`;
-    // Weather
-    const wb = document.getElementById('btWeatherBadge');
-    if (wb) { wb.textContent = b.weather || ''; wb.style.display = b.weather ? 'block' : 'none'; }
-    // Enemy
-    this._updateHPBox('enemy', af);
-    // Player
-    this._updateHPBox('player', pf);
-  },
-
-  _updateHPBox(side, fighter) {
-    const cap = side === 'enemy' ? 'Enemy' : 'Player';
-    const hpPct = Math.max(0, Math.round((fighter.hp / fighter.mhp) * 100));
-    const bar = document.getElementById(`bt${cap}HPBar`);
-    const name = document.getElementById(`bt${cap}Name`);
-    const types = document.getElementById(`bt${cap}Types`);
-    const status = document.getElementById(`bt${cap}Status`);
-    if (name) name.textContent = fighter.n;
-    if (bar) {
-      bar.style.width = hpPct + '%';
-      bar.className = 'bt-hp-bar' + (hpPct > 50 ? '' : hpPct > 20 ? ' yellow' : ' red');
-    }
-    if (types) {
-      types.innerHTML = (fighter.tps || []).map(t => `<span class="pb-type pb-type-${t}">${t}</span>`).join('');
-    }
-    if (status) {
-      const s = fighter.status;
-      status.className = 'bt-hp-status' + (s ? ` ${s}` : '');
-      status.textContent = s || '';
-    }
-    if (side === 'player') {
-      const nums = document.getElementById('btPlayerHPNums');
-      if (nums) nums.textContent = `${fighter.hp} / ${fighter.mhp}`;
-    }
-  },
-
-  _appendLog(msg, type = 'info') {
-    const log = document.getElementById('btLog');
-    if (!log) return;
-    const span = document.createElement('div');
-    span.className = `log-${type}`;
-    span.textContent = msg;
-    log.appendChild(span);
-    log.scrollTop = log.scrollHeight;
-  },
-
-  // ─── BATTLE LOOP ────────────────────────────────────────────────────────────
-  async handlePlayerAction(action) {
-    if (this._inputLocked || !this._battle || this._battle.over) return;
-    this.lockInput();
-    this.stopTurnTimer();
-
-    const events = await window.PBMechanics.executeTurn(this._battle, action);
-
-    // Process events → log messages + animations
-    for (const ev of events) {
-      await this._processEvent(ev);
-    }
-
-    this._updateHPBoxes();
-    this._renderMoves();
-    this._renderSwitchList();
-    this._renderSidePanel();
-    this._renderFighters();
-
-    if (this._battle.over) {
-      setTimeout(() => this.showVictory(), 800);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BATTLE PAGE  —  /politibattle/battle  →  pb-battle.html
+  // ═══════════════════════════════════════════════════════════════════════════
+  _initBattlePage() {
+    // 1. Read session config
+    var raw;
+    try { raw = JSON.parse(sessionStorage.getItem(this._SS_CONFIG)); } catch (e) {}
+    if (!raw || !raw.playerTeam || !raw.aiTeam) {
+      window.location.href = '/politibattle';
       return;
     }
-    this.unlockInput();
-    this.startTurnTimer();
-  },
 
-  async _processEvent(ev) {
-    const delay = ms => new Promise(r => setTimeout(r, ms));
-    if (!ev) return;
-    switch (ev.type) {
-      case 'move':
-        if (ev.msg) this._appendLog(ev.msg, 'use');
-        break;
-      case 'damage':
-        if (ev.msg) this._appendLog(ev.msg, 'dmg');
-        if (ev.isCrit) this._appendLog('Critical hit!', 'crit');
-        if (ev.eff > 1) this._appendLog("It's super effective!", 'eff');
-        else if (ev.eff < 1 && ev.eff > 0) this._appendLog("It's not very effective…", 'eff');
-        else if (ev.eff === 0) this._appendLog("It had no effect!", 'eff');
-        this._flashSprite(ev.actor === 'ai' || ev.actor === this._battle?.aTeam[this._battle.aIdx]?.id ? 'enemy' : 'player');
-        this._renderDamageNum(ev.dmg, ev.actor === 'ai');
-        this._updateHPBoxes();
-        await delay(300);
-        break;
-      case 'heal':
-        if (ev.msg) this._appendLog(ev.msg, 'heal');
-        this._updateHPBoxes();
-        break;
-      case 'status':
-        if (ev.msg) this._appendLog(ev.msg, 'status');
-        break;
-      case 'ko':
-        if (ev.msg) this._appendLog(ev.msg, 'ko');
-        await delay(400);
-        break;
-      case 'switch':
-        if (ev.msg) this._appendLog(ev.msg, 'info');
-        this._renderFighters();
-        break;
-      case 'battle-end':
-        break;
-      default:
-        if (ev.msg) this._appendLog(ev.msg, 'info');
+    var E  = window.PBEngine;
+    var D  = window.PBData;
+    var UI = window.PBUI;
+    if (!E || !D || !UI) {
+      console.error('[PolitiBattle] Missing engine / data / ui modules');
+      return;
     }
-    await delay(80);
-  },
 
-  _flashSprite(side) {
-    const id = side === 'enemy' ? 'btEnemySprite' : 'btPlayerSprite';
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.filter = 'brightness(3) drop-shadow(0 0 8px #fff)';
-    setTimeout(() => { el.style.filter = 'drop-shadow(0 4px 12px rgba(0,0,0,.6))'; }, 150);
-  },
-
-  _renderDamageNum(dmg, isEnemySide) {
-    const field = document.getElementById('btField');
-    if (!field || !dmg) return;
-    const el = document.createElement('div');
-    el.className = 'pb-damage-num';
-    el.textContent = `-${dmg}`;
-    el.style.left = isEnemySide ? '75%' : '20%';
-    el.style.top = isEnemySide ? '30px' : '160px';
-    field.appendChild(el);
-    setTimeout(() => el.remove(), 1200);
-  },
-
-  // ─── VICTORY ────────────────────────────────────────────────────────────────
-  showVictory() {
-    const b = this._battle;
-    if (!b) return;
-    const won = b.winner === 'player';
-    const trophy = document.getElementById('vcTrophy');
-    const result = document.getElementById('vcResult');
-    const flavour = document.getElementById('vcFlavour');
-    if (trophy) trophy.textContent = won ? '🏆' : '💀';
-    if (result) { result.textContent = won ? 'VICTORY!' : 'DEFEATED!'; result.className = 'vc-result ' + (won ? 'win' : 'loss'); }
-    const flavourLines = won
-      ? ["The people have spoken. Your opponent has been… cancelled.", "Democracy wins. Your opponent lost the popular vote.", "Landslide victory. The pundits never saw it coming."]
-      : ["Gerrymandering couldn't save you this time.", "You've been fact-checked into oblivion.", "A narrow defeat. Blame the electoral college."];
-    if (flavour) flavour.textContent = flavourLines[Math.floor(Math.random() * flavourLines.length)];
-    // Stats
-    const s = b.stats;
-    document.getElementById('vcDmg').textContent   = s.pDmgDealt || 0;
-    document.getElementById('vcCrits').textContent = s.pCrits    || 0;
-    document.getElementById('vcTurns').textContent = b.turn;
-    document.getElementById('vcKOs').textContent   = s.pKOs      || 0;
-    // Save W/L
-    const wl = JSON.parse(localStorage.getItem('pb_wl') || '{"w":0,"l":0}');
-    if (won) wl.w++; else wl.l++;
-    localStorage.setItem('pb_wl', JSON.stringify(wl));
-    // Achievement
-    const ach = document.getElementById('vcAchieve');
-    if (ach && won && (s.pCrits || 0) >= 3) {
-      ach.textContent = '🏅 Critical Masses — Landed 3+ crits in one battle!';
-      ach.classList.add('show');
-    }
-    this.showScreen('victoryScreen');
-  },
-
-  // ─── 3D MODE ────────────────────────────────────────────────────────────────
-  launchArena(battle) {
-    try {
-      sessionStorage.setItem('politiBattleState', JSON.stringify(battle));
-    } catch(e) { console.warn('sessionStorage write failed', e); }
-    window.location.href = '/arena';
-  },
-
-  // ─── INPUT LOCK ─────────────────────────────────────────────────────────────
-  lockInput() {
-    this._inputLocked = true;
-    document.querySelectorAll('.bt-move-btn, .bt-switch-btn').forEach(b => b.disabled = true);
-  },
-
-  unlockInput() {
-    this._inputLocked = false;
-    this._renderMoves();
-    this._renderSwitchList();
-  },
-
-  // ─── TURN TIMER ─────────────────────────────────────────────────────────────
-  startTurnTimer() {
-    this.stopTurnTimer();
-    this._turnSeconds = 60;
-    const bar = document.getElementById('btTimerBar');
-    const num = document.getElementById('btTimerNum');
-    if (bar) { bar.style.width = '100%'; bar.classList.remove('low'); }
-    if (num) num.textContent = '60';
-    this._turnTimer = setInterval(() => {
-      this._turnSeconds--;
-      const pct = (this._turnSeconds / 60) * 100;
-      if (bar) { bar.style.width = pct + '%'; if (this._turnSeconds <= 15) bar.classList.add('low'); }
-      if (num) num.textContent = this._turnSeconds;
-      if (this._turnSeconds <= 0) {
-        this.stopTurnTimer();
-        // Auto-select random available move
-        const b = this._battle;
-        if (b && !b.over && !this._inputLocked) {
-          const pf = b.pTeam[b.pIdx];
-          const avail = pf.mvs.map((mv, i) => ({ mv, i })).filter(({mv}) => mv.cpp > 0);
-          const pick = avail.length > 0 ? avail[Math.floor(Math.random() * avail.length)].i : 0;
-          this.handlePlayerAction({ type: 'move', idx: pick });
-        }
+    // 2. Build fighter objects from pol data
+    // raw teams are arrays of ID strings or fighter objects — handle both
+    var pTeam = raw.playerTeam.map(function (f) {
+      if (typeof f === 'string') {
+        var pol = D.POLS.find(function (p) { return p.id === f; });
+        return pol ? E.buildFighter(pol, true) : null;
       }
-    }, 1000);
+      // Already a fighter object from preview — rebuild to be safe
+      var pol2 = D.POLS.find(function (p) { return p.id === (f.id || f); });
+      return pol2 ? E.buildFighter(pol2, true) : null;
+    }).filter(Boolean);
+
+    var aTeam = raw.aiTeam.map(function (f) {
+      if (typeof f === 'string') {
+        var pol = D.POLS.find(function (p) { return p.id === f; });
+        return pol ? E.buildFighter(pol, false) : null;
+      }
+      var pol2 = D.POLS.find(function (p) { return p.id === (f.id || f); });
+      return pol2 ? E.buildFighter(pol2, false) : null;
+    }).filter(Boolean);
+
+    if (pTeam.length === 0 || aTeam.length === 0) {
+      window.location.href = '/politibattle';
+      return;
+    }
+
+    // 3. Create battle state
+    var battle = E.createBattle(pTeam, aTeam);
+    var pLeadIdx = raw.playerLeadIdx || 0;
+    var aLeadIdx = raw.aiLeadIdx || 0;
+    if (pLeadIdx >= pTeam.length) pLeadIdx = 0;
+    if (aLeadIdx >= aTeam.length) aLeadIdx = 0;
+    battle.pIdx = pLeadIdx;
+    battle.aIdx = aLeadIdx;
+
+    // 4. Switch in leads
+    E.switchIn(pTeam[pLeadIdx], aTeam[aLeadIdx], battle.pHz, battle);
+    E.switchIn(aTeam[aLeadIdx], pTeam[pLeadIdx], battle.aHz, battle);
+
+    this._battle = battle;
+
+    // 5. Init sound
+    try { if (window.PBSound && PBSound.init) PBSound.init(); } catch (_) {}
+
+    // 6. Init UI
+    UI.init(battle);
+
+    // 7. VS splash then full refresh
+    var self = this;
+    UI.showVSSplash(pTeam[pLeadIdx], aTeam[aLeadIdx]).then(function () {
+      UI.fullRefresh(battle);
+      UI.startTimer(60);
+      UI.enableInput();
+      UI.log('Battle start! ' + pTeam[pLeadIdx].n + ' vs ' + aTeam[aLeadIdx].n + '!', 'info');
+    });
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HANDLE PLAYER ACTION — called by UI move/switch clicks
+  // ═══════════════════════════════════════════════════════════════════════════
+  async handlePlayerAction(action) {
+    var UI = window.PBUI;
+    var M  = window.PBMechanics;
+    var b  = this._battle;
+    if (!b || !UI || !M) return;
+    if (this._battleBusy || b.over) return;
+
+    this._battleBusy = true;
+    UI.disableInput();
+    UI.stopTimer();
+
+    // If we were in forced-switch mode, clear it
+    if (UI._needSwitchMode) {
+      UI._needSwitchMode = false;
+      var ms = document.getElementById('pb-move-section');
+      if (ms) ms.style.display = '';
+      UI.hideSwitchPanel();
+    }
+
+    try {
+      // Execute the turn
+      var events = await M.executeTurn(b, action);
+
+      // Animate all events
+      await UI.animateEvents(events, b);
+
+      // Check for battle end
+      if (b.over) {
+        this._endBattle(b);
+        return;
+      }
+
+      // Check if we need a forced switch
+      var needSwitch = events.some(function (e) { return e.type === 'need-switch'; });
+      if (needSwitch) {
+        // UI is waiting for switch — keep input enabled, don't start timer for moves
+        this._battleBusy = false;
+        return;
+      }
+
+      // Ready for next turn
+      UI.fullRefresh(b);
+      UI.resetTimer();
+      UI.startTimer(60);
+      UI.enableInput();
+    } catch (err) {
+      console.error('[PolitiBattle] Turn error:', err);
+    }
+
+    this._battleBusy = false;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FORFEIT
+  // ═══════════════════════════════════════════════════════════════════════════
+  _forfeitBattle() {
+    if (!this._battle || this._battle.over) return;
+    if (!confirm('Forfeit this battle?')) return;
+    this._battle.over = true;
+    this._battle.winner = 'ai';
+    if (window.PBEngine) window.PBEngine._log(this._battle, 'You forfeited the battle!', 'ko');
+    var UI = window.PBUI;
+    if (UI) {
+      UI.disableInput();
+      UI.stopTimer();
+      UI.log('You forfeited the battle!', 'ko');
+    }
+    this._endBattle(this._battle);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // END BATTLE — write results + navigate to victory screen
+  // ═══════════════════════════════════════════════════════════════════════════
+  _endBattle(battle) {
+    var UI = window.PBUI;
+    if (UI) { UI.disableInput(); UI.stopTimer(); }
+
+    var won = battle.winner === 'player';
+
+    // Compute ELO change (simple approximation)
+    var eloChange = won
+      ? Math.floor(20 + Math.random() * 15)
+      : -Math.floor(12 + Math.random() * 10);
+
+    var victoryData = {
+      won:             won,
+      winner:          battle.winner,
+      turns:           battle.turn,
+      pDmgDealt:       battle.stats.pDmgDealt,
+      aDmgDealt:       battle.stats.aDmgDealt,
+      pCrits:          battle.stats.pCrits,
+      aCrits:          battle.stats.aCrits,
+      pKOs:            battle.stats.pKOs,
+      aKOs:            battle.stats.aKOs,
+      playerTeam:      battle.pTeam.map(function (f) {
+        return { id: f.id, n: f.n, hp: f.hp, mhp: f.mhp, fainted: f.fainted };
+      }),
+      aiTeam:          battle.aTeam.map(function (f) {
+        return { id: f.id, n: f.n, hp: f.hp, mhp: f.mhp, fainted: f.fainted };
+      }),
+      // Battle log for replay modal on victory screen
+      log:             (battle.log || []).map(function (entry) {
+        if (typeof entry === 'string') return { msg: entry, type: 'info' };
+        return {
+          msg:  entry.msg || entry.text || String(entry),
+          type: entry.type || 'info',
+          turn: entry.turn || null
+        };
+      }),
+      newAchievements: this._checkAchievements(battle, won),
+      eloChange:       eloChange,
+      timestamp:       Date.now()
+    };
+
+    try {
+      sessionStorage.setItem(this._SS_VICTORY, JSON.stringify(victoryData));
+    } catch (e) {
+      console.error('[PolitiBattle] Failed to save victory data:', e);
+    }
+
+    // Navigate after brief delay so final KO animation can play
+    setTimeout(function () {
+      window.location.href = '/politibattle/victory';
+    }, 1500);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ACHIEVEMENT CHECKER (runs at end of battle)
+  // ═══════════════════════════════════════════════════════════════════════════
+  _checkAchievements(battle, won) {
+    var achievements = [];
+    var stats;
+    try { stats = JSON.parse(localStorage.getItem(this._SS_STATS)) || {}; } catch (e) { stats = {}; }
+
+    // First victory
+    if (won && !stats.wins) {
+      achievements.push({ icon: '🏆', name: 'First Victory', description: 'Win your first battle!' });
+    }
+    // Flawless — won without losing a single fighter
+    if (won && battle.pTeam.every(function (f) { return !f.fainted; })) {
+      achievements.push({ icon: '✨', name: 'Flawless', description: 'Win without any KOs on your team.' });
+    }
+    // Underdog — won when 4+ of your team fainted
+    var pFainted = battle.pTeam.filter(function (f) { return f.fainted; }).length;
+    if (won && pFainted >= 4) {
+      achievements.push({ icon: '💪', name: 'Underdog', description: 'Win with 4+ fighters KO\'d.' });
+    }
+    // Crit Lord — 5+ crits in one battle
+    if ((battle.stats.pCrits || 0) >= 5) {
+      achievements.push({ icon: '🎯', name: 'Crit Lord', description: 'Land 5+ critical hits in one battle.' });
+    }
+    // Quick Draw — win in 10 turns or fewer
+    if (won && battle.turn <= 10) {
+      achievements.push({ icon: '⚡', name: 'Quick Draw', description: 'Win in 10 turns or fewer.' });
+    }
+    // Streak milestones
+    var streak = (stats.streak || 0) + (won ? 1 : 0);
+    if (won && streak === 5) {
+      achievements.push({ icon: '🔥', name: 'On Fire', description: 'Reach a 5-win streak.' });
+    }
+    if (won && streak === 10) {
+      achievements.push({ icon: '🌋', name: 'Unstoppable', description: 'Reach a 10-win streak.' });
+    }
+
+    return achievements;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VICTORY PAGE  —  /politibattle/victory  →  pb-victory.html
+  // The actual rich rendering is done by the inline script in pb-victory.html.
+  // This stub handles the minimal case and updates localStorage stats.
+  // ═══════════════════════════════════════════════════════════════════════════
+  _initVictoryPage() {
+    var raw;
+    try { raw = JSON.parse(sessionStorage.getItem(this._SS_VICTORY)); } catch (e) {}
+    if (!raw) {
+      window.location.href = '/politibattle';
+      return;
+    }
+
+    var won = !!raw.won;
+
+    // Init sound and play result fanfare
+    var S = window.PBSound;
+    if (S && S.init) {
+      S.init();
+      setTimeout(function () {
+        try { won ? S.playVictory() : S.playDefeat(); } catch (e) {}
+      }, 400);
+    }
+
+    // Update localStorage stats
+    this._recordBattleStats(won, raw.eloChange || 0);
+
+    console.log('[PolitiBattle] Victory page loaded. Won:', won);
+  },
+
+  // ── Persist win/loss/elo to localStorage ──
+  _recordBattleStats(won, eloChange) {
+    var key = this._SS_STATS;
+    var stats;
+    try { stats = JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { stats = {}; }
+
+    stats.wins   = (stats.wins   || 0) + (won ? 1 : 0);
+    stats.losses = (stats.losses || 0) + (won ? 0 : 1);
+    stats.games  = (stats.games  || 0) + 1;
+    stats.elo    = (stats.elo    || 1000) + eloChange;
+    if (stats.elo < 0) stats.elo = 0;
+
+    // Streak tracking
+    if (won) {
+      stats.streak    = (stats.streak || 0) + 1;
+      stats.maxStreak = Math.max(stats.maxStreak || 0, stats.streak);
+    } else {
+      stats.streak = 0;
+    }
+
+    try { localStorage.setItem(key, JSON.stringify(stats)); } catch (e) {}
+
+    // Also use PBStats module if available
+    if (window.PBStats && typeof PBStats.recordResult === 'function') {
+      try { PBStats.recordResult(won, eloChange); } catch (e) {}
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEX PAGE  —  /politibattle/dex  →  pb-dex.html
+  // The actual grid + modal rendering lives in pb-dex.html's inline script.
+  // This stub initialises sound and calls PBUI.renderDex if available.
+  // ═══════════════════════════════════════════════════════════════════════════
+  _initDexPage() {
+    try { if (window.PBSound && PBSound.init) PBSound.init(); } catch (_) {}
+
+    var D  = window.PBData;
+    var UI = window.PBUI;
+    if (UI && typeof UI.renderDex === 'function' && D && D.POLS) {
+      UI.renderDex(D.POLS);
+    }
+
+    console.log('[PolitiBattle] Dex page loaded.');
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SCREEN / OVERLAY MANAGEMENT
+  // showScreen() now only handles modals and overlays on the CURRENT page.
+  // All cross-page navigation is done via window.location.href.
+  // ═══════════════════════════════════════════════════════════════════════════
+  showScreen(screenId) {
+    // Legacy calls that map to page navigations
+    var NAV_MAP = {
+      'home':       '/politibattle',
+      'teamSelect': '/politibattle/team',
+      'preview':    '/politibattle/preview',
+      'battle':     '/politibattle/battle',
+      'victory':    '/politibattle/victory',
+      'dex':        '/politibattle/dex'
+    };
+    if (NAV_MAP[screenId]) {
+      window.location.href = NAV_MAP[screenId];
+      return;
+    }
+
+    // Otherwise treat as a modal/overlay ID on the current page
+    var el = document.getElementById(screenId);
+    if (el) {
+      // Close all other overlays first
+      document.querySelectorAll('.pb-modal-overlay.open').forEach(function (m) {
+        m.classList.remove('open');
+      });
+      el.classList.add('open');
+    }
+  },
+
+  hideScreen(screenId) {
+    var el = document.getElementById(screenId);
+    if (el) el.classList.remove('open');
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TYPE CHART MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  _openTypeChart() {
+    var modal = document.getElementById('typeChartModal');
+    if (!modal) return;
+
+    // Build chart HTML if the table is empty
+    var body = document.getElementById('pbTypeChartBody');
+    var head = document.getElementById('pbTypeChartHead');
+    if (body && body.children.length === 0) {
+      this._buildTypeChartHTML(head, body);
+    }
+
+    modal.classList.add('open');
+  },
+
+  _buildTypeChartHTML(thead, tbody) {
+    var D = window.PBData;
+    if (!D || !D.TC) return;
+
+    var types = Object.keys(D.TC);
+    var TCOL_CSS = {
+      Republican:     '#ef4444', Democrat:     '#3b82f6', Libertarian:  '#eab308',
+      Green:          '#22c55e', Socialist:    '#ec4899', Authoritarian:'#7c3aed',
+      Centrist:       '#94a3b8', Populist:     '#f97316', Corporate:    '#475569',
+      Revolutionary:  '#dc2626'
+    };
+
+    // Abbreviate type names for compact header
+    var abbr = function (t) { return t.substring(0, 3).toUpperCase(); };
+
+    // Header row
+    if (thead) {
+      var hr = '<tr><th class="tc-corner"></th>';
+      types.forEach(function (t) {
+        hr += '<th class="tc-colhead" title="' + t + '" style="color:' + (TCOL_CSS[t] || '#666') + '">' + abbr(t) + '</th>';
+      });
+      hr += '</tr>';
+      thead.innerHTML = hr;
+    }
+
+    // Body rows
+    if (tbody) {
+      var html = '';
+      types.forEach(function (atkType) {
+        html += '<tr>';
+        html += '<th class="tc-rowhead" title="' + atkType + '" style="color:' + (TCOL_CSS[atkType] || '#666') + '">' + abbr(atkType) + '</th>';
+        types.forEach(function (defType) {
+          var val = D.TC[atkType][defType];
+          var cls = 'tc-norm';
+          if (val >= 2)        cls = 'tc-2x';
+          else if (val === 1.5) cls = 'tc-15x';
+          else if (val === 0)  cls = 'tc-zero';
+          else if (val < 1)    cls = 'tc-half';
+          var label = val === 0 ? '0' : val === 1 ? '' : val + '×';
+          html += '<td class="' + cls + '">' + label + '</td>';
+        });
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HOW TO PLAY MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  _openHowToPlay() {
+    var modal = document.getElementById('howToPlayModal');
+    if (modal) modal.classList.add('open');
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SETTINGS MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  _openSettings() {
+    var modal = document.getElementById('settingsModal');
+    if (modal) modal.classList.add('open');
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TEAM BUILDER HELPERS
+  // These are default stubs. pb-team.html overrides most of them with its
+  // own local implementations that have access to the grid state.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Render the full politician picker grid
+  _renderPolGrid() {
+    var D = window.PBData;
+    var grid = document.getElementById('pol-grid') || document.getElementById('tb-grid');
+    if (!D || !D.POLS || !grid) return;
+
+    var TCOL_CSS = {
+      Republican:'#ef4444', Democrat:'#3b82f6', Libertarian:'#eab308',
+      Green:'#22c55e', Socialist:'#ec4899', Authoritarian:'#7c3aed',
+      Centrist:'#94a3b8', Populist:'#f97316', Corporate:'#475569',
+      Revolutionary:'#dc2626'
+    };
+
+    grid.innerHTML = '';
+    D.POLS.forEach(function (pol) {
+      var card = document.createElement('div');
+      card.className = 'tb-pol-card';
+      card.dataset.id = pol.id;
+
+      var typeColor = TCOL_CSS[pol.tps[0]] || '#666';
+      var typePills = (pol.tps || []).map(function (t) {
+        return '<span class="tb-type-pill" style="background:' + (TCOL_CSS[t] || '#666') + '">' + t + '</span>';
+      }).join('');
+
+      // Build BST total for quick reference
+      var bst = pol.bs ? (pol.bs.hp + pol.bs.atk + pol.bs.def + pol.bs.spa + pol.bs.spd + pol.bs.spe) : 0;
+
+      card.innerHTML =
+        '<div class="tb-pol-avatar" style="border-color:' + typeColor + '">' +
+          (pol.e || pol.id.charAt(0).toUpperCase()) +
+        '</div>' +
+        '<div class="tb-pol-name">' + pol.n + '</div>' +
+        '<div class="tb-pol-types">' + typePills + '</div>' +
+        '<div class="tb-pol-bst">BST ' + bst + '</div>';
+
+      card.addEventListener('click', function () {
+        if (typeof PolitiBattle._tbTogglePol === 'function') {
+          PolitiBattle._tbTogglePol(pol.id);
+        }
+      });
+
+      grid.appendChild(card);
+    });
+  },
+
+  // Toggle selection of a politician in the team builder
+  _tbTogglePol(polId) {
+    // Default stub — pb-team.html overrides this with its own selection logic
+    console.log('[PolitiBattle] _tbTogglePol stub called for:', polId);
+  },
+
+  // Update the team slot indicators in the builder
+  _updateTBSlots() {
+    // Default stub — pb-team.html overrides
+    console.log('[PolitiBattle] _updateTBSlots stub');
+  },
+
+  // Update the team analysis panel (type coverage, weaknesses, etc.)
+  _updateTBAnalysis() {
+    // Default stub — pb-team.html overrides
+    console.log('[PolitiBattle] _updateTBAnalysis stub');
+  },
+
+  // Build type pill HTML elements
+  _buildTypePills(types) {
+    var TCOL_CSS = {
+      Republican:'#ef4444', Democrat:'#3b82f6', Libertarian:'#eab308',
+      Green:'#22c55e', Socialist:'#ec4899', Authoritarian:'#7c3aed',
+      Centrist:'#94a3b8', Populist:'#f97316', Corporate:'#475569',
+      Revolutionary:'#dc2626'
+    };
+    return (types || []).map(function (t) {
+      return '<span class="tb-type-pill" style="background:' + (TCOL_CSS[t] || '#666') + '">' + t + '</span>';
+    }).join('');
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BATTLE UI HELPERS — delegates to PBUI but callable from main
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Process a single battle event (for manual event replay)
+  _processEvent(ev, battle) {
+    var UI = window.PBUI;
+    if (UI && typeof UI.animateEvents === 'function') {
+      return UI.animateEvents([ev], battle);
+    }
+  },
+
+  // Render the full battle UI (HP, moves, sprites, etc.)
+  _renderBattleUI(battle) {
+    var UI = window.PBUI;
+    if (UI && typeof UI.fullRefresh === 'function') {
+      UI.fullRefresh(battle || this._battle);
+    }
+  },
+
+  // Render move buttons for the active fighter
+  _renderMoves(battle) {
+    var UI = window.PBUI;
+    var b  = battle || this._battle;
+    if (!UI || !b) return;
+    if (typeof UI._renderMoves === 'function') {
+      UI._renderMoves(b);
+    } else if (typeof UI.fullRefresh === 'function') {
+      UI.fullRefresh(b);
+    }
+  },
+
+  // Render the switch list (bench fighters)
+  _renderSwitchList(battle) {
+    var UI = window.PBUI;
+    var b  = battle || this._battle;
+    if (!UI || !b) return;
+    if (typeof UI._renderSwitchList === 'function') {
+      UI._renderSwitchList(b);
+    }
+  },
+
+  // Update HP box displays
+  _updateHPBoxes(battle) {
+    var UI = window.PBUI;
+    var b  = battle || this._battle;
+    if (!UI || !b) return;
+    if (typeof UI._updateHP === 'function') {
+      UI._updateHP(b);
+    } else if (typeof UI.fullRefresh === 'function') {
+      UI.fullRefresh(b);
+    }
+  },
+
+  // Append a message to the battle log
+  _appendLog(msg, type) {
+    var UI = window.PBUI;
+    if (UI && typeof UI.log === 'function') {
+      UI.log(msg, type || 'info');
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TURN TIMER — delegates to PBUI
+  // ═══════════════════════════════════════════════════════════════════════════
+  startTurnTimer(seconds) {
+    var UI = window.PBUI;
+    if (UI && typeof UI.startTimer === 'function') {
+      UI.startTimer(seconds || 60);
+    }
   },
 
   stopTurnTimer() {
-    if (this._turnTimer) { clearInterval(this._turnTimer); this._turnTimer = null; }
+    var UI = window.PBUI;
+    if (UI && typeof UI.stopTimer === 'function') {
+      UI.stopTimer();
+    }
   },
 
-  // ─── KEYBOARD ───────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INPUT LOCK — delegates to PBUI
+  // ═══════════════════════════════════════════════════════════════════════════
+  lockInput() {
+    var UI = window.PBUI;
+    if (UI && typeof UI.disableInput === 'function') {
+      UI.disableInput();
+    }
+  },
+
+  unlockInput() {
+    var UI = window.PBUI;
+    if (UI && typeof UI.enableInput === 'function') {
+      UI.enableInput();
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KEYBOARD SHORTCUTS
+  // ═══════════════════════════════════════════════════════════════════════════
   initKeyboard() {
-    document.addEventListener('keydown', e => {
-      if (this._state !== 'battle' || this._inputLocked) return;
-      const key = e.key;
+    var self = this;
+    document.addEventListener('keydown', function (e) {
+      // Only handle keys during a battle
+      if (!self._battle || self._battle.over || self._battleBusy) return;
+      var UI = window.PBUI;
+      if (!UI) return;
+
+      var key = e.key;
+
+      // 1-4 = moves
       if (key >= '1' && key <= '4') {
-        const idx = parseInt(key) - 1;
-        const b = this._battle;
-        if (b && b.pTeam[b.pIdx].mvs[idx]?.cpp > 0) {
+        var moveIdx = parseInt(key, 10) - 1;
+        var active  = self._battle.pTeam[self._battle.pIdx];
+        if (active && active.mvs[moveIdx] && active.mvs[moveIdx].cpp > 0) {
           e.preventDefault();
-          this.handlePlayerAction({ type: 'move', idx });
+          self.handlePlayerAction({ type: 'move', idx: moveIdx });
         }
+        return;
+      }
+
+      // S = open/close switch panel
+      if (key === 's' || key === 'S') {
+        e.preventDefault();
+        if (UI._switchOpen) UI.hideSwitchPanel();
+        else UI.showSwitchPanel();
+        return;
+      }
+
+      // 5-9 or Q-T = switch to bench slot
+      if (key >= '5' && key <= '9') {
+        var sIdx = parseInt(key, 10) - 5;
+        e.preventDefault();
+        self.handlePlayerAction({ type: 'switch', idx: sIdx });
+        return;
+      }
+
+      // F = forfeit
+      if (key === 'f' || key === 'F') {
+        e.preventDefault();
+        self._forfeitBattle();
+        return;
+      }
+
+      // Escape = close modals/switch panel
+      if (key === 'Escape') {
+        if (UI._switchOpen) UI.hideSwitchPanel();
+        document.querySelectorAll('.pb-modal-overlay.open').forEach(function (m) {
+          m.classList.remove('open');
+        });
+        return;
       }
     });
   },
 
-  // ─── SETTINGS ───────────────────────────────────────────────────────────────
-  loadSettings() {
-    try {
-      const raw = localStorage.getItem('pb_settings');
-      this._settings = raw ? JSON.parse(raw) : {};
-    } catch(e) { this._settings = {}; }
-    // Apply to UI
-    const vol = document.getElementById('settingVolume');
-    const mute = document.getElementById('settingMute');
-    const d3 = document.getElementById('setting3D');
-    if (vol) vol.value = this._settings.volume ?? 60;
-    if (mute && this._settings.mute) mute.classList.add('on');
-    if (d3 && this._settings._3dMode) d3.classList.add('on');
-  },
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEX HELPERS — stubs callable from main, actual rendering in pb-dex.html
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  saveSettings() {
-    try { localStorage.setItem('pb_settings', JSON.stringify(this._settings)); } catch(e) {}
-  },
-
-  _onSettingChange() {
-    const vol = document.getElementById('settingVolume');
-    const mute = document.getElementById('settingMute');
-    const d3 = document.getElementById('setting3D');
-    if (vol) this._settings.volume = parseInt(vol.value);
-    if (mute) this._settings.mute = mute.classList.contains('on');
-    if (d3) this._settings._3dMode = d3.classList.contains('on');
-    this.saveSettings();
-  },
-
-  // ─── HOME STATS ─────────────────────────────────────────────────────────────
-  _updateHomeStats() {
-    const wl = JSON.parse(localStorage.getItem('pb_wl') || '{"w":0,"l":0}');
-    const w = document.getElementById('homeWins');
-    const l = document.getElementById('homeLosses');
-    if (w) w.textContent = wl.w;
-    if (l) l.textContent = wl.l;
-  },
-
-  // ─── OPEN MODALS ────────────────────────────────────────────────────────────
-  _openSettings() {
-    document.getElementById('settingsModal').classList.add('open');
-  },
-
-  _openTypeChart() {
-    const modal = document.getElementById('typeChartModal');
-    if (!modal) return;
-    const content = document.getElementById('typeChartContent');
-    if (content && !content.dataset.built) {
-      content.innerHTML = this._buildTypeChartHTML();
-      content.dataset.built = '1';
+  // Render the dex grid (all politicians)
+  _renderDexGrid(pols) {
+    var UI = window.PBUI;
+    if (UI && typeof UI.renderDex === 'function') {
+      UI.renderDex(pols || (window.PBData && window.PBData.POLS) || []);
+      return;
     }
-    modal.classList.add('open');
-  },
 
-  _buildTypeChartHTML() {
-    const TC = window.PBData.TC;
-    if (!TC) return '<p>Type chart not loaded.</p>';
-    const types = Object.keys(TC);
-    const abbr = { Republican:'Rep', Democrat:'Dem', Libertarian:'Lib', Green:'Grn', Socialist:'Soc',
-                   Authoritarian:'Auth', Centrist:'Cen', Populist:'Pop', Corporate:'Corp', Revolutionary:'Rev' };
-    let html = '<table class="tc-table"><thead><tr><th></th>';
-    types.forEach(t => { html += `<th>${abbr[t]||t.slice(0,4)}</th>`; });
-    html += '</tr></thead><tbody>';
-    types.forEach(atk => {
-      html += `<tr><th>${abbr[atk]||atk.slice(0,4)}</th>`;
-      types.forEach(def => {
-        const val = TC[atk][def] ?? 1;
-        const cls = val === 2 ? 'tc-cell-2' : val === 0.5 ? 'tc-cell-05' : val === 0 ? 'tc-cell-0' : 'tc-cell-1';
-        const disp = val === 0 ? '✕' : val === 2 ? '2×' : val === 1.5 ? '1.5' : val === 0.5 ? '½' : '·';
-        html += `<td class="${cls}" title="${atk} vs ${def}: ${val}×">${disp}</td>`;
-      });
-      html += '</tr>';
-    });
-    html += '</tbody></table>';
-    return html;
-  },
-
-  // ─── DEX ────────────────────────────────────────────────────────────────────
-  _renderDexGrid() {
-    const grid = document.getElementById('dexGrid');
-    const count = document.getElementById('dexCount');
+    // Fallback: minimal grid renderer
+    var grid = document.getElementById('dex-grid');
     if (!grid) return;
-    const POLS = window.PBData.POLS || [];
-    const AVTS = window.PBData.AVATARS || {};
-    if (count) count.textContent = `${POLS.length} Fighters`;
+    var D = window.PBData;
+    if (!D) return;
+
+    var list = pols || D.POLS || [];
     grid.innerHTML = '';
-    const STAT_MAX = { hp:200, atk:150, def:150, spa:150, spd:150, spe:150 };
-    POLS.forEach(pol => {
-      const types = (pol.tps || []).map(t => `<span class="pb-type pb-type-${t}">${t}</span>`).join('');
-      const bst = Object.values(pol.bs).reduce((a, b) => a + b, 0);
-      const statBars = Object.entries(pol.bs).map(([k, v]) => {
-        const pct = Math.min(100, Math.round((v / (STAT_MAX[k] || 150)) * 100));
-        return `<div class="dex-stat-row">
-          <span class="dex-stat-lbl">${k.toUpperCase()}</span>
-          <div class="dex-stat-bar-wrap"><div class="dex-stat-bar" style="width:${pct}%"></div></div>
-          <span class="dex-stat-val">${v}</span>
-        </div>`;
-      }).join('');
-      const card = document.createElement('div');
+    var TCOL_CSS = {
+      Republican:'#ef4444', Democrat:'#3b82f6', Libertarian:'#eab308',
+      Green:'#22c55e', Socialist:'#ec4899', Authoritarian:'#7c3aed',
+      Centrist:'#94a3b8', Populist:'#f97316', Corporate:'#475569',
+      Revolutionary:'#dc2626'
+    };
+
+    list.forEach(function (pol, idx) {
+      var card = document.createElement('div');
       card.className = 'dex-card';
-      card.innerHTML = `
-        ${AVTS[pol.svgId] || `<div style="font-size:3rem;height:107px;display:flex;align-items:center;justify-content:center">${pol.e||'❓'}</div>`}
-        <div class="dex-card-name">${pol.n}</div>
-        <div class="dex-card-types">${types}</div>
-        <div class="dex-stat-bars">${statBars}</div>`;
-      card.onclick = () => this._openDexDetail(pol);
+      card.dataset.id = pol.id;
+      var tc = TCOL_CSS[pol.tps[0]] || '#666';
+      card.innerHTML =
+        '<div class="dex-card-num">#' + String(idx + 1).padStart(3, '0') + '</div>' +
+        '<div class="dex-card-emoji">' + (pol.e || '🏛️') + '</div>' +
+        '<div class="dex-card-name">' + pol.n + '</div>' +
+        '<div class="dex-card-types">' + (pol.tps || []).map(function (t) {
+          return '<span style="background:' + (TCOL_CSS[t] || '#666') + ';color:#fff;padding:1px 6px;border-radius:6px;font-size:0.65rem">' + t + '</span>';
+        }).join(' ') + '</div>';
+
+      card.addEventListener('click', function () {
+        if (typeof PolitiBattle._openDexDetail === 'function') {
+          PolitiBattle._openDexDetail(pol);
+        }
+      });
+
       grid.appendChild(card);
     });
   },
 
+  // Open the detail modal for a single politician
   _openDexDetail(pol) {
-    const modal = document.getElementById('dexDetailModal');
-    const content = document.getElementById('dexDetailContent');
-    if (!modal || !content) return;
-    const AVTS = window.PBData.AVATARS || {};
-    const D = window.PBData;
-    const types = (pol.tps || []).map(t => `<span class="pb-type pb-type-${t}">${t}</span>`).join(' ');
-    const bst = Object.values(pol.bs).reduce((a, b) => a + b, 0);
-    const abl = D.ABILITIES && D.ABILITIES[pol.abl] ? D.ABILITIES[pol.abl] : { n: pol.abl, desc: '' };
-    const moves = (pol.mvs || []).map(mvId => {
-      const mv = D.MOVES && D.MOVES[mvId];
-      if (!mv) return '';
-      return `<div class="dex-detail-move-row">
-        <span class="pb-type pb-type-${mv.tp}">${mv.tp}</span>
-        <span class="dex-detail-move-name">${mv.n}</span>
-        <span class="dex-detail-move-pw">PWR ${mv.pw||'—'}</span>
-      </div>`;
-    }).join('');
-    // Radar canvas
-    const radarId = 'dexRadar_' + pol.id;
-    content.innerHTML = `
-      <div class="dex-detail-top">
-        <div class="dex-detail-avatar">${AVTS[pol.svgId]||''}</div>
-        <div class="dex-detail-info">
-          <div class="dex-detail-name">${pol.n} ${pol.e||''}</div>
-          <div class="dex-detail-ttl">${pol.ttl||''}</div>
-          <div style="margin-bottom:6px">${types}</div>
-          <div class="dex-detail-fl">"${pol.fl||''}"</div>
-          <div class="dex-detail-abl">Ability: ${abl.n || pol.abl}${abl.desc ? ' — '+abl.desc : ''}</div>
-          <div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-top:4px">Nature: ${pol.nat} · BST: ${bst}</div>
-        </div>
-      </div>
-      <div class="dex-radar-wrap"><canvas id="${radarId}" width="260" height="180"></canvas></div>
-      <div class="dex-detail-moves">
-        <div class="dex-detail-moves-title">Moves</div>
-        ${moves}
-      </div>`;
+    // Default stub — pb-dex.html overrides with its rich modal
+    var modal = document.getElementById('dex-modal');
+    if (!modal) return;
+
+    var content = document.getElementById('modal-content');
+    if (content) {
+      content.innerHTML =
+        '<h2>' + (pol.e || '') + ' ' + pol.n + '</h2>' +
+        '<p>Types: ' + (pol.tps || []).join(', ') + '</p>' +
+        '<p>Ability: ' + (pol.abl || 'None') + '</p>';
+    }
     modal.classList.add('open');
-    // Draw radar chart
-    requestAnimationFrame(() => this._drawRadar(radarId, pol.bs));
   },
 
-  _drawRadar(canvasId, bs) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
-    const cx = W / 2, cy = H / 2 + 10;
-    const r = Math.min(W, H) * 0.38;
-    const keys = ['hp','atk','def','spa','spd','spe'];
-    const labels = ['HP','ATK','DEF','SP.A','SP.D','SPE'];
-    const maxV = 180;
-    const n = keys.length;
+  // Draw a radar chart for base stats (canvas-based)
+  _drawRadar(canvasId, baseStats, nature) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || !canvas.getContext) return;
+
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width;
+    var H = canvas.height;
+    var cx = W / 2;
+    var cy = H / 2;
+    var R  = Math.min(cx, cy) * 0.78;
+
+    var labels = ['HP', 'ATK', 'DEF', 'SPA', 'SPD', 'SPE'];
+    var keys   = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+    var MAX    = 150;
+    var n      = labels.length;
+    var step   = (Math.PI * 2) / n;
+    var offset = -Math.PI / 2; // start from top
+
     ctx.clearRect(0, 0, W, H);
-    // Grid
-    for (let ring = 1; ring <= 4; ring++) {
+
+    // Background rings
+    ctx.strokeStyle = 'rgba(100,116,139,0.15)';
+    ctx.lineWidth   = 1;
+    for (var ring = 1; ring <= 3; ring++) {
       ctx.beginPath();
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-        const rr = r * ring / 4;
-        const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      var rr = R * (ring / 3);
+      for (var i = 0; i <= n; i++) {
+        var a = offset + step * (i % n);
+        var px = cx + Math.cos(a) * rr;
+        var py = cy + Math.sin(a) * rr;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
       }
-      ctx.closePath();
-      ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.stroke();
+      ctx.stroke();
     }
-    // Axes
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+
+    // Axis lines + labels
+    ctx.fillStyle = 'rgba(100,116,139,0.7)';
+    ctx.font      = '10px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    for (var i = 0; i < n; i++) {
+      var a = offset + step * i;
+      var ex = cx + Math.cos(a) * R;
+      var ey = cy + Math.sin(a) * R;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.stroke();
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      // Label
+      var lx = cx + Math.cos(a) * (R + 14);
+      var ly = cy + Math.sin(a) * (R + 14);
+      ctx.fillText(labels[i], lx, ly + 3);
     }
-    // Data
+
+    // Data polygon
+    var STAT_COLORS = {
+      hp: '#22c55e', atk: '#ef4444', def: '#f59e0b',
+      spa: '#818cf8', spd: '#06b6d4', spe: '#ec4899'
+    };
     ctx.beginPath();
-    keys.forEach((k, i) => {
-      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-      const v = Math.min(bs[k] || 0, maxV) / maxV;
-      const x = cx + Math.cos(a) * r * v, y = cy + Math.sin(a) * r * v;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
+    for (var i = 0; i < n; i++) {
+      var val = baseStats[keys[i]] || 0;
+      var frac = Math.min(val / MAX, 1);
+      var a = offset + step * i;
+      var px = cx + Math.cos(a) * R * frac;
+      var py = cy + Math.sin(a) * R * frac;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
     ctx.closePath();
-    ctx.fillStyle = 'rgba(58,134,255,.3)'; ctx.fill();
-    ctx.strokeStyle = '#3a86ff'; ctx.lineWidth = 2; ctx.stroke();
-    // Labels
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.font = '9px "Press Start 2P", monospace';
-    ctx.textAlign = 'center';
-    labels.forEach((lbl, i) => {
-      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-      const x = cx + Math.cos(a) * (r + 16), y = cy + Math.sin(a) * (r + 16) + 4;
-      ctx.fillText(lbl, x, y);
-    });
-  },
+    ctx.fillStyle   = 'rgba(99,102,241,0.25)';
+    ctx.strokeStyle = 'rgba(99,102,241,0.8)';
+    ctx.lineWidth   = 2;
+    ctx.fill();
+    ctx.stroke();
 
-  // ─── TEAM BUILD HELPERS ─────────────────────────────────────────────────────
-  _buildTypePills() {
-    const container = document.getElementById('tbTypePills');
-    if (!container || !window.PBData) return;
-    const types = Object.keys(window.PBData.TC || {});
-    const TCOL = window.PBData.TCOL || {};
-    types.forEach(t => {
-      const pill = document.createElement('button');
-      pill.className = 'tb-pill pb-type-' + t;
-      pill.textContent = t;
-      pill.style.color = '#fff';
-      pill.onclick = () => {
-        this._tbActiveType = this._tbActiveType === t ? null : t;
-        document.querySelectorAll('.tb-pill').forEach(p => p.classList.remove('active'));
-        if (this._tbActiveType) pill.classList.add('active');
-        this._renderPolGrid();
-      };
-      container.appendChild(pill);
-    });
-  },
-
-  _onTBSearch(val) {
-    clearTimeout(this._tbSearchDebounce);
-    this._tbSearchDebounce = setTimeout(() => this._renderPolGrid(), 200);
-  },
-
-  _renderPolGrid() {
-    const grid = document.getElementById('tbGrid');
-    if (!grid || !window.PBData) return;
-    const POLS = window.PBData.POLS || [];
-    const AVTS = window.PBData.AVATARS || {};
-    const query = (document.getElementById('tbSearch')?.value || '').toLowerCase();
-    const sortVal = document.getElementById('tbSort')?.value || 'name';
-    let filtered = POLS.filter(p => {
-      if (query && !p.n.toLowerCase().includes(query)) return false;
-      if (this._tbActiveType && !(p.tps||[]).includes(this._tbActiveType)) return false;
-      return true;
-    });
-    const bst = p => Object.values(p.bs).reduce((a, b) => a + b, 0);
-    filtered.sort((a, b) => {
-      if (sortVal === 'name') return a.n.localeCompare(b.n);
-      if (sortVal === 'bst') return bst(b) - bst(a);
-      return (b.bs[sortVal]||0) - (a.bs[sortVal]||0);
-    });
-    grid.innerHTML = '';
-    filtered.forEach(pol => {
-      const types = (pol.tps||[]).map(t => `<span class="pb-type pb-type-${t}">${t}</span>`).join('');
-      const total = bst(pol);
-      const card = document.createElement('div');
-      card.className = 'tb-pol-card' + (this._tbSelectedIds.has(pol.id) ? ' selected' : '');
-      card.innerHTML = `
-        <div>${AVTS[pol.svgId]||`<div style="font-size:2rem;height:93px;display:flex;align-items:center;justify-content:center">${pol.e||'❓'}</div>`}</div>
-        <div class="tb-pol-name">${pol.n}</div>
-        <div class="tb-pol-types">${types}</div>
-        <div class="tb-pol-bst">BST ${total}</div>`;
-      card.onclick = () => this._tbTogglePol(pol.id, card);
-      card.ondblclick = () => this._openDexDetail(pol);
-      grid.appendChild(card);
-    });
-    this._updateTBSlots();
-    this._updateTBAnalysis();
-  },
-
-  _tbTogglePol(polId, card) {
-    if (this._tbSelectedIds.has(polId)) {
-      this._tbSelectedIds.delete(polId);
-      card.classList.remove('selected');
-    } else {
-      if (this._tbSelectedIds.size >= 6) return;
-      this._tbSelectedIds.add(polId);
-      card.classList.add('selected');
-    }
-    this._updateTBSlots();
-    this._updateTBAnalysis();
-    const confirm = document.getElementById('tbConfirm');
-    if (confirm) confirm.classList.toggle('enabled', this._tbSelectedIds.size > 0);
-  },
-
-  _updateTBSlots() {
-    const POLS = window.PBData.POLS || [];
-    const AVTS = window.PBData.AVATARS || {};
-    const slotsEl = document.getElementById('tbSlots');
-    if (!slotsEl) return;
-    slotsEl.innerHTML = '';
-    const selectedPols = POLS.filter(p => this._tbSelectedIds.has(p.id));
-    for (let i = 0; i < 6; i++) {
-      const slot = document.createElement('div');
-      const pol = selectedPols[i];
-      slot.className = 'tb-slot' + (pol ? ' filled' : '');
-      if (pol) {
-        slot.innerHTML = AVTS[pol.svgId] || `<div style="font-size:1.5rem">${pol.e||'❓'}</div>`;
-        slot.title = pol.n;
-        slot.onclick = () => { this._tbSelectedIds.delete(pol.id); this._renderPolGrid(); };
-      }
-      slotsEl.appendChild(slot);
+    // Stat value dots
+    for (var i = 0; i < n; i++) {
+      var val = baseStats[keys[i]] || 0;
+      var frac = Math.min(val / MAX, 1);
+      var a = offset + step * i;
+      var px = cx + Math.cos(a) * R * frac;
+      var py = cy + Math.sin(a) * R * frac;
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fillStyle = STAT_COLORS[keys[i]] || '#6366f1';
+      ctx.fill();
     }
   },
 
-  _updateTBAnalysis() {
-    const POLS = window.PBData.POLS || [];
-    const selected = POLS.filter(p => this._tbSelectedIds.has(p.id));
-    const bst = selected.reduce((s, p) => s + Object.values(p.bs).reduce((a,b)=>a+b,0), 0);
-    document.getElementById('tbBST').textContent = bst || '0';
-    // Weaknesses: types where 2+ fighters are weak
-    const TC = window.PBData.TC || {};
-    const allTypes = Object.keys(TC);
-    const weakMap = {};
-    selected.forEach(p => {
-      allTypes.forEach(atkType => {
-        const multi = (p.tps||[]).reduce((acc, defType) => acc * (TC[atkType]?.[defType]||1), 1);
-        if (multi >= 2) weakMap[atkType] = (weakMap[atkType]||0) + 1;
-      });
-    });
-    const weaknesses = Object.entries(weakMap).filter(([,c])=>c>=2).map(([t])=>t);
-    document.getElementById('tbWeaknesses').textContent = weaknesses.length ? weaknesses.join(', ') : 'None';
-    // Coverage: types your team has no super-effective move against
-    const coveredTypes = new Set();
-    selected.forEach(p => {
-      (p.mvs||[]).forEach(mvId => {
-        const mv = window.PBData.MOVES?.[mvId];
-        if (!mv) return;
-        allTypes.forEach(defType => {
-          if ((TC[mv.tp]?.[defType]||1) >= 2) coveredTypes.add(defType);
-        });
-      });
-    });
-    const uncovered = allTypes.filter(t => !coveredTypes.has(t));
-    document.getElementById('tbCoverage').textContent = uncovered.length ? uncovered.join(', ') : 'All covered!';
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NAVIGATION HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  goHome() {
+    window.location.href = '/politibattle';
   },
 
-  _randomizeTeam() {
-    const POLS = window.PBData.POLS || [];
-    const shuffled = [...POLS].sort(() => Math.random() - .5).slice(0, 6);
-    this._tbSelectedIds = new Set(shuffled.map(p => p.id));
-    this._renderPolGrid();
-    const confirm = document.getElementById('tbConfirm');
-    if (confirm) confirm.classList.add('enabled');
+  goTeam() {
+    window.location.href = '/politibattle/team';
   },
 
-  _confirmTeam() {
-    if (this._tbSelectedIds.size === 0) return;
-    const POLS = window.PBData.POLS || [];
-    const rawTeam = POLS.filter(p => this._tbSelectedIds.has(p.id));
-    const E = window.PBEngine;
-    this._playerTeam = rawTeam.map(p => E.buildFighter(p, true));
-    this._playerTeamData = rawTeam;
-    try { sessionStorage.setItem('pb_playerTeam', JSON.stringify(rawTeam.map(p=>p.id))); } catch(e){}
-    // Generate AI team
-    const rawAiTeam = window.PBAI.generateAITeam('normal');
-    this._aiTeam = rawAiTeam.map(p => E.buildFighter(p, false));
-    this._aiTeamData = rawAiTeam;
-    this.showPreview(rawTeam, rawAiTeam);
+  goPreview() {
+    window.location.href = '/politibattle/preview';
+  },
+
+  goBattle() {
+    window.location.href = '/politibattle/battle';
+  },
+
+  goVictory() {
+    window.location.href = '/politibattle/victory';
+  },
+
+  goDex() {
+    window.location.href = '/politibattle/dex';
+  },
+
+  goArena() {
+    window.location.href = '/arena';
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SESSION HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  _ssGet(key) {
+    try { return JSON.parse(sessionStorage.getItem(key)); } catch (e) { return null; }
+  },
+
+  _ssSet(key, data) {
+    try { sessionStorage.setItem(key, JSON.stringify(data)); } catch (e) {
+      console.error('[PolitiBattle] sessionStorage write failed:', key, e);
+    }
+  },
+
+  _ssRemove(key) {
+    try { sessionStorage.removeItem(key); } catch (e) {}
+  },
+
+  _lsGet(key) {
+    try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+  },
+
+  _lsSet(key, data) {
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CLEANUP — call when leaving a battle page to free memory
+  // ═══════════════════════════════════════════════════════════════════════════
+  _cleanup() {
+    this._battle     = null;
+    this._battleBusy = false;
+    this._playerTeam = null;
+    this._aiTeam     = null;
+    this._aiLeadIdx  = null;
+    var UI = window.PBUI;
+    if (UI && typeof UI.stopTimer === 'function') UI.stopTimer();
   },
 
 }; // end window.PolitiBattle
-
-document.addEventListener('DOMContentLoaded', () => PolitiBattle.init());
