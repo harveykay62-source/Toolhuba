@@ -63,10 +63,10 @@
     .timer-label{font-family:'Orbitron',sans-serif;font-size:.65rem;color:#f87171;margin-top:2px}
 
     /* ── Teams area ── */
-    #teams-area{flex:1;display:flex;min-height:0;padding:0 12px;gap:0}
+    #teams-area{flex:1;display:flex;min-height:0;padding:0 12px;gap:0;align-items:flex-start}
 
     /* Team column */
-    .team-col{flex:1;display:flex;flex-direction:column;min-height:0;padding:8px}
+    .team-col{flex:1;display:flex;flex-direction:column;padding:8px;height:fit-content}
     .team-label{font-family:'Bebas Neue',sans-serif;font-size:clamp(.9rem,1.8vw,1.2rem);letter-spacing:3px;text-align:center;margin-bottom:6px;flex-shrink:0}
     .team-label.player-label{color:var(--blue)}
     .team-label.ai-label{color:var(--red)}
@@ -402,7 +402,7 @@
     var total = 30;
     timeLeft = total;
 
-    timerInterval = setInterval(function() {
+    function tick() {
       timeLeft--;
       var pct = (timeLeft / total) * 100;
       bar.style.width = pct + '%';
@@ -416,12 +416,12 @@
 
       if (timeLeft <= 0) {
         clearInterval(timerInterval);
-        /* Auto-select first fighter if none chosen */
-        if (selectedIdx === null) {
-          selectLead(0);
-        }
+        if (selectedIdx === null) { selectLead(0); }
       }
-    }, 1000);
+    }
+
+    tick(); // update immediately so display isn't stale for first second
+    timerInterval = setInterval(tick, 1000);
   }
 
   /* ── Starfield generator ── */

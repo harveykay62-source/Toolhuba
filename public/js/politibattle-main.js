@@ -258,13 +258,26 @@ window.PolitiBattle = {
     var serializeTeam = function (team) {
       return team.map(function (f) {
         if (typeof f === 'string') return f;
-        return f.id || f;
-      });
+        var id = f.id || f.polId || (f.pol && f.pol.id);
+        if (!id) {
+          console.error('[PolitiBattle] serializeTeam: fighter missing .id', f);
+          return null;
+        }
+        return id;
+      }).filter(Boolean);
     };
 
+    var pSerialized = serializeTeam(playerTeam);
+    var aSerialized = serializeTeam(aiTeam);
+
+    if (pSerialized.length === 0 || aSerialized.length === 0) {
+      console.error('[PolitiBattle] _launchBattleFromPreview: serialization produced empty team', {pSerialized, aSerialized, playerTeam, aiTeam});
+      return;
+    }
+
     var config = {
-      playerTeam:    serializeTeam(playerTeam),
-      aiTeam:        serializeTeam(aiTeam),
+      playerTeam:    pSerialized,
+      aiTeam:        aSerialized,
       playerLeadIdx: playerLeadIdx,
       aiLeadIdx:     aiLeadIdx,
       mode:          'vsAI',
@@ -328,8 +341,8 @@ window.PolitiBattle = {
 
     // 3. Create battle state
     var battle = E.createBattle(pTeam, aTeam);
-    var pLeadIdx = raw.playerLeadIdx || 0;
-    var aLeadIdx = raw.aiLeadIdx || 0;
+    var pLeadIdx = (raw.playerLeadIdx != null) ? raw.playerLeadIdx : 0;
+    var aLeadIdx = (raw.aiLeadIdx != null) ? raw.aiLeadIdx : 0;
     if (pLeadIdx >= pTeam.length) pLeadIdx = 0;
     if (aLeadIdx >= aTeam.length) aLeadIdx = 0;
     battle.pIdx = pLeadIdx;
